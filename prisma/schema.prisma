@@ -1,0 +1,196 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── 사용자 ───────────────────────────────────────────
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String?
+  image        String?
+  birthDate    DateTime?
+  calendarType String?   @default("solar")
+  ohaengType   String?
+  createdAt    DateTime  @default(now())
+
+  accounts      Account[]
+  orders        Order[]
+  cartItems     CartItem[]
+  wishlist      WishlistItem[]
+  reviews       Review[]
+  subscriptions Subscription[]
+}
+
+model Account {
+  id                String @id @default(cuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  user              User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+// ─── 상품 ───────────────────────────────────────────
+
+model Product {
+  id            String   @id @default(cuid())
+  name          String
+  description   String
+  price         Int
+  stock         Int      @default(0)
+  category      String
+  images        String[]
+  flowerMeaning String?
+  ohaengTags    String[]
+  seasonTags    String[]
+  colorTags     String[]
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  wishlist   WishlistItem[]
+  reviews    Review[]
+  customBase CustomBase?
+}
+
+// ─── 장바구니 ────────────────────────────────────────
+
+model CartItem {
+  id        String  @id @default(cuid())
+  userId    String
+  productId String
+  quantity  Int     @default(1)
+  options   Json?
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([userId, productId])
+}
+
+// ─── 주문 ───────────────────────────────────────────
+
+model Order {
+  id            String      @id @default(cuid())
+  userId        String
+  status        OrderStatus @default(PENDING)
+  totalAmount   Int
+  shippingFee   Int         @default(0)
+  deliveryType  String
+  deliveryAt    DateTime?
+  shippingAddr  Json
+  giftMessage   String?
+  giftWrapping  Boolean     @default(false)
+  paymentId     String?
+  paymentMethod String?
+  qrCode        String?     @unique
+  createdAt     DateTime    @default(now())
+
+  user  User        @relation(fields: [userId], references: [id])
+  items OrderItem[]
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PREPARING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Int
+
+  order   Order   @relation(fields: [orderId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+}
+
+// ─── 위시리스트 ──────────────────────────────────────
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([userId, productId])
+}
+
+// ─── 리뷰 ───────────────────────────────────────────
+
+model Review {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  rating    Int
+  content   String
+  images    String[]
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+}
+
+// ─── 구독 ───────────────────────────────────────────
+
+model Subscription {
+  id           String             @id @default(cuid())
+  userId       String
+  cycle        SubscriptionCycle
+  status       SubscriptionStatus @default(ACTIVE)
+  nextDelivery DateTime
+  preferences  Json?
+  createdAt    DateTime           @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+enum SubscriptionCycle {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+}
+
+// ─── 꽃다발 커스텀 ───────────────────────────────────
+
+model CustomBase {
+  id         String @id @default(cuid())
+  productId  String @unique
+  basePrice  Int
+  maxFlowers Int    @default(5)
+
+  product Product        @relation(fields: [productId], references: [id])
+  options CustomOption[]
+}
+
+model CustomOption {
+  id         String @id @default(cuid())
+  baseId     String
+  flowerName String
+  color      String
+  addPrice   Int
+  imageUrl   String
+
+  base CustomBase @relation(fields: [baseId], references: [id])
+}
