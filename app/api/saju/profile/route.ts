@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { supabaseAdmin } from "@/lib/supabase"
 
-export async function GET() {
-  const session = await auth()
+export const GET = auth(async function GET(req) {
+  const session = req.auth
   if (!session?.user?.email) return NextResponse.json(null)
 
   const { data } = await supabaseAdmin
@@ -17,15 +17,17 @@ export async function GET() {
   return NextResponse.json({
     name: data.sajuName ?? session.user.name ?? "",
     gender: data.gender ?? "female",
-    birthDate: data.birthDate?.slice(0, 10) ?? "",
+    birthDate: typeof data.birthDate === "string"
+      ? data.birthDate.slice(0, 10)
+      : new Date(data.birthDate).toISOString().slice(0, 10),
     calendarType: data.calendarType ?? "solar",
     birthHour: data.birthHour ?? "unknown",
     city: data.city ?? "",
   })
-}
+})
 
-export async function POST(req: NextRequest) {
-  const session = await auth()
+export const POST = auth(async function POST(req) {
+  const session = req.auth
   if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const { name, gender, birthDate, calendarType, birthHour, city } = await req.json()
@@ -36,4 +38,4 @@ export async function POST(req: NextRequest) {
     .eq("email", session.user.email)
 
   return NextResponse.json({ ok: true })
-}
+})
