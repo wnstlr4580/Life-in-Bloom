@@ -25,6 +25,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 
 const nextAuth = NextAuth({
   providers,
+  trustHost: true,
   session: { strategy: "jwt" },
   callbacks: {
     jwt: ({ token, user }) => {
