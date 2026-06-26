@@ -1,21 +1,19 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { supabaseAdmin } from "@/lib/supabase"
 import { auth } from "@/lib/auth"
+import { nanoid } from "nanoid"
 
 export async function GET() {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const items = await prisma.cartItem.findMany({
-    where: { userId: session.user.id },
-    include: {
-      product: {
-        select: { id: true, name: true, price: true, images: true, stock: true },
-      },
-    },
-  })
+  const { data, error } = await supabaseAdmin
+    .from("CartItem")
+    .select("*, product:Product(id, name, price, images, stock)")
+    .eq("userId", session.user.id)
 
-  return NextResponse.json(items)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json(data ?? [])
 }
 
 export async function POST(req: NextRequest) {
@@ -23,15 +21,30 @@ export async function POST(req: NextRequest) {
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const { productId, quantity = 1 } = await req.json()
+  const userId = session.user.id
 
-  const item = await prisma.cartItem.upsert({
-    where: { userId_productId: { userId: session.user.id, productId } },
-    update: { quantity: { increment: quantity } },
-    create: { userId: session.user.id, productId, quantity },
-    include: {
-      product: { select: { id: true, name: true, price: true, images: true } },
-    },
-  })
+  const { data: existing } = await supabaseAdmin
+    .from("CartItem")
+    .select("id, quantity")
+    .eq("userId", userId)
+    .eq("productId", productId)
+    .single()
 
-  return NextResponse.json(item)
+  if (existing) {
+    const { data } = await supabaseAdmin
+      .from("CartItem")
+      .update({ quantity: existing.quantity + quantity })
+      .eq("id", existing.id)
+      .select("*, product:Product(id, name, price, images)")
+      .single()
+    return NextResponse.json(data)
+  }
+
+  const { data } = await supabaseAdmin
+    .from("CartItem")
+    .insert({ id: nanoid(), userId, productId, quantity })
+    .select("*, product:Product(id, name, price, images)")
+    .single()
+
+  return NextResponse.json(data)
 }

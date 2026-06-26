@@ -35,17 +35,17 @@ export default function ProductsPage() {
   }, [category])
 
   return (
-    <main className="min-h-screen bg-stone-50">
-      <div className="max-w-2xl mx-auto px-4 py-8">
-        <h1 className="text-xl font-bold text-stone-800 mb-6">꽃 & 식물</h1>
+    <div className="max-w-6xl mx-auto px-6 py-10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <h1 className="text-2xl font-bold text-stone-800">꽃 & 식물</h1>
 
         {/* 카테고리 필터 */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
+        <div className="flex gap-2 flex-wrap">
           {CATEGORIES.map((c) => (
             <button
               key={c.value}
               onClick={() => setCategory(c.value)}
-              className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+              className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
                 category === c.value
                   ? "bg-rose-400 border-rose-400 text-white"
                   : "bg-white border-stone-200 text-stone-600 hover:border-rose-300"
@@ -55,27 +55,26 @@ export default function ProductsPage() {
             </button>
           ))}
         </div>
-
-        {/* 상품 그리드 */}
-        {loading ? (
-          <div className="grid grid-cols-2 gap-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-2xl aspect-[3/4] animate-pulse" />
-            ))}
-          </div>
-        ) : products.length === 0 ? (
-          <div className="text-center py-20 text-stone-400">
-            <p className="text-3xl mb-3">🌱</p>
-            <p className="text-sm">상품이 없습니다</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {products.map((p) => (
-              <ProductCard key={p.id} {...p} />
-            ))}
-          </div>
-        )}
       </div>
-    </main>
+
+      {loading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl aspect-[3/4] animate-pulse" />
+          ))}
+        </div>
+      ) : products.length === 0 ? (
+        <div className="text-center py-32 text-stone-400">
+          <p className="text-4xl mb-4">🌱</p>
+          <p>상품이 없습니다</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {products.map((p) => (
+            <ProductCard key={p.id} {...p} />
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

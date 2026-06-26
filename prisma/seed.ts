@@ -1,7 +1,22 @@
+import { config } from "dotenv"
+config({ path: ".env.local" })
+
 import { PrismaClient } from "../lib/generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
+import { Pool } from "pg"
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
+const rawUrl = process.env.DATABASE_URL!.replace("?pgbouncer=true", "").replace("&pgbouncer=true", "")
+const url = new URL(rawUrl)
+const pool = new Pool({
+  host: url.hostname,
+  port: Number(url.port) || 5432,
+  database: url.pathname.slice(1),
+  user: url.username,
+  password: decodeURIComponent(url.password),
+  ssl: { rejectUnauthorized: false },
+  max: 1,
+})
+const adapter = new PrismaPg(pool)
 const prisma = new PrismaClient({ adapter })
 
 async function main() {

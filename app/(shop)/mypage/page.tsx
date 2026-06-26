@@ -1,0 +1,163 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { useSession, signIn, signOut } from "next-auth/react"
+import { Button } from "@/components/ui/button"
+import { Package, LogOut, User, ChevronRight } from "lucide-react"
+import Image from "next/image"
+
+const STATUS_LABEL: Record<string, string> = {
+  PENDING: "결제 대기", PAID: "결제 완료", PREPARING: "준비 중",
+  SHIPPED: "배송 중", DELIVERED: "배송 완료", CANCELLED: "취소됨",
+}
+const STATUS_COLOR: Record<string, string> = {
+  PENDING: "bg-yellow-100 text-yellow-700", PAID: "bg-blue-100 text-blue-700",
+  PREPARING: "bg-purple-100 text-purple-700", SHIPPED: "bg-indigo-100 text-indigo-700",
+  DELIVERED: "bg-green-100 text-green-700", CANCELLED: "bg-stone-100 text-stone-500",
+}
+
+interface OrderItem {
+  id: string; quantity: number; price: number
+  product: { id: string; name: string; images: string[] }
+}
+interface Order {
+  id: string; status: string; totalAmount: number; createdAt: string; items: OrderItem[]
+}
+
+export default function MyPage() {
+  const { data: session, status } = useSession()
+  const [orders, setOrders] = useState<Order[]>([])
+  const [loadingOrders, setLoadingOrders] = useState(false)
+
+  useEffect(() => {
+    if (!session?.user) return
+    setLoadingOrders(true)
+    fetch("/api/orders").then((r) => r.json()).then((d) => setOrders(d.orders ?? [])).finally(() => setLoadingOrders(false))
+  }, [session])
+
+  if (status === "loading") {
+    return <div className="max-w-6xl mx-auto px-6 py-32 flex justify-center"><div className="w-8 h-8 border-2 border-rose-300 border-t-transparent rounded-full animate-spin" /></div>
+  }
+
+  if (!session?.user) {
+    return (
+      <div className="max-w-6xl mx-auto px-6 py-32 flex flex-col items-center gap-8 text-center">
+        <div className="space-y-3">
+          <p className="text-5xl">🌸</p>
+          <h2 className="text-2xl font-bold text-stone-800">로그인하고 내 꽃을 관리하세요</h2>
+          <p className="text-stone-400">주문 내역, 위시리스트를 확인할 수 있어요</p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Button onClick={() => signIn("kakao")} className="h-12 px-8 bg-[#FEE500] hover:bg-[#F5D800] text-stone-800 font-semibold">
+            카카오로 시작하기
+          </Button>
+          <Button onClick={() => signIn("google")} variant="outline" className="h-12 px-8 font-semibold">
+            Google로 시작하기
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto px-6 py-10">
+      <h1 className="text-2xl font-bold text-stone-800 mb-8">마이페이지</h1>
+
+      <div className="flex flex-col lg:flex-row gap-8">
+        {/* 사이드바 */}
+        <div className="lg:w-64 shrink-0 space-y-4">
+          {/* 프로필 카드 */}
+          <div className="bg-white rounded-2xl p-6 border border-stone-100 space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-full overflow-hidden bg-rose-50 flex items-center justify-center shrink-0">
+                {session.user.image ? (
+                  <Image src={session.user.image} alt="" width={56} height={56} className="object-cover" />
+                ) : (
+                  <User size={28} className="text-rose-300" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="font-bold text-stone-800 truncate">{session.user.name ?? "꽃 애호가"}</p>
+                <p className="text-xs text-stone-400 truncate">{session.user.email}</p>
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => signOut({ callbackUrl: "/" })} className="w-full gap-2 text-stone-500">
+              <LogOut size={14} /> 로그아웃
+            </Button>
+          </div>
+
+          {/* 메뉴 */}
+          <div className="bg-white rounded-2xl border border-stone-100 overflow-hidden">
+            {[
+              { label: "주문 내역", emoji: "📦" },
+              { label: "위시리스트", emoji: "🤍" },
+              { label: "나의 오행 분석", emoji: "🔮" },
+              { label: "알림 설정", emoji: "🔔" },
+              { label: "이용약관", emoji: "📋" },
+            ].map(({ label, emoji }) => (
+              <button key={label} className="w-full flex items-center justify-between px-4 py-3.5 border-b last:border-0 border-stone-50 hover:bg-stone-50 transition-colors text-left">
+                <span className="text-sm text-stone-700 flex items-center gap-2"><span>{emoji}</span>{label}</span>
+                <ChevronRight size={14} className="text-stone-300" />
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 메인 컨텐츠 — 주문 내역 */}
+        <div className="flex-1">
+          <div className="bg-white rounded-2xl border border-stone-100 overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-stone-50">
+              <h2 className="font-semibold text-stone-800 flex items-center gap-2">
+                <Package size={16} /> 주문 내역
+              </h2>
+              <span className="text-sm text-stone-400">{orders.length}건</span>
+            </div>
+
+            {loadingOrders ? (
+              <div className="py-16 flex justify-center"><div className="w-6 h-6 border-2 border-rose-300 border-t-transparent rounded-full animate-spin" /></div>
+            ) : orders.length === 0 ? (
+              <div className="py-20 text-center text-stone-400">
+                <p className="text-3xl mb-3">📦</p>
+                <p className="text-sm">아직 주문 내역이 없어요</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-stone-50">
+                {orders.map((order) => (
+                  <div key={order.id} className="p-6 hover:bg-stone-50 transition-colors">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm text-stone-400">{new Date(order.createdAt).toLocaleDateString("ko-KR")}</span>
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_COLOR[order.status]}`}>
+                        {STATUS_LABEL[order.status]}
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      {order.items.slice(0, 2).map((item) => (
+                        <div key={item.id} className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-stone-50 flex items-center justify-center shrink-0 overflow-hidden">
+                            {item.product.images[0] ? (
+                              <Image src={item.product.images[0]} alt="" width={40} height={40} className="object-cover" />
+                            ) : <span>🌸</span>}
+                          </div>
+                          <span className="text-sm text-stone-700 flex-1 line-clamp-1">{item.product.name}</span>
+                          <span className="text-sm text-stone-400">×{item.quantity}</span>
+                          <span className="text-sm font-medium text-stone-800">{(item.price * item.quantity).toLocaleString()}원</span>
+                        </div>
+                      ))}
+                      {order.items.length > 2 && <p className="text-xs text-stone-400 pl-13">외 {order.items.length - 2}개</p>}
+                    </div>
+                    <div className="mt-3 flex items-center justify-between">
+                      <span className="font-bold text-stone-800">총 {order.totalAmount.toLocaleString()}원</span>
+                      <button className="text-sm text-rose-400 hover:text-rose-500 flex items-center gap-1">
+                        상세보기 <ChevronRight size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
