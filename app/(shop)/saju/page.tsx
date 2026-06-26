@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
+import { useSession } from "next-auth/react"
 import { BirthDateForm } from "@/components/saju/BirthDateForm"
 import { OhaengResult } from "@/components/saju/OhaengResult"
 import { OhaengBalance } from "@/components/saju/OhaengBalance"
@@ -45,15 +46,36 @@ interface SubmitData {
   calendarType: string
 }
 
+interface SavedProfile {
+  name: string
+  gender: string
+  birthDate: string
+  calendarType: string
+  birthHour: string
+  city: string
+}
+
 export default function SajuPage() {
+  const { data: session } = useSession()
   const [result, setResult] = useState<AnalyzeResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [birthYear, setBirthYear] = useState<number | null>(null)
   const [userName, setUserName] = useState("")
   const [fortuneOpen, setFortuneOpen] = useState(false)
+  const [savedProfile, setSavedProfile] = useState<SavedProfile | null>(null)
+  const [loadKey, setLoadKey] = useState(0)
 
-  const handleSubmit = async (data: SubmitData) => {
+  // 로그인 상태이면 저장된 프로필 불러오기
+  useEffect(() => {
+    if (!session?.user) return
+    fetch("/api/saju/profile")
+      .then(r => r.json())
+      .then(data => { if (data) setSavedProfile(data) })
+      .catch(() => {})
+  }, [session])
+
+  const handleSubmit = useCallback(async (data: SubmitData) => {
     setBirthYear(new Date(data.birthDate).getFullYear())
     setUserName(data.name)
     setLoading(true)
@@ -68,11 +90,26 @@ export default function SajuPage() {
       })
       if (!res.ok) throw new Error()
       setResult(await res.json())
+
+      // 로그인 상태이면 자동 저장
+      if (session?.user) {
+        fetch("/api/saju/profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        }).then(() => setSavedProfile(data)).catch(() => {})
+      }
     } catch {
       setError("잠시 후 다시 시도해 주세요")
     } finally {
       setLoading(false)
     }
+  }, [session])
+
+  // 저장된 데이터로 불러오기
+  const handleLoad = () => {
+    if (!savedProfile) return
+    setLoadKey(k => k + 1)
   }
 
   return (
@@ -86,10 +123,38 @@ export default function SajuPage() {
       </div>
 
       <div className="max-w-md mx-auto mb-4">
+        {/* 불러오기 버튼 */}
+        {session?.user && savedProfile && (
+          <button
+            onClick={handleLoad}
+            className="w-full flex items-center justify-between px-5 py-3 mb-3 rounded-xl bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-base">🌸</span>
+              <div className="text-left">
+                <p className="text-sm font-bold text-rose-700">저장된 정보 불러오기</p>
+                <p className="text-xs text-rose-400">
+                  {savedProfile.name} · {savedProfile.birthDate}
+                </p>
+              </div>
+            </div>
+            <span className="text-xs text-rose-500 font-medium">불러오기</span>
+          </button>
+        )}
+
         <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-8">
-          <BirthDateForm onSubmit={handleSubmit} loading={loading} />
+          <BirthDateForm
+            key={loadKey}
+            onSubmit={handleSubmit}
+            loading={loading}
+            defaultValues={loadKey > 0 ? savedProfile ?? undefined : undefined}
+          />
           {error && <p className="text-sm text-red-500 mt-3 text-center">{error}</p>}
         </div>
+
+        {session?.user && result && (
+          <p className="text-xs text-center text-stone-400 mt-2">✓ 정보가 저장됐어요</p>
+        )}
       </div>
 
       {/* 오늘의 운세 — 접힘 패널 */}

@@ -14,9 +14,19 @@ interface SubmitData {
   calendarType: string
 }
 
+interface DefaultValues {
+  name?: string
+  gender?: string
+  birthDate?: string
+  calendarType?: string
+  birthHour?: string
+  city?: string
+}
+
 interface Props {
   onSubmit: (data: SubmitData) => void
   loading: boolean
+  defaultValues?: DefaultValues
 }
 
 const ALL_CITIES = [
@@ -51,18 +61,33 @@ const currentYear = new Date().getFullYear()
 const YEARS = Array.from({ length: currentYear - 1919 }, (_, i) => currentYear - i)
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1)
 
-export function BirthDateForm({ onSubmit, loading }: Props) {
-  const [name, setName] = useState("")
-  const [gender, setGender] = useState<"male" | "female">("female")
-  const [year, setYear] = useState("")
-  const [month, setMonth] = useState("")
-  const [day, setDay] = useState("")
-  const [calendarType, setCalendarType] = useState("solar")
-  const [timeKnown, setTimeKnown] = useState(true)
-  const [ampm, setAmpm] = useState("오전")
-  const [timeHour, setTimeHour] = useState("")
-  const [timeMin, setTimeMin] = useState("")
-  const [cityQuery, setCityQuery] = useState("")
+export function BirthDateForm({ onSubmit, loading, defaultValues }: Props) {
+  const [name, setName] = useState(defaultValues?.name ?? "")
+  const [gender, setGender] = useState<"male" | "female">((defaultValues?.gender as "male" | "female") ?? "female")
+  const [year, setYear] = useState(defaultValues?.birthDate?.slice(0, 4) ?? "")
+  const [month, setMonth] = useState(defaultValues?.birthDate ? String(+defaultValues.birthDate.slice(5, 7)) : "")
+  const [day, setDay] = useState(defaultValues?.birthDate ? String(+defaultValues.birthDate.slice(8, 10)) : "")
+  const [calendarType, setCalendarType] = useState(defaultValues?.calendarType ?? "solar")
+  const [timeKnown, setTimeKnown] = useState(
+    !defaultValues?.birthHour || defaultValues.birthHour === "unknown" ? true : true
+  )
+  const [ampm, setAmpm] = useState(() => {
+    if (!defaultValues?.birthHour || defaultValues.birthHour === "unknown") return "오전"
+    const h = parseInt(defaultValues.birthHour)
+    return h >= 12 ? "오후" : "오전"
+  })
+  const [timeHour, setTimeHour] = useState(() => {
+    if (!defaultValues?.birthHour || defaultValues.birthHour === "unknown") return ""
+    const h = parseInt(defaultValues.birthHour)
+    if (h === 0) return "12"
+    if (h > 12) return String(h - 12)
+    return String(h)
+  })
+  const [timeMin, setTimeMin] = useState(() => {
+    if (!defaultValues?.birthHour || defaultValues.birthHour === "unknown") return ""
+    return defaultValues.birthHour.includes(":") ? defaultValues.birthHour.split(":")[1].padStart(2, "0") : ""
+  })
+  const [cityQuery, setCityQuery] = useState(defaultValues?.city ?? "")
   const [cityOpen, setCityOpen] = useState(false)
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 })
 
