@@ -2,6 +2,7 @@ import NextAuth from "next-auth"
 import type { Provider } from "next-auth/providers"
 import KakaoProvider from "next-auth/providers/kakao"
 import GoogleProvider from "next-auth/providers/google"
+import { supabaseAdmin } from "@/lib/supabase"
 
 const providers: Provider[] = []
 
@@ -28,6 +29,14 @@ const nextAuth = NextAuth({
   trustHost: true,
   session: { strategy: "jwt" },
   callbacks: {
+    signIn: async ({ user }) => {
+      if (!user.email) return true
+      await supabaseAdmin.from("User").upsert(
+        { id: user.id ?? user.email, email: user.email, name: user.name, image: user.image },
+        { onConflict: "email", ignoreDuplicates: false }
+      )
+      return true
+    },
     jwt: ({ token, user }) => {
       if (user) token.id = user.id
       return token
