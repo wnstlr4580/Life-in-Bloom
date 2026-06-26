@@ -82,7 +82,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => signIn()}
+                onClick={() => signIn("kakao")}
                 className="gap-1.5 text-stone-600"
               >
                 <LogIn size={18} />
