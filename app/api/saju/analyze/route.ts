@@ -1,50 +1,77 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
-import { analyzeOhaeng, OHAENG_PROFILE, getCurrentSeason } from "@/lib/saju"
+import { supabaseAdmin } from "@/lib/supabase"
+import { calculateSaju, getCurrentSeason } from "@/lib/saju"
+import type { Ohaeng } from "@/lib/saju"
+import { calcFortune } from "@/lib/fortune"
+
+const OHAENG_ALL: Ohaeng[] = ["목", "화", "토", "금", "수"]
 
 export async function POST(req: NextRequest) {
-  const { birthDate, calendarType = "solar" } = await req.json()
+  const { birthDate, calendarType = "solar", name, gender, birthHour = "unknown", city } = await req.json()
 
-  if (!birthDate) {
-    return NextResponse.json({ error: "birthDate is required" }, { status: 400 })
-  }
+  if (!birthDate) return NextResponse.json({ error: "birthDate is required" }, { status: 400 })
 
   const date = new Date(birthDate)
-  if (isNaN(date.getTime())) {
-    return NextResponse.json({ error: "Invalid date" }, { status: 400 })
-  }
+  if (isNaN(date.getTime())) return NextResponse.json({ error: "Invalid date" }, { status: 400 })
 
-  const ohaeng = analyzeOhaeng(date)
-  const profile = OHAENG_PROFILE[ohaeng]
+  const saju = calculateSaju(date, birthHour)
   const currentSeason = getCurrentSeason()
+  const fortune = calcFortune(saju.pillars, saju.mainOhaeng, new Date())
 
-  // 오행 태그로 상품 추천 (DB 미연결 시 빈 배열 반환)
-  let ohaengProducts: object[] = []
-  let seasonalProducts: object[] = []
+  // 오행 분포 계산 — 부족한 기운 판별
+  const raw: Record<Ohaeng, number> = { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 }
+  saju.pillars.forEach(p => { raw[p.stemOhaeng]++; raw[p.branchOhaeng]++ })
+  const total = Object.values(raw).reduce((a, b) => a + b, 0)
+  const pct = Object.fromEntries(
+    OHAENG_ALL.map(o => [o, total > 0 ? Math.round((raw[o] / total) * 100) : 0])
+  ) as Record<Ohaeng, number>
+  const lackingOhaeng = OHAENG_ALL.filter(o => pct[o] < 20)
 
-  try {
-    ;[ohaengProducts, seasonalProducts] = await Promise.all([
-      prisma.product.findMany({
-        where: { isActive: true, ohaengTags: { has: ohaeng } },
-        select: { id: true, name: true, price: true, images: true, flowerMeaning: true, category: true },
-        take: 4,
-      }),
-      prisma.product.findMany({
-        where: { isActive: true, seasonTags: { has: currentSeason } },
-        select: { id: true, name: true, price: true, images: true, flowerMeaning: true, category: true },
-        take: 4,
-      }),
-    ])
-  } catch {
-    // DB 미연결 상태에서도 오행 결과는 반환
-  }
+  // 부족한 기운별 상품 조회 + 대표 오행 상품 + 계절 상품 병렬 조회
+  const lackingQueries = lackingOhaeng.map(o =>
+    supabaseAdmin
+      .from("Product")
+      .select("id, name, price, images, flowerMeaning, category")
+      .eq("isActive", true)
+      .contains("ohaengTags", [o])
+      .limit(3)
+  )
+
+  const [ohaengResult, seasonalResult, ...lackingResults] = await Promise.all([
+    supabaseAdmin
+      .from("Product")
+      .select("id, name, price, images, flowerMeaning, category")
+      .eq("isActive", true)
+      .contains("ohaengTags", [saju.mainOhaeng])
+      .limit(4),
+    supabaseAdmin
+      .from("Product")
+      .select("id, name, price, images, flowerMeaning, category")
+      .eq("isActive", true)
+      .contains("seasonTags", [currentSeason])
+      .limit(4),
+    ...lackingQueries,
+  ])
+
+  const lackingProducts = lackingOhaeng.map((o, i) => ({
+    ohaeng: o,
+    products: lackingResults[i]?.data ?? [],
+  }))
 
   return NextResponse.json({
-    ohaeng,
-    profile,
-    calendarType,
+    ohaeng: saju.mainOhaeng,
+    profile: saju.profile,
+    pillars: saju.pillars,
+    hasHour: saju.hasHour,
+    name,
+    gender,
     birthDate,
-    recommendedFlowers: ohaengProducts,
-    seasonalFlowers: seasonalProducts,
+    birthHour,
+    city,
+    calendarType,
+    lackingProducts,
+    fortune,
+    recommendedFlowers: ohaengResult.data ?? [],
+    seasonalFlowers: seasonalResult.data ?? [],
   })
 }

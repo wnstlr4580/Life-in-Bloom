@@ -1,62 +1,134 @@
 "use client"
 
-import type { Ohaeng, OhaengProfile } from "@/lib/saju"
+import type { PillarInfo, Ohaeng } from "@/lib/saju"
 
-const OHAENG_EMOJI: Record<Ohaeng, string> = {
-  목: "🌿",
-  화: "🔥",
-  토: "🌾",
-  금: "✨",
-  수: "💧",
+const OHAENG_COLOR: Record<Ohaeng, { bg: string; border: string; badge: string; accent: string }> = {
+  목: { bg: "bg-emerald-50", border: "border-emerald-200", badge: "bg-emerald-100 text-emerald-700", accent: "text-emerald-600" },
+  화: { bg: "bg-rose-50",    border: "border-rose-200",    badge: "bg-rose-100 text-rose-700",       accent: "text-rose-500"   },
+  토: { bg: "bg-amber-50",   border: "border-amber-200",   badge: "bg-amber-100 text-amber-700",     accent: "text-amber-600"  },
+  금: { bg: "bg-slate-50",   border: "border-slate-200",   badge: "bg-slate-100 text-slate-700",     accent: "text-slate-600"  },
+  수: { bg: "bg-blue-50",    border: "border-blue-200",    badge: "bg-blue-100 text-blue-700",       accent: "text-blue-600"   },
 }
 
-const OHAENG_BG: Record<Ohaeng, string> = {
-  목: "from-green-50 to-emerald-50 border-green-200",
-  화: "from-red-50 to-orange-50 border-red-200",
-  토: "from-yellow-50 to-amber-50 border-yellow-200",
-  금: "from-gray-50 to-slate-50 border-gray-200",
-  수: "from-blue-50 to-indigo-50 border-blue-200",
+const OHAENG_NAME: Record<Ohaeng, string> = {
+  목: "나무(목)",
+  화: "불(화)",
+  토: "흙(토)",
+  금: "금(금)",
+  수: "물(수)",
 }
 
-const OHAENG_BADGE: Record<Ohaeng, string> = {
-  목: "bg-green-100 text-green-700",
-  화: "bg-red-100 text-red-700",
-  토: "bg-yellow-100 text-yellow-700",
-  금: "bg-gray-100 text-gray-700",
-  수: "bg-blue-100 text-blue-700",
+const PILLAR_LABEL: Record<string, string> = {
+  연주: "어린 시절",
+  월주: "청년 시절",
+  일주: "지금 나",
+  시주: "노년기",
 }
 
 interface Props {
-  ohaeng: Ohaeng
-  profile: OhaengProfile
+  pillars: PillarInfo[]
+  mainOhaeng: Ohaeng
+  name?: string
 }
 
-export function OhaengResult({ ohaeng, profile }: Props) {
+export function OhaengResult({ pillars, mainOhaeng, name }: Props) {
+  const mainColor = OHAENG_COLOR[mainOhaeng]
+  const dayPillar = pillars.find((p) => p.pillar === "일주")
+
   return (
-    <div className={`rounded-2xl border-2 bg-gradient-to-br p-6 ${OHAENG_BG[ohaeng]}`}>
-      <div className="flex items-center gap-3 mb-4">
-        <span className="text-4xl">{OHAENG_EMOJI[ohaeng]}</span>
-        <div>
-          <span className={`inline-block px-3 py-1 rounded-full text-sm font-bold mb-1 ${OHAENG_BADGE[ohaeng]}`}>
-            {ohaeng}(木火土金水)
-          </span>
-          <p className="text-xs text-stone-500">나의 오행 기운</p>
+    <div className="space-y-6">
+      {/* 헤더 — 나의 대표 기운 */}
+      <div className={`rounded-2xl border-2 p-5 ${mainColor.bg} ${mainColor.border}`}>
+        <div className="flex items-center gap-3">
+          <span className="text-3xl">{dayPillar?.metaphorEmoji ?? "🌸"}</span>
+          <div>
+            <p className="text-xs text-stone-500 mb-0.5">
+              {name ? `${name}님의 ` : ""}나의 대표 기운
+            </p>
+            <span className={`font-bold text-lg ${mainColor.accent}`}>
+              {OHAENG_NAME[mainOhaeng]} — {dayPillar?.stemName} 기운
+            </span>
+          </div>
         </div>
+        <p className="text-sm text-stone-600 mt-3 leading-relaxed">
+          {dayPillar?.description}
+        </p>
+        <p className={`text-xs mt-2 font-medium ${mainColor.accent}`}>
+          🌸 나를 닮은 꽃 — {dayPillar?.flower}
+        </p>
       </div>
 
-      <p className="text-stone-700 text-sm leading-relaxed mb-4">{profile.description}</p>
+      {/* 4주 타임라인 */}
+      <div className="space-y-3">
+        <p className="text-sm font-semibold text-stone-600 flex items-center gap-2">
+          <span>내 인생의 흐름</span>
+          <span className="text-stone-400 font-normal">뿌리 → 줄기 → 꽃 → 열매</span>
+        </p>
 
-      <div className="flex flex-wrap gap-2">
-        {profile.keywords.map((kw) => (
-          <span key={kw} className="px-2 py-1 bg-white/70 rounded-full text-xs text-stone-600">
-            #{kw}
-          </span>
-        ))}
-      </div>
+        {pillars.map((p, i) => {
+          const c = OHAENG_COLOR[p.stemOhaeng]
+          const isMain = p.pillar === "일주"
+          return (
+            <div key={p.pillar} className="flex gap-3">
+              {/* 타임라인 선 */}
+              <div className="flex flex-col items-center">
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-base shrink-0 border-2 ${
+                  isMain ? `${c.border} bg-white shadow-sm` : "border-stone-200 bg-stone-50"
+                }`}>
+                  {p.metaphorEmoji}
+                </div>
+                {i < pillars.length - 1 && (
+                  <div className="w-0.5 flex-1 bg-stone-200 my-1" />
+                )}
+              </div>
 
-      <div className="mt-4 pt-4 border-t border-white/50">
-        <p className="text-xs text-stone-500 mb-2">어울리는 꽃</p>
-        <p className="text-sm font-medium text-stone-700">{profile.flowerKeywords.join("  ·  ")}</p>
+              {/* 카드 */}
+              <div className={`flex-1 rounded-xl border p-4 mb-3 ${isMain ? `${c.bg} ${c.border} shadow-sm` : "bg-white border-stone-100"}`}>
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full mr-2 ${c.badge}`}>
+                      {OHAENG_NAME[p.stemOhaeng]}
+                    </span>
+                    <span className="text-xs text-stone-400">{p.lifeStage}</span>
+                  </div>
+                  <div className="text-right shrink-0 ml-2">
+                    <p className="text-sm font-bold text-stone-700">{p.metaphor}</p>
+                    <p className="text-xs text-stone-400">{PILLAR_LABEL[p.pillar]} ({p.pillar})</p>
+                  </div>
+                </div>
+
+                <p className="text-xs text-stone-600 leading-relaxed mb-2">{p.description}</p>
+
+                <div className={`text-xs flex items-center gap-1 ${c.accent} font-medium`}>
+                  🌸 {p.flower}
+                  <span className="text-stone-400 font-normal ml-1">— {p.flowerDesc}</span>
+                </div>
+
+                {/* 하늘·땅 기운 뱃지 */}
+                <div className="flex gap-1.5 mt-2">
+                  <span className="text-[10px] bg-white/80 border border-stone-200 px-1.5 py-0.5 rounded text-stone-500">
+                    하늘 기운 {p.stemName}({p.stemChar}) · {p.stemOhaeng}
+                  </span>
+                  <span className="text-[10px] bg-white/80 border border-stone-200 px-1.5 py-0.5 rounded text-stone-500">
+                    땅 기운 {p.branchName}({p.branchChar}) · {p.branchOhaeng}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+
+        {pillars.length < 4 && (
+          <div className="flex gap-3">
+            <div className="w-9 h-9 rounded-full flex items-center justify-center border-2 border-dashed border-stone-200 shrink-0">
+              <span className="text-base">🍎</span>
+            </div>
+            <div className="flex-1 rounded-xl border border-dashed border-stone-200 p-4 mb-3 text-center">
+              <p className="text-xs text-stone-400">열매 기운 (노년기)</p>
+              <p className="text-xs text-stone-300 mt-1">태어난 시간을 입력하면 노년기 기운도 볼 수 있어요</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
