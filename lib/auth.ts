@@ -30,7 +30,7 @@ const nextAuth = NextAuth({
   session: { strategy: "jwt" },
   callbacks: {
     signIn: async ({ user }) => {
-      if (!user.email) return true
+      if (!user.email || !supabaseAdmin) return true
       await supabaseAdmin.from("User").upsert(
         { id: user.id ?? user.email, email: user.email, name: user.name, image: user.image },
         { onConflict: "email", ignoreDuplicates: false }
