@@ -8,4 +8,7 @@ const service = process.env.SUPABASE_SERVICE_ROLE_KEY
 export const supabase = url && anon ? createClient(url, anon) : null
 
 // 서버사이드 API 라우트용 (service role — RLS 우회)
-export const supabaseAdmin = url && service ? createClient(url, service) : null
+export const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
