@@ -195,3 +195,13 @@ model CustomOption {
 
   base CustomBase @relation(fields: [baseId], references: [id])
 }
+
+// ─── 오행 포토부스 (키오스크) ─────────────────────────
+
+model KioskPhoto {
+  id        String   @id @default(cuid())
+  ohaeng    String // "목" | "화" | "토" | "금" | "수"
+  imageUrl  String // Vercel Blob URL (합성 완료 이미지)
+  createdAt DateTime @default(now())
+  expiresAt DateTime // createdAt + 48h — 만료 후 /p/[id] 접근 불가, 크론으로 삭제
+}
