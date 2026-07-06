@@ -156,42 +156,89 @@ const STAGE_DESC: Record<"연주" | "월주" | "일주" | "시주", Record<Ohaen
   },
 }
 
-// 연주 계산
-function yearPillar(year: number): { stem: number; branch: number } {
-  const stem = ((year - 4) % 10 + 10) % 10
-  const branch = ((year - 4) % 12 + 12) % 12
+// ── 절기(節氣) 계산 ──────────────────────────────────────────
+// 사주의 연·월은 달력이 아니라 절기로 나뉜다: 입춘~경칩 = 인월(寅月) ...
+// 태양의 황경(黃經)을 천문 공식으로 계산해 절입 시각을 구한다 (오차 수 분 이내)
+const SOLAR_TERM_LONGITUDE = [285, 315, 345, 15, 45, 75, 105, 135, 165, 195, 225, 255]
+// index = 월-1: 1월 소한(285°), 2월 입춘(315°), 3월 경칩(345°), 4월 청명(15°) ...
+
+const DEG = Math.PI / 180
+
+function sunLongitude(jd: number): number {
+  const T = (jd - 2451545) / 36525
+  const L0 = 280.46646 + 36000.76983 * T + 0.0003032 * T * T
+  const M = (357.52911 + 35999.05029 * T - 0.0001537 * T * T) * DEG
+  const C =
+    (1.914602 - 0.004817 * T - 0.000014 * T * T) * Math.sin(M) +
+    (0.019993 - 0.000101 * T) * Math.sin(2 * M) +
+    0.000289 * Math.sin(3 * M)
+  const apparent = L0 + C - 0.00569 // 광행차 보정
+  return ((apparent % 360) + 360) % 360
+}
+
+// 해당 연·월 절기의 절입 시각 (UTC ms) — 이분 탐색으로 태양 황경 도달 시각을 찾는다
+function solarTermUTC(year: number, month: number): number {
+  const target = SOLAR_TERM_LONGITUDE[month - 1]
+  const angleDiff = (t: number) =>
+    ((sunLongitude(t / 86400000 + 2440587.5) - target + 540) % 360) - 180
+  let lo = Date.UTC(year, month - 1, 1) - 2 * 86400000
+  let hi = lo + 14 * 86400000
+  for (let i = 0; i < 45; i++) {
+    const mid = (lo + hi) / 2
+    if (angleDiff(mid) < 0) lo = mid
+    else hi = mid
+  }
+  return hi
+}
+
+// 절입일 (한국 시간 기준 일자)
+export function solarTermDayKST(year: number, month: number): number {
+  return new Date(solarTermUTC(year, month) + 9 * 3600000).getUTCDate()
+}
+
+// 출생이 해당 절기 이전인지 판정.
+// 시각을 알면 절입 시각과 정밀 비교, 모르면 관례대로 절입일 당일부터 새 달로 본다.
+function isBeforeTerm(y: number, m: number, d: number, minutes: number | null, termMonth: number): boolean {
+  const term = solarTermUTC(y, termMonth)
+  if (minutes === null) return d < new Date(term + 9 * 3600000).getUTCDate()
+  const birthUTC = Date.UTC(y, m - 1, d) + minutes * 60000 - 9 * 3600000 // KST → UTC
+  return birthUTC < term
+}
+
+// 연주 — 입춘을 해의 시작으로 본다
+function yearPillar(y: number, m: number, d: number, minutes: number | null): { stem: number; branch: number } {
+  const beforeIpchun = m < 2 || (m === 2 && isBeforeTerm(y, m, d, minutes, 2))
+  const yy = beforeIpchun ? y - 1 : y
+  return { stem: ((yy - 4) % 10 + 10) % 10, branch: ((yy - 4) % 12 + 12) % 12 }
+}
+
+// 월주 — 절입일 기준으로 월을 정한다
+function monthPillar(y: number, m: number, d: number, minutes: number | null): { stem: number; branch: number } {
+  const mm = isBeforeTerm(y, m, d, minutes, m) ? m - 1 : m
+  const branch = ((mm % 12) + 12) % 12 // 12월→자(0), 1월→축(1), 2월→인(2) ...
+  const yearStem = yearPillar(y, m, d, minutes).stem
+  const month1Stem = ((yearStem % 5) * 2 + 2) % 10 // 그 해 인월(寅月)의 천간
+  const stem = (month1Stem + ((branch - 2 + 12) % 12)) % 10
   return { stem, branch }
 }
 
-// 월주 계산 (절기 무시, 양력 월 기준)
-function monthPillar(year: number, month: number): { stem: number; branch: number } {
-  const yearStem = ((year - 4) % 10 + 10) % 10
-  // 인월(2월)부터 시작하는 천간 index
-  const month1Stem = ((yearStem % 5) * 2 + 2) % 10
-  // 1월=축(1), 2월=인(2), ... 12월=자(0)에서의 인월 offset
-  const MONTH_BRANCH = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0]
-  const branch = MONTH_BRANCH[month - 1]
-  // 인월(index 0)에서 몇 번째 월인지
-  const monthOffset = (branch - 2 + 12) % 12
-  const stem = (month1Stem + monthOffset) % 10
-  return { stem, branch }
+// 일주 — 기준일: 2000-01-01 = 무오일(戊午, 60갑자 55번째)
+export function dayPillar(y: number, m: number, d: number): { stem: number; branch: number } {
+  const days = Math.round((Date.UTC(y, m - 1, d) - Date.UTC(2000, 0, 1)) / 86400000)
+  const idx = ((days + 54) % 60 + 60) % 60
+  return { stem: idx % 10, branch: idx % 12 }
 }
 
-// 일주 계산 (기준: 2024-01-01 = 丁卯, stem=3, branch=3)
-function dayPillar(date: Date): { stem: number; branch: number } {
-  const REF = new Date(2024, 0, 1).getTime()
-  const days = Math.floor((date.getTime() - REF) / 86400000)
-  const stem = ((3 + days) % 10 + 10) % 10
-  const branch = ((3 + days) % 12 + 12) % 12
-  return { stem, branch }
+// "HH:MM" → 자정 기준 분, 모르면 null
+function parseBirthMinutes(birthHour: string): number | null {
+  if (!birthHour || birthHour === "unknown") return null
+  const [h, min] = birthHour.split(":").map(v => parseInt(v, 10))
+  if (isNaN(h) || h < 0 || h > 23) return null
+  return h * 60 + (isNaN(min) ? 0 : min)
 }
 
-// 시주 계산
-function hourPillar(daySystem: { stem: number; branch: number }, birthHour: string): { stem: number; branch: number } | null {
-  if (birthHour === "unknown") return null
-  const [hStr] = birthHour.split(":")
-  const hour = parseInt(hStr, 10)
-  if (isNaN(hour)) return null
+// 시주
+function hourPillar(daySystem: { stem: number; branch: number }, hour: number): { stem: number; branch: number } {
   const branch = hour === 23 ? 0 : Math.floor((hour + 1) / 2)
   const hourStartStem = (daySystem.stem % 5) * 2
   const stem = (hourStartStem + branch) % 10
@@ -233,13 +280,25 @@ export interface SajuResult {
 }
 
 export function calculateSaju(birthDate: Date, birthHour: string): SajuResult {
-  const y = birthDate.getFullYear()
-  const m = birthDate.getMonth() + 1
+  const y = birthDate.getUTCFullYear()
+  const m = birthDate.getUTCMonth() + 1
+  const d = birthDate.getUTCDate()
+  const minutes = parseBirthMinutes(birthHour)
+  const hour = minutes === null ? null : Math.floor(minutes / 60)
 
-  const yearSys = yearPillar(y)
-  const monthSys = monthPillar(y, m)
-  const daySys = dayPillar(birthDate)
-  const hourSys = hourPillar(daySys, birthHour)
+  const yearSys = yearPillar(y, m, d, minutes)
+  const monthSys = monthPillar(y, m, d, minutes)
+
+  // 야자시: 23시 이후 출생은 다음 날의 일주로 본다 (자시부터 하루가 시작)
+  let daySys: { stem: number; branch: number }
+  if (hour === 23) {
+    const next = new Date(Date.UTC(y, m - 1, d + 1))
+    daySys = dayPillar(next.getUTCFullYear(), next.getUTCMonth() + 1, next.getUTCDate())
+  } else {
+    daySys = dayPillar(y, m, d)
+  }
+
+  const hourSys = hour === null ? null : hourPillar(daySys, hour)
 
   const pillars: PillarInfo[] = [
     buildPillar("연주", yearSys, "뿌리", "🌱", "어린 시절 · 가문"),
@@ -263,7 +322,7 @@ export function calculateSaju(birthDate: Date, birthHour: string): SajuResult {
 
 // 기존 호환
 export function analyzeOhaeng(birthDate: Date): Ohaeng {
-  const daySys = dayPillar(birthDate)
+  const daySys = dayPillar(birthDate.getUTCFullYear(), birthDate.getUTCMonth() + 1, birthDate.getUTCDate())
   return CHEONGAN[daySys.stem].ohaeng
 }
 

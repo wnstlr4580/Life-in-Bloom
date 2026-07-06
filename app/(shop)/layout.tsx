@@ -23,7 +23,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="min-h-screen flex flex-col">
       {/* 상단 헤더 */}
-      <header className="sticky top-0 z-50 bg-white border-b border-stone-100 shadow-sm">
+      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-stone-100 shadow-sm">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           {/* 로고 */}
           <Link href="/" className="flex items-center gap-2 shrink-0">
@@ -115,16 +115,42 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
 
       {/* 푸터 */}
       <footer className="bg-white border-t border-stone-100 mt-16">
-        <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-stone-400">
-          <div className="flex items-center gap-2">
-            <Flower2 size={16} className="text-rose-300" />
-            <span className="font-medium text-stone-600">인생내꽃</span>
-            <span>— 나를 닮은 꽃</span>
+        <div className="max-w-6xl mx-auto px-6 py-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-10">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Flower2 size={18} className="text-rose-400" />
+                <span className="font-bold text-stone-800">인생내꽃</span>
+              </div>
+              <p className="text-sm text-stone-500 leading-relaxed">
+                생년월일 오행으로 나를 닮은 꽃을 찾아드리는
+                <br />
+                감성 플라워 커머스
+              </p>
+            </div>
+            <div className="space-y-3">
+              <p className="text-sm font-bold text-stone-700">서비스</p>
+              <div className="flex flex-col gap-2 text-sm text-stone-500">
+                <Link href="/saju" className="hover:text-rose-500 transition-colors">나의 꽃 찾기</Link>
+                <Link href="/compat" className="hover:text-rose-500 transition-colors">궁합 보기</Link>
+                <Link href="/custom" className="hover:text-rose-500 transition-colors">꽃다발 만들기</Link>
+                <Link href="/products" className="hover:text-rose-500 transition-colors">꽃 & 식물</Link>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <p className="text-sm font-bold text-stone-700">고객센터</p>
+              <div className="text-sm text-stone-500 space-y-1.5">
+                <p>평일 10:00 - 18:00 (주말·공휴일 휴무)</p>
+                <p>오전 11시 이전 주문 시 당일 배송</p>
+              </div>
+            </div>
           </div>
-          <div className="flex gap-6">
-            <span>이용약관</span>
-            <span>개인정보처리방침</span>
-            <span>고객센터</span>
+          <div className="pt-6 border-t border-stone-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stone-400">
+            <p>© {new Date().getFullYear()} 인생내꽃. All rights reserved.</p>
+            <div className="flex gap-5">
+              <span className="hover:text-stone-600 cursor-pointer transition-colors">이용약관</span>
+              <span className="hover:text-stone-600 cursor-pointer transition-colors">개인정보처리방침</span>
+            </div>
           </div>
         </div>
       </footer>

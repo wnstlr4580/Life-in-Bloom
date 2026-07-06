@@ -17,8 +17,9 @@ function buildPerson(
   if (!year || !month || !day) return null
   const date = new Date(`${year}-${month.padStart(2,"0")}-${day.padStart(2,"0")}`)
   if (isNaN(date.getTime())) return null
-  const birthHour = timeKnown && hour && min
-    ? `${ampm === "오후" && hour !== "12" ? +hour + 12 : ampm === "오전" && hour === "12" ? 0 : +hour}:${min}`
+  // 분을 고르지 않았으면 00분으로 계산 (시간 전체가 무시되지 않도록)
+  const birthHour = timeKnown && hour
+    ? `${ampm === "오후" && hour !== "12" ? +hour + 12 : ampm === "오전" && hour === "12" ? 0 : +hour}:${min || "00"}`
     : "unknown"
   const saju = calculateSaju(date, birthHour)
   const dayPillar = saju.pillars.find(p => p.pillar === "일주")
@@ -241,8 +242,10 @@ function CompatResult({ a, b, result }: { a: PersonSaju; b: PersonSaju; result: 
       ? "자주 투닥거려요. 그래도 그만큼 강렬하게 끌리는 면이 있어요."
       : "크게 부딪히지도, 크게 끌리지도 않는 편안한 사이예요."
 
-  // 역할 — 서로에게 어떤 존재인가
-  const sipseongSubtitle = `${result.sipseong.icon} ${a.name}에게 ${b.name}은 — ${result.sipseong.name}`
+  // 역할 — 서로에게 어떤 존재인가 (양방향)
+  const sipseongSubtitle =
+    `${result.sipseong.icon} ${a.name}에게 ${b.name}은 ${result.sipseong.name} · ` +
+    `${result.sipseongReverse.icon} ${b.name}에게 ${a.name}은 ${result.sipseongReverse.name}`
 
   const ringColor = result.total >= 70 ? "#f43f5e" : result.total >= 55 ? "#10b981" : "#f59e0b"
 
@@ -318,6 +321,9 @@ function CompatResult({ a, b, result }: { a: PersonSaju; b: PersonSaju; result: 
           연인이라면 <span className="font-medium text-pink-600">기질(성격)과 생활(일상)</span>이 가장 중요해요.
           친구나 같이 일하는 사이라면 <span className="font-medium text-amber-600">생각(가치관)과 역할</span>을 더 봐야 해요.
           모든 점수가 다 높을 수는 없으니, 어떤 부분을 중요하게 생각하는지 먼저 정해보세요.
+        </p>
+        <p className="text-[11px] text-stone-400 mt-2">
+          이 결과는 전통 명리 이론(천간합·지지합·충·원진·십성)을 바탕으로 계산한 참고용이에요. 재미있게 봐주세요 🙂
         </p>
       </div>
     </div>

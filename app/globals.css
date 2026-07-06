@@ -123,8 +123,11 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* 한글은 단어 중간에서 줄바꿈되지 않도록 */
+    word-break: keep-all;
   }
   html {
     @apply font-sans;
+    scroll-behavior: smooth;
   }
 }
