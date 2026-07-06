@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import QRCode from "react-qr-code"
 import { Button } from "@/components/ui/button"
-import { RotateCcw, Home } from "lucide-react"
+import { RotateCcw, Home, ExternalLink } from "lucide-react"
 import type { Ohaeng } from "@/lib/saju"
 import { KIOSK_FLOWER_PRESETS } from "@/lib/kiosk/backgrounds"
 import { KIOSK_RESULT_IDLE_MS } from "@/lib/kiosk/constants"
@@ -69,9 +69,11 @@ export function ResultShare({ imageBlob, ohaeng, birthDate, onRetry, onRestart }
         짠! 당신의 기운은 {ohaeng}(五行)예요
       </p>
 
-      <div className="rounded-3xl overflow-hidden aspect-[9/16] w-full bg-stone-100">
+      <div className="mx-auto w-[55%] max-w-[260px] rounded-2xl overflow-hidden shadow-md bg-stone-100">
+        {/* 실제 인생네컷처럼 좁고 긴 스트립 전체가 스크롤 없이 한 번에 보이도록
+            너비를 줄여서 원본 비율 그대로 표시한다. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={previewUrl} alt="합성된 네컷" className="w-full h-full object-cover" />
+        <img src={previewUrl} alt="합성된 네컷" className="w-full h-auto block" />
       </div>
 
       <p className="text-center text-sm font-semibold text-stone-700">
@@ -99,6 +101,11 @@ export function ResultShare({ imageBlob, ohaeng, birthDate, onRetry, onRestart }
               </div>
             </div>
             <p className="text-xs text-stone-400">사진 저장, 오늘의 운세, 오행 분석까지 함께 볼 수 있어요</p>
+            {/* 실제 키오스크에서는 QR 스캔이 자연스럽지만, PC로 테스트할 땐
+                폰 없이 바로 확인할 수 있도록 링크 버튼도 같이 둔다. */}
+            <Button onClick={() => window.open(shareUrl, "_blank")} variant="outline" className="w-full gap-1.5">
+              <ExternalLink size={16} /> 웹페이지 바로가기
+            </Button>
           </>
         )}
       </div>
