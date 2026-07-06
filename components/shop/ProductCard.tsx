@@ -8,6 +8,7 @@ interface Props {
   images: string[]
   flowerMeaning: string | null
   category: string
+  stock?: number
 }
 
 const CATEGORY_LABEL: Record<string, string> = {
@@ -18,7 +19,8 @@ const CATEGORY_LABEL: Record<string, string> = {
   subscription: "구독",
 }
 
-export function ProductCard({ id, name, price, images, flowerMeaning, category }: Props) {
+export function ProductCard({ id, name, price, images, flowerMeaning, category, stock }: Props) {
+  const soldOut = stock === 0
   return (
     <Link href={`/products/${id}`} className="group">
       <div className="bg-white rounded-2xl overflow-hidden border border-stone-100 hover:border-rose-200 hover:shadow-lg transition-all duration-300">
@@ -28,7 +30,7 @@ export function ProductCard({ id, name, price, images, flowerMeaning, category }
               src={images[0]}
               alt={name}
               fill
-              className="object-cover group-hover:scale-105 transition-transform duration-500"
+              className={`object-cover group-hover:scale-105 transition-transform duration-500 ${soldOut ? "opacity-60 grayscale" : ""}`}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
@@ -38,6 +40,13 @@ export function ProductCard({ id, name, price, images, flowerMeaning, category }
           <span className="absolute top-2 left-2 bg-white/90 text-xs text-stone-500 px-2 py-0.5 rounded-full">
             {CATEGORY_LABEL[category] ?? category}
           </span>
+          {soldOut && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="bg-stone-800/80 text-white text-sm font-semibold px-4 py-1.5 rounded-full">
+                품절
+              </span>
+            </div>
+          )}
         </div>
         <div className="p-3">
           <p className="text-sm font-semibold text-stone-800 line-clamp-1">{name}</p>

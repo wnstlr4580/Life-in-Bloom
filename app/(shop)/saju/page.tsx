@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { BirthDateForm } from "@/components/saju/BirthDateForm"
 import { OhaengResult } from "@/components/saju/OhaengResult"
@@ -65,6 +65,12 @@ export default function SajuPage() {
   const [fortuneOpen, setFortuneOpen] = useState(false)
   const [savedProfile, setSavedProfile] = useState<SavedProfile | null>(null)
   const [loadKey, setLoadKey] = useState(0)
+  const resultRef = useRef<HTMLDivElement>(null)
+
+  // 분석 완료 시 결과로 부드럽게 스크롤
+  useEffect(() => {
+    if (result) resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }, [result])
 
   // 로그인 상태이면 저장된 프로필 불러오기
   useEffect(() => {
@@ -159,7 +165,7 @@ export default function SajuPage() {
 
       {/* 오늘의 운세 — 접힘 패널 */}
       {result && (
-        <div className="max-w-md mx-auto mb-12">
+        <div ref={resultRef} className="max-w-md mx-auto mb-12 scroll-mt-24">
           <button
             onClick={() => setFortuneOpen(v => !v)}
             className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl bg-gradient-to-r from-amber-50 to-rose-50 border border-amber-100 hover:border-amber-200 transition-colors"
