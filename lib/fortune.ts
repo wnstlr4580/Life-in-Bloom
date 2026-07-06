@@ -1,4 +1,5 @@
 import type { Ohaeng, PillarInfo } from "./saju"
+import { dayPillar as dayGanji } from "./saju"
 
 // ── 상수 ─────────────────────────────────────────────────────
 const CHEONGAN      = ["갑","을","병","정","무","기","경","신","임","계"]
@@ -13,14 +14,11 @@ function generates(a: Ohaeng, b: Ohaeng) { return (OHAENG_IDX[a]+1)%5 === OHAENG
 function controls(a: Ohaeng, b: Ohaeng)  { return (OHAENG_IDX[a]+2)%5 === OHAENG_IDX[b] }
 function isYang(si: number) { return si % 2 === 0 }
 
-// ── 오늘 날짜 → 일간 index 계산 ───────────────────────────────
+// ── 오늘 날짜 → 일간 index 계산 (한국 시간 기준, saju.ts의 일주 계산 공용) ──
 function todayPillar(today: Date) {
-  const REF = new Date(2024, 0, 1).getTime()
-  const days = Math.floor((today.getTime() - REF) / 86400000)
-  return {
-    stemIdx:   ((3 + days) % 10 + 10) % 10,
-    branchIdx: ((3 + days) % 12 + 12) % 12,
-  }
+  const kst = new Date(today.getTime() + 9 * 3600000)
+  const g = dayGanji(kst.getUTCFullYear(), kst.getUTCMonth() + 1, kst.getUTCDate())
+  return { stemIdx: g.stem, branchIdx: g.branch }
 }
 
 // ── 십이운성 ─────────────────────────────────────────────────
@@ -341,6 +339,6 @@ export function calcFortune(pillars: PillarInfo[], mainOhaeng: Ohaeng, today: Da
       desc: SIBI_DESC[sibiStage],
     },
     sinsal,
-    todayDate: today.toLocaleDateString("ko-KR", { month:"long", day:"numeric", weekday:"long" }),
+    todayDate: today.toLocaleDateString("ko-KR", { month:"long", day:"numeric", weekday:"long", timeZone:"Asia/Seoul" }),
   }
 }
