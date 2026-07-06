@@ -21,9 +21,21 @@ const BRANCH_SIX_HARMONY: [number, number][] = [[0, 1], [2, 11], [3, 10], [4, 9]
 // 지지 삼합 그룹
 const BRANCH_THREE_HARMONY: number[][] = [[2, 6, 10], [8, 0, 4], [11, 3, 7], [5, 9, 1]]
 
+// 지지 원진 쌍 — 부부 궁합에서 중요하게 보는 흉살 (자미, 축오, 인유, 묘신, 진해, 사술)
+const BRANCH_WONJIN: [number, number][] = [[0, 7], [1, 6], [2, 9], [3, 8], [4, 11], [5, 10]]
+
 // 지지 충: |a - b| === 6
 function isBranchClash(a: number, b: number) {
   return Math.abs(a - b) === 6
+}
+
+function isPairIn(pairs: [number, number][], a: number, b: number) {
+  return pairs.some(([x, y]) => (a === x && b === y) || (a === y && b === x))
+}
+
+// 삼합: 서로 다른 지지가 같은 삼합 그룹에 속할 때 (같은 지지끼리는 제외)
+function isThreeHarmony(a: number, b: number) {
+  return a !== b && BRANCH_THREE_HARMONY.some(g => g.includes(a) && g.includes(b))
 }
 
 // 음양: 짝수 index = 양
@@ -74,7 +86,8 @@ export interface CompatScore {
   ohaeng: number       // 기질과 온도
   stem: number         // 생각과 가치관
   branch: number       // 생활과 속궁합
-  sipseong: Sipseong
+  sipseong: Sipseong           // A에게 B는 (점수는 양방향 평균)
+  sipseongReverse: Sipseong    // B에게 A는
   total: number
   stemRelation: "합" | "극" | "중립"
   branchClashCount: number
@@ -100,7 +113,15 @@ function pillarsToStemBranch(pillars: PersonSaju["pillars"]) {
     branchIdx: JIJI.indexOf(p.branchName),
     stemOhaeng: p.stemOhaeng,
     branchOhaeng: p.branchOhaeng,
+    isDay: p.pillar === "일주", // 일주(배우자궁)는 궁합에서 가중치를 높게 본다
   }))
+}
+
+// 오행 두 기운의 관계 점수 (상생 80 / 동일 60 / 상극 30)
+function ohaengRelScore(x: Ohaeng, y: Ohaeng): number {
+  if (generates(x, y) || generates(y, x)) return 80
+  if (x === y) return 60
+  return 30
 }
 
 function clamp(v: number, min = 0, max = 100) { return Math.max(min, Math.min(max, v)) }
@@ -109,71 +130,93 @@ export function calcCompat(a: PersonSaju, b: PersonSaju): CompatScore {
   const aPB = pillarsToStemBranch(a.pillars)
   const bPB = pillarsToStemBranch(b.pillars)
 
-  // ── 1. 오행 점수 ──────────────────────────────────────────
-  let ohaengScore = 50
-  for (const ap of aPB) {
-    for (const bp of bPB) {
-      const [ao, bo] = [ap.stemOhaeng, bp.stemOhaeng]
-      if (generates(ao, bo) || generates(bo, ao)) ohaengScore += 3
-      else if (ao === bo) ohaengScore += 1
-      else if (controls(ao, bo) || controls(bo, ao)) ohaengScore -= 2
-
-      const [abr, bbr] = [ap.branchOhaeng, bp.branchOhaeng]
-      if (generates(abr, bbr) || generates(bbr, abr)) ohaengScore += 3
-      else if (abr === bbr) ohaengScore += 1
-      else if (controls(abr, bbr) || controls(bbr, abr)) ohaengScore -= 2
-    }
-  }
-
-  // ── 2. 천간 점수 ──────────────────────────────────────────
-  let stemScore = 50
+  // 모든 기둥 쌍을 가중 평균으로 계산한다.
+  // - 일주(배우자궁) 쌍은 가중치를 높게 (일-일 4배, 일-그외 2배)
+  // - 쌍 개수로 나누므로 시간 입력 여부(기둥 3개/4개)와 무관하게 공정한 스케일
+  let ohaengSum = 0, stemSum = 0, branchSum = 0, weightSum = 0
+  let harmonyCount = 0, clashCount = 0
   let stemHarmonyCount = 0, stemClashCount = 0
+  let dayStemHarmony = false, dayStemClash = false
+  let dayBranchGood = false, dayBranchBad = false
+
   for (const ap of aPB) {
     for (const bp of bPB) {
-      const si = ap.stemIdx, sj = bp.stemIdx
-      if (si < 0 || sj < 0) continue
-      const isHarmony = STEM_HARMONY_PAIRS.some(([x, y]) => (si === x && sj === y) || (si === y && sj === x))
-      if (isHarmony) { stemScore += 18; stemHarmonyCount++ }
-      else {
-        const ao = OHAENG_ORDER[Math.floor(si / 2)]
-        const bo = OHAENG_ORDER[Math.floor(sj / 2)]
-        if (controls(ao, bo) || controls(bo, ao)) { stemScore -= 10; stemClashCount++ }
+      if (ap.stemIdx < 0 || bp.stemIdx < 0 || ap.branchIdx < 0 || bp.branchIdx < 0) continue
+      const w = (ap.isDay ? 2 : 1) * (bp.isDay ? 2 : 1)
+      const isDayPair = ap.isDay && bp.isDay
+
+      // 천간 — 합(95) > 상생(70) > 동일(60) > 상극(30)
+      const stemHarm = isPairIn(STEM_HARMONY_PAIRS, ap.stemIdx, bp.stemIdx)
+      const stemControl = controls(ap.stemOhaeng, bp.stemOhaeng) || controls(bp.stemOhaeng, ap.stemOhaeng)
+      let stemPair = 50
+      if (stemHarm) {
+        stemPair = 95; stemHarmonyCount++
+        if (isDayPair) dayStemHarmony = true
+      } else if (generates(ap.stemOhaeng, bp.stemOhaeng) || generates(bp.stemOhaeng, ap.stemOhaeng)) {
+        stemPair = 70
+      } else if (ap.stemOhaeng === bp.stemOhaeng) {
+        stemPair = 60
+      } else if (stemControl) {
+        stemPair = 30; stemClashCount++
+        if (isDayPair) dayStemClash = true
       }
+
+      // 지지 — 육합(95) > 삼합(85) > 상생(65) > 동일(60) > 상극(40), 충(15)·원진(20)은 흉
+      const sixHarm = isPairIn(BRANCH_SIX_HARMONY, ap.branchIdx, bp.branchIdx)
+      const threeHarm = isThreeHarmony(ap.branchIdx, bp.branchIdx)
+      let branchPair = 50
+      if (sixHarm) {
+        branchPair = 95; harmonyCount++
+        if (isDayPair) dayBranchGood = true
+      } else if (threeHarm) {
+        branchPair = 85; harmonyCount++
+        if (isDayPair) dayBranchGood = true
+      } else if (isBranchClash(ap.branchIdx, bp.branchIdx)) {
+        branchPair = 15; clashCount++
+        if (isDayPair) dayBranchBad = true
+      } else if (isPairIn(BRANCH_WONJIN, ap.branchIdx, bp.branchIdx)) {
+        branchPair = 20; clashCount++
+        if (isDayPair) dayBranchBad = true
+      } else if (generates(ap.branchOhaeng, bp.branchOhaeng) || generates(bp.branchOhaeng, ap.branchOhaeng)) {
+        branchPair = 65
+      } else if (ap.branchOhaeng === bp.branchOhaeng) {
+        branchPair = 60
+      } else {
+        branchPair = 40
+      }
+
+      // 기질(오행) — 합이 성립하면 상극이라도 조화로 본다 (합화 이론)
+      const oStem = stemHarm ? 85 : ohaengRelScore(ap.stemOhaeng, bp.stemOhaeng)
+      const oBranch = sixHarm || threeHarm ? 85 : ohaengRelScore(ap.branchOhaeng, bp.branchOhaeng)
+
+      ohaengSum += ((oStem + oBranch) / 2) * w
+      stemSum += stemPair * w
+      branchSum += branchPair * w
+      weightSum += w
     }
   }
+
   const stemRelation: CompatScore["stemRelation"] = stemHarmonyCount > 0 ? "합" : stemClashCount > 0 ? "극" : "중립"
 
-  // ── 3. 지지 점수 ──────────────────────────────────────────
-  let branchScore = 50
-  let harmonyCount = 0, clashCount = 0
-  for (const ap of aPB) {
-    for (const bp of bPB) {
-      const bi = ap.branchIdx, bj = bp.branchIdx
-      if (bi < 0 || bj < 0) continue
-      if (BRANCH_SIX_HARMONY.some(([x, y]) => (bi === x && bj === y) || (bi === y && bj === x))) {
-        branchScore += 20; harmonyCount++
-      } else if (BRANCH_THREE_HARMONY.some(g => g.includes(bi) && g.includes(bj))) {
-        branchScore += 10; harmonyCount++
-      } else if (isBranchClash(bi, bj)) {
-        branchScore -= 5; clashCount++
-      }
-    }
-  }
+  // 일간합·일지합/충은 전통 궁합의 핵심 지표 — 평균 위에 보정을 더한다
+  const o = clamp(Math.round(ohaengSum / weightSum))
+  const s = clamp(Math.round(stemSum / weightSum + (dayStemHarmony ? 15 : dayStemClash ? -8 : 0)))
+  const br = clamp(Math.round(branchSum / weightSum + (dayBranchGood ? 15 : dayBranchBad ? -12 : 0)))
 
-  // ── 4. 십성 ───────────────────────────────────────────────
-  const sipseong = getSipseong(a.dayStemIdx, b.dayStemIdx)
+  // ── 십성: 양방향 계산 후 평균 (A→B만 보면 입력 순서에 따라 결과가 달라진다) ──
+  const sipseongAB = getSipseong(a.dayStemIdx, b.dayStemIdx)
+  const sipseongBA = getSipseong(b.dayStemIdx, a.dayStemIdx)
+  const sipseongScore = Math.round((sipseongAB.score + sipseongBA.score) / 2)
+  const sipseong = { ...sipseongAB, score: sipseongScore }
 
-  // ── 종합 점수 ─────────────────────────────────────────────
-  const o = clamp(ohaengScore)
-  const s = clamp(stemScore)
-  const br = clamp(branchScore)
-  const total = Math.round(o * 0.30 + s * 0.20 + br * 0.30 + sipseong.score * 0.20)
+  const total = Math.round(o * 0.30 + s * 0.20 + br * 0.30 + sipseongScore * 0.20)
 
   // ── 커플 꽃 추천 ─────────────────────────────────────────
   const { flower, desc } = getCoupleFlower(a.mainOhaeng, b.mainOhaeng)
 
   return {
     ohaeng: o, stem: s, branch: br, sipseong,
+    sipseongReverse: sipseongBA,
     total, stemRelation,
     branchClashCount: clashCount,
     branchHarmonyCount: harmonyCount,
