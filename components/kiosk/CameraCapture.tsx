@@ -44,13 +44,16 @@ export function CameraCapture({ onComplete }: Props) {
         audio: false,
       })
       streamRef.current = stream
+      // 원인 진단용 — 실제 트랙 상태를 콘솔에서 확인하기 위해 남겨둔다.
+      console.log("[kiosk/camera] track settings:", stream.getVideoTracks()[0]?.getSettings())
       if (videoRef.current) {
         videoRef.current.srcObject = stream
         videoRef.current.muted = true // React가 video의 muted 속성을 안정적으로 반영하지 않아 직접 설정
         await videoRef.current.play()
       }
       setStatus("ready")
-    } catch {
+    } catch (error) {
+      console.error("[kiosk/camera] getUserMedia failed:", error)
       setStatus("denied")
     }
   }, [facingMode, stopStream])
