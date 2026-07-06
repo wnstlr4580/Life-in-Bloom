@@ -5,18 +5,26 @@ import { Button } from "@/components/ui/button"
 import { RotateCw } from "lucide-react"
 import { preloadSegmenter } from "@/lib/kiosk/segmentation"
 
+const TOTAL_CUTS = 4
+const AUTO_NEXT_DELAY_MS = 1200 // 컷 사이 포즈를 바꿀 시간
+
 interface Props {
-  onCapture: (image: ImageBitmap) => void
+  onComplete: (images: ImageBitmap[]) => void
 }
 
 type Status = "loading" | "ready" | "counting" | "denied" | "unsupported"
 
-export function CameraCapture({ onCapture }: Props) {
+// 인생네컷처럼 컷마다 카운트다운을 반복해 총 4장을 촬영한다.
+// 이 컴포넌트는 촬영만 담당하고, 오행/꽃 배경 합성은 부모(kiosk/page.tsx)의
+// processing 단계에서 처리한다 — 촬영 중에는 어떤 꽃이 나올지 알려주지 않는다.
+export function CameraCapture({ onComplete }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const [status, setStatus] = useState<Status>("loading")
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user")
   const [count, setCount] = useState<number | null>(null)
+  const [cutIndex, setCutIndex] = useState(0) // 지금까지 촬영 완료한 컷 수
+  const capturedRef = useRef<ImageBitmap[]>([])
 
   const stopStream = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop())
@@ -49,16 +57,23 @@ export function CameraCapture({ onCapture }: Props) {
 
   useEffect(() => {
     startStream()
-    preloadSegmenter() // 촬영 전 미리 모델을 받아 캡처 직후 지연을 줄인다
+    preloadSegmenter() // 촬영 전 미리 모델을 받아 처리 단계 지연을 줄인다
     return () => stopStream()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facingMode])
 
-  const handleCapture = () => {
-    if (status !== "ready") return
+  const startCountdown = useCallback(() => {
     setStatus("counting")
     setCount(3)
-  }
+  }, [])
+
+  // 첫 컷은 사용자가 직접 시작, 이후 컷은 짧은 텀을 두고 자동으로 이어서 촬영
+  useEffect(() => {
+    if (status === "ready" && cutIndex > 0 && cutIndex < TOTAL_CUTS) {
+      const t = setTimeout(() => startCountdown(), AUTO_NEXT_DELAY_MS)
+      return () => clearTimeout(t)
+    }
+  }, [status, cutIndex, startCountdown])
 
   useEffect(() => {
     if (count === null) return
@@ -87,8 +102,16 @@ export function CameraCapture({ onCapture }: Props) {
     }
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
     const bitmap = await createImageBitmap(canvas)
-    stopStream()
-    onCapture(bitmap)
+    capturedRef.current.push(bitmap)
+
+    const nextCount = capturedRef.current.length
+    if (nextCount >= TOTAL_CUTS) {
+      stopStream()
+      onComplete(capturedRef.current)
+    } else {
+      setCutIndex(nextCount)
+      setStatus("ready")
+    }
   }
 
   return (
@@ -127,6 +150,12 @@ export function CameraCapture({ onCapture }: Props) {
           </div>
         )}
 
+        {(status === "ready" || status === "counting") && (
+          <span className="absolute top-4 left-4 bg-black/40 text-white text-xs font-semibold px-3 py-1 rounded-full">
+            {Math.min(cutIndex + 1, TOTAL_CUTS)} / {TOTAL_CUTS} 컷
+          </span>
+        )}
+
         {status === "counting" && count !== null && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/20">
             <span className="text-white text-8xl font-bold drop-shadow-lg">{count === 0 ? "📸" : count}</span>
@@ -144,13 +173,24 @@ export function CameraCapture({ onCapture }: Props) {
         )}
       </div>
 
-      <Button
-        onClick={handleCapture}
-        disabled={status !== "ready"}
-        className="w-full h-14 text-base bg-rose-400 hover:bg-rose-500 text-white disabled:opacity-40"
-      >
-        촬영하기 📷
-      </Button>
+      <div className="flex gap-2 justify-center">
+        {Array.from({ length: TOTAL_CUTS }, (_, i) => (
+          <span
+            key={i}
+            className={`w-6 h-1.5 rounded-full ${i < cutIndex ? "bg-rose-400" : "bg-stone-200"}`}
+          />
+        ))}
+      </div>
+
+      {cutIndex === 0 && (
+        <Button
+          onClick={startCountdown}
+          disabled={status !== "ready"}
+          className="w-full h-14 text-base bg-rose-400 hover:bg-rose-500 text-white disabled:opacity-40"
+        >
+          촬영 시작 📷
+        </Button>
+      )}
     </div>
   )
 }

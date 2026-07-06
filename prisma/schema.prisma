@@ -203,5 +203,5 @@ model KioskPhoto {
   ohaeng    String // "목" | "화" | "토" | "금" | "수"
   imageUrl  String // Vercel Blob URL (합성 완료 이미지)
   createdAt DateTime @default(now())
-  expiresAt DateTime // createdAt + 48h — 만료 후 /p/[id] 접근 불가, 크론으로 삭제
+  expiresAt DateTime // createdAt + 48h — 만료 후 /saju?kiosk= 로 조회 불가, 크론으로 삭제
 }

@@ -6,8 +6,10 @@ import { CameraCapture } from "@/components/kiosk/CameraCapture"
 import { ResultShare } from "@/components/kiosk/ResultShare"
 import { analyzeOhaeng, type Ohaeng } from "@/lib/saju"
 import { segmentPerson } from "@/lib/kiosk/segmentation"
-import { compositePhoto } from "@/lib/kiosk/compositeCanvas"
+import { compositeSingleCut, buildFourCutStrip } from "@/lib/kiosk/compositeCanvas"
 import { pickBackground } from "@/lib/kiosk/backgrounds"
+
+const TOTAL_CUTS = 4
 
 // 설계 문서 1번 항목 — 단계별로 별도 URL을 두지 않고
 // 하나의 페이지 안에서 step 상태로 전체 플로우를 관리한다.
@@ -15,33 +17,41 @@ type Step = "intro" | "birth" | "capture" | "processing" | "result" | "error"
 
 export default function KioskPage() {
   const [step, setStep] = useState<Step>("intro")
+  const [birthDate, setBirthDate] = useState<string | null>(null)
   const [ohaeng, setOhaeng] = useState<Ohaeng | null>(null)
   const [resultBlob, setResultBlob] = useState<Blob | null>(null)
+  const [processingProgress, setProcessingProgress] = useState(0)
 
   const reset = useCallback(() => {
     setStep("intro")
+    setBirthDate(null)
     setOhaeng(null)
     setResultBlob(null)
+    setProcessingProgress(0)
   }, [])
 
-  const handleBirthSubmit = (birthDate: string) => {
-    setOhaeng(analyzeOhaeng(new Date(birthDate)))
+  const handleBirthSubmit = (date: string) => {
+    setBirthDate(date)
+    setOhaeng(analyzeOhaeng(new Date(date)))
     setStep("capture")
   }
 
-  const handleCapture = async (image: ImageBitmap) => {
+  // 4컷을 순서대로 세그멘테이션 + 배경 합성한 뒤 하나의 스트립으로 조립한다.
+  // 어떤 꽃이 나올지는 이 단계가 끝나고 결과 화면에서만 처음 공개된다.
+  const handleCaptureComplete = async (images: ImageBitmap[]) => {
     if (!ohaeng) return
     setStep("processing")
+    setProcessingProgress(0)
     try {
-      const mask = await segmentPerson(image)
-      const canvas = document.createElement("canvas")
-      const blob = await compositePhoto({
-        personImage: image,
-        mask,
-        backgroundUrl: pickBackground(ohaeng),
-        ohaeng,
-        canvas,
-      })
+      const backgroundUrl = pickBackground(ohaeng)
+      const cuts: HTMLCanvasElement[] = []
+      for (const image of images) {
+        const mask = await segmentPerson(image)
+        const cut = await compositeSingleCut(image, mask, backgroundUrl)
+        cuts.push(cut)
+        setProcessingProgress((p) => p + 1)
+      }
+      const blob = await buildFourCutStrip(cuts, ohaeng)
       setResultBlob(blob)
       setStep("result")
     } catch {
@@ -57,9 +67,9 @@ export default function KioskPage() {
             <p className="text-6xl">🌸</p>
             <h1 className="text-3xl font-bold text-stone-800">오행 포토부스</h1>
             <p className="text-stone-500 leading-relaxed">
-              생년월일을 입력하고 사진을 찍으면<br />
-              나의 오행 기운에 어울리는 꽃 배경으로<br />
-              합성해 드려요
+              생년월일을 입력하고 사진 4장을 찍으면<br />
+              나의 오행 기운에 어울리는 꽃 배경 네컷을<br />
+              만들어 드려요
             </p>
           </div>
           <button
@@ -77,27 +87,28 @@ export default function KioskPage() {
         </div>
       )}
 
-      {step === "capture" && ohaeng && (
+      {step === "capture" && (
         <div className="w-full max-w-sm space-y-4">
-          <p className="text-center text-sm text-stone-500">
-            <span className="font-semibold text-rose-500">{ohaeng}</span> 기운에 어울리는 꽃 배경으로 촬영할게요
-          </p>
-          <CameraCapture onCapture={handleCapture} />
+          <p className="text-center text-sm text-stone-500">어떤 꽃이 나올지 기대해주세요</p>
+          <CameraCapture onComplete={handleCaptureComplete} />
         </div>
       )}
 
       {step === "processing" && (
         <div className="text-center space-y-4">
           <div className="text-5xl animate-pulse">🌷</div>
-          <p className="text-stone-500 text-sm">사진에 꽃 배경을 합성하고 있어요...</p>
+          <p className="text-stone-500 text-sm">
+            두근두근, 꽃을 합성하고 있어요... ({processingProgress}/{TOTAL_CUTS})
+          </p>
         </div>
       )}
 
-      {step === "result" && resultBlob && ohaeng && (
+      {step === "result" && resultBlob && ohaeng && birthDate && (
         <div className="w-full max-w-sm">
           <ResultShare
             imageBlob={resultBlob}
             ohaeng={ohaeng}
+            birthDate={birthDate}
             onRetry={() => setStep("capture")}
             onRestart={reset}
           />

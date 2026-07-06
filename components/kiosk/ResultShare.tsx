@@ -5,22 +5,25 @@ import QRCode from "react-qr-code"
 import { Button } from "@/components/ui/button"
 import { RotateCcw, Home } from "lucide-react"
 import type { Ohaeng } from "@/lib/saju"
+import { KIOSK_FLOWER_PRESETS } from "@/lib/kiosk/backgrounds"
 import { KIOSK_RESULT_IDLE_MS } from "@/lib/kiosk/constants"
 
 interface Props {
   imageBlob: Blob
   ohaeng: Ohaeng
+  birthDate: string
   onRetry: () => void
   onRestart: () => void
 }
 
 type UploadState = "uploading" | "done" | "error"
 
-export function ResultShare({ imageBlob, ohaeng, onRetry, onRestart }: Props) {
+export function ResultShare({ imageBlob, ohaeng, birthDate, onRetry, onRestart }: Props) {
   const [previewUrl] = useState(() => URL.createObjectURL(imageBlob))
   const [uploadState, setUploadState] = useState<UploadState>("uploading")
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const uploadedRef = useRef(false)
+  const preset = KIOSK_FLOWER_PRESETS[ohaeng]
 
   useEffect(() => {
     if (uploadedRef.current) return
@@ -41,12 +44,19 @@ export function ResultShare({ imageBlob, ohaeng, onRetry, onRestart }: Props) {
     setUploadState("uploading")
     try {
       const form = new FormData()
-      form.append("file", imageBlob, "kiosk-photo.jpg")
+      form.append("file", imageBlob, "kiosk-strip.jpg")
       form.append("ohaeng", ohaeng)
       const res = await fetch("/api/kiosk/photo", { method: "POST", body: form })
       if (!res.ok) throw new Error()
       const data: { id: string } = await res.json()
-      setShareUrl(`${window.location.origin}/p/${data.id}`)
+
+      // QR은 사진 다운로드 페이지가 아니라, 기존 /saju 페이지로 딥링크한다.
+      // 생년월일을 그대로 넘겨 자동으로 오행 분석을 실행하고,
+      // kiosk 파라미터로 방금 찍은 네컷 사진도 함께 보여준다.
+      const url = new URL("/saju", window.location.origin)
+      url.searchParams.set("birthDate", birthDate)
+      url.searchParams.set("kiosk", data.id)
+      setShareUrl(url.toString())
       setUploadState("done")
     } catch {
       setUploadState("error")
@@ -54,11 +64,19 @@ export function ResultShare({ imageBlob, ohaeng, onRetry, onRestart }: Props) {
   }
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-5">
+      <p className="text-center text-sm font-semibold text-rose-500">
+        짠! 당신의 기운은 {ohaeng}(五行)예요
+      </p>
+
       <div className="rounded-3xl overflow-hidden aspect-[9/16] w-full bg-stone-100">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={previewUrl} alt="합성된 사진" className="w-full h-full object-cover" />
+        <img src={previewUrl} alt="합성된 네컷" className="w-full h-full object-cover" />
       </div>
+
+      <p className="text-center text-sm font-semibold text-stone-700">
+        {preset.flowerName} · {preset.meaning}
+      </p>
 
       <div className="bg-white rounded-2xl border border-stone-100 p-5 text-center space-y-3">
         {uploadState === "uploading" && (
@@ -74,13 +92,13 @@ export function ResultShare({ imageBlob, ohaeng, onRetry, onRestart }: Props) {
 
         {uploadState === "done" && shareUrl && (
           <>
-            <p className="text-sm font-semibold text-stone-700">QR을 스캔해서 사진을 저장하세요</p>
+            <p className="text-sm font-semibold text-stone-700">QR로 자세한 사주 풀이를 확인하세요</p>
             <div className="flex justify-center py-2">
               <div className="bg-white p-3 rounded-xl border border-stone-100">
                 <QRCode value={shareUrl} size={180} />
               </div>
             </div>
-            <p className="text-xs text-stone-400">사진은 48시간 동안만 보관돼요</p>
+            <p className="text-xs text-stone-400">사진 저장, 오늘의 운세, 오행 분석까지 함께 볼 수 있어요</p>
           </>
         )}
       </div>

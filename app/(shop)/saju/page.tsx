@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { BirthDateForm } from "@/components/saju/BirthDateForm"
 import { OhaengResult } from "@/components/saju/OhaengResult"
@@ -55,8 +56,18 @@ interface SavedProfile {
   city: string
 }
 
-export default function SajuPage() {
+interface KioskPhoto {
+  id: string
+  ohaeng: Ohaeng
+  imageUrl: string
+}
+
+function SajuPageContent() {
   const { data: session } = useSession()
+  const searchParams = useSearchParams()
+  const kioskBirthDate = searchParams.get("birthDate")
+  const kioskPhotoId = searchParams.get("kiosk")
+
   const [result, setResult] = useState<AnalyzeResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -65,6 +76,9 @@ export default function SajuPage() {
   const [fortuneOpen, setFortuneOpen] = useState(false)
   const [savedProfile, setSavedProfile] = useState<SavedProfile | null>(null)
   const [loadKey, setLoadKey] = useState(0)
+  const [kioskPhoto, setKioskPhoto] = useState<KioskPhoto | null>(null)
+  const [kioskPhotoExpired, setKioskPhotoExpired] = useState(false)
+  const kioskAutoSubmitted = useRef(false)
 
   // 로그인 상태이면 저장된 프로필 불러오기
   useEffect(() => {
@@ -74,6 +88,15 @@ export default function SajuPage() {
       .then(data => { if (data) setSavedProfile(data) })
       .catch(() => {})
   }, [session])
+
+  // 오행 포토부스 QR로 들어온 경우 — 찍은 네컷 사진 조회
+  useEffect(() => {
+    if (!kioskPhotoId) return
+    fetch(`/api/kiosk/photo/${kioskPhotoId}`)
+      .then(r => { if (!r.ok) throw new Error(); return r.json() })
+      .then(data => setKioskPhoto(data))
+      .catch(() => setKioskPhotoExpired(true))
+  }, [kioskPhotoId])
 
   const handleSubmit = useCallback(async (data: SubmitData) => {
     setBirthYear(new Date(data.birthDate).getFullYear())
@@ -106,6 +129,21 @@ export default function SajuPage() {
     }
   }, [session])
 
+  // 키오스크에서 생년월일을 받아온 경우 — 폼 입력 없이 바로 1차 분석 실행
+  // (시간·이름 등은 비워둔 채라 아래 폼에서 언제든 더 자세히 다시 분석할 수 있다)
+  useEffect(() => {
+    if (!kioskBirthDate || kioskAutoSubmitted.current) return
+    kioskAutoSubmitted.current = true
+    handleSubmit({
+      name: "",
+      gender: "female",
+      birthDate: kioskBirthDate,
+      birthHour: "unknown",
+      city: "미입력",
+      calendarType: "solar",
+    })
+  }, [kioskBirthDate, handleSubmit])
+
   // 저장된 데이터로 불러오기
   const handleLoad = () => {
     if (!savedProfile) return
@@ -121,6 +159,34 @@ export default function SajuPage() {
           태어난 날짜로 나의 기운과 오늘의 운세를 알아보고, 나를 닮은 꽃을 추천해 드려요
         </p>
       </div>
+
+      {/* 오행 포토부스에서 찍은 네컷 */}
+      {kioskPhoto && (
+        <div className="max-w-md mx-auto mb-6 bg-white rounded-2xl border border-stone-100 p-4 flex items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={kioskPhoto.imageUrl}
+            alt="오행 포토부스에서 찍은 네컷"
+            className="w-16 h-16 rounded-xl object-cover shrink-0"
+          />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-stone-700">오행 포토부스에서 찍은 네컷</p>
+            <p className="text-xs text-stone-400">{kioskPhoto.ohaeng} 기운 배경으로 합성됐어요</p>
+          </div>
+          <a
+            href={kioskPhoto.imageUrl}
+            download
+            className="text-xs font-medium text-rose-500 shrink-0"
+          >
+            저장
+          </a>
+        </div>
+      )}
+      {kioskPhotoExpired && (
+        <p className="max-w-md mx-auto mb-6 text-center text-xs text-stone-400">
+          키오스크 사진은 보관 기간(48시간)이 지나 더 이상 볼 수 없어요
+        </p>
+      )}
 
       <div className="max-w-md mx-auto mb-4">
         {/* 불러오기 버튼 */}
@@ -147,13 +213,25 @@ export default function SajuPage() {
             key={loadKey}
             onSubmit={handleSubmit}
             loading={loading}
-            defaultValues={loadKey > 0 ? savedProfile ?? undefined : undefined}
+            defaultValues={
+              loadKey > 0
+                ? savedProfile ?? undefined
+                : kioskBirthDate
+                ? { birthDate: kioskBirthDate, calendarType: "solar" }
+                : undefined
+            }
           />
           {error && <p className="text-sm text-red-500 mt-3 text-center">{error}</p>}
         </div>
 
         {session?.user && result && (
           <p className="text-xs text-center text-stone-400 mt-2">✓ 정보가 저장됐어요</p>
+        )}
+
+        {kioskBirthDate && result && !result.hasHour && (
+          <p className="text-xs text-center text-stone-400 mt-2">
+            태어난 시간까지 입력하면 더 정확하게 볼 수 있어요 — 위 폼에서 이름·시간을 채우고 다시 분석해 보세요
+          </p>
         )}
       </div>
 
@@ -233,5 +311,14 @@ export default function SajuPage() {
         </div>
       )}
     </div>
+  )
+}
+
+// useSearchParams()를 쓰는 컴포넌트는 Suspense 경계 안에 있어야 한다
+export default function SajuPage() {
+  return (
+    <Suspense fallback={null}>
+      <SajuPageContent />
+    </Suspense>
   )
 }
