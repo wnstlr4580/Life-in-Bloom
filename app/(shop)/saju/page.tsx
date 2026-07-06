@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
-import { useState, useEffect, useCallback, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { BirthDateForm } from "@/components/saju/BirthDateForm"
 import { OhaengResult } from "@/components/saju/OhaengResult"
