@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import KoreanLunarCalendar from "korean-lunar-calendar"
 import { supabaseAdmin } from "@/lib/supabase"
 import { calculateSaju, getCurrentSeason } from "@/lib/saju"
 import type { Ohaeng } from "@/lib/saju"
@@ -11,8 +12,17 @@ export async function POST(req: NextRequest) {
 
   if (!birthDate) return NextResponse.json({ error: "birthDate is required" }, { status: 400 })
 
-  const date = new Date(birthDate)
+  let date = new Date(birthDate)
   if (isNaN(date.getTime())) return NextResponse.json({ error: "Invalid date" }, { status: 400 })
+
+  // 음력 입력은 양력으로 변환 후 계산 (사주는 절기 = 태양 기준이므로 양력 날짜가 필요)
+  if (calendarType === "lunar") {
+    const cal = new KoreanLunarCalendar()
+    const ok = cal.setLunarDate(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate(), false)
+    if (!ok) return NextResponse.json({ error: "유효하지 않은 음력 날짜입니다" }, { status: 400 })
+    const solar = cal.getSolarCalendar()
+    date = new Date(Date.UTC(solar.year, solar.month - 1, solar.day))
+  }
 
   const saju = calculateSaju(date, birthHour)
   const currentSeason = getCurrentSeason()

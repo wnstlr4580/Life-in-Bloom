@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useCallback, useRef, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { BirthDateForm } from "@/components/saju/BirthDateForm"
 import { OhaengResult } from "@/components/saju/OhaengResult"
 import { OhaengBalance } from "@/components/saju/OhaengBalance"
 import { FortuneResult } from "@/components/saju/FortuneResult"
 import { FlowerRecommendList } from "@/components/saju/FlowerRecommendList"
+import { FlowerGuide } from "@/components/saju/FlowerGuide"
 import { ShareCard } from "@/components/saju/ShareCard"
 import type { Ohaeng, OhaengProfile, PillarInfo } from "@/lib/saju"
 import type { FortuneResult as FortuneData } from "@/lib/fortune"
@@ -79,6 +81,12 @@ function SajuPageContent() {
   const [kioskPhoto, setKioskPhoto] = useState<KioskPhoto | null>(null)
   const [kioskPhotoExpired, setKioskPhotoExpired] = useState(false)
   const kioskAutoSubmitted = useRef(false)
+  const resultRef = useRef<HTMLDivElement>(null)
+
+  // 분석 완료 시 결과로 부드럽게 스크롤
+  useEffect(() => {
+    if (result) resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }, [result])
 
   // 로그인 상태이면 저장된 프로필 불러오기
   useEffect(() => {
@@ -237,7 +245,7 @@ function SajuPageContent() {
 
       {/* 오늘의 운세 — 접힘 패널 */}
       {result && (
-        <div className="max-w-md mx-auto mb-12">
+        <div ref={resultRef} className="max-w-md mx-auto mb-12 scroll-mt-24">
           <button
             onClick={() => setFortuneOpen(v => !v)}
             className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl bg-gradient-to-r from-amber-50 to-rose-50 border border-amber-100 hover:border-amber-200 transition-colors"
@@ -289,24 +297,24 @@ function SajuPageContent() {
 
           <OhaengBalance pillars={result.pillars} lackingProducts={result.lackingProducts} />
 
+          {/* 상품이 없어도 보여주는 꽃 사전 */}
+          <FlowerGuide
+            mainOhaeng={result.ohaeng}
+            lackingOhaeng={result.lackingProducts.map((l) => l.ohaeng)}
+          />
+
           {result.recommendedFlowers.length > 0 && (
             <FlowerRecommendList
-              title={`${result.ohaeng} 기운에 어울리는 꽃`}
+              title={`🛒 지금 바로 살 수 있는 ${result.ohaeng} 기운 꽃`}
               products={result.recommendedFlowers}
             />
           )}
 
           {result.seasonalFlowers.length > 0 && (
             <FlowerRecommendList
-              title="이 계절에 피어나는 꽃"
+              title="🛒 이 계절에 피어나는 꽃"
               products={result.seasonalFlowers}
             />
-          )}
-
-          {result.recommendedFlowers.length === 0 && result.seasonalFlowers.length === 0 && (
-            <div className="text-center py-16 text-stone-400">
-              아직 상품이 준비 중이에요 🌱
-            </div>
           )}
         </div>
       )}
