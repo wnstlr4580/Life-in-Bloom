@@ -36,8 +36,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ id: data.id, url: blob.url })
   } catch (error) {
-    // 원인 진단용 — 터미널에서 실제 에러를 확인하기 위해 남겨둔다.
+    // 원인 진단용 — Vercel 로그 접근 권한이 없어도 브라우저 Network 탭에서
+    // 바로 원인을 확인할 수 있도록 실제 에러 메시지를 응답에 그대로 담는다.
     console.error("[kiosk/photo] upload failed:", error)
-    return NextResponse.json({ error: "사진 저장에 실패했어요." }, { status: 500 })
+    const detail = error instanceof Error ? error.message : String(error)
+    return NextResponse.json({ error: "사진 저장에 실패했어요.", detail }, { status: 500 })
   }
 }
