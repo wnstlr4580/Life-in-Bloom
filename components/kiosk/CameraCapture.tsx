@@ -8,6 +8,32 @@ import { preloadSegmenter } from "@/lib/kiosk/segmentation"
 const TOTAL_CUTS = 4
 const AUTO_NEXT_DELAY_MS = 1200 // 컷 사이 포즈를 바꿀 시간
 
+// 배포된 코드가 최신 수정사항을 포함하는지 콘솔에서 바로 확인하기 위한 빌드 마커.
+// 새로 수정할 때마다 이 문자열을 바꿔서, 지금 보고 있는 화면이 실제로 그 수정을 반영한 빌드인지 헷갈리지 않게 한다.
+console.log("[kiosk/camera] build marker: videoWidth-ready-event-fix-v2")
+
+// video에 실제 프레임이 준비될 때까지 기다린다.
+// 이전엔 100ms씩 고정으로 재시도했는데, 배포 환경처럼 초기 디코딩이
+// 더 오래 걸리는 경우를 대비해 loadeddata 이벤트를 직접 기다리는 방식으로 바꾼다
+// (최대 3초, 그 안에 준비되면 바로 진행).
+function waitForVideoReady(video: HTMLVideoElement, timeoutMs = 3000): Promise<boolean> {
+  if (video.videoWidth > 0 && video.videoHeight > 0) return Promise.resolve(true)
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      video.removeEventListener("loadeddata", onReady)
+      resolve(video.videoWidth > 0 && video.videoHeight > 0)
+    }, timeoutMs)
+    function onReady() {
+      if (video.videoWidth > 0 && video.videoHeight > 0) {
+        clearTimeout(timer)
+        video.removeEventListener("loadeddata", onReady)
+        resolve(true)
+      }
+    }
+    video.addEventListener("loadeddata", onReady)
+  })
+}
+
 interface Props {
   onComplete: (images: ImageBitmap[]) => void
 }
@@ -96,11 +122,17 @@ export function CameraCapture({ onComplete }: Props) {
 
     // 카메라가 막 켜진 직후에는 video의 실제 프레임이 아직 준비되지 않아
     // videoWidth/Height가 0일 수 있다 (배포 환경에서 더 자주 발생).
-    // 0인 상태로 캡처하면 createImageBitmap이 에러를 던지므로 잠깐 재확인한다.
-    for (let i = 0; i < 10 && (video.videoWidth === 0 || video.videoHeight === 0); i++) {
-      await new Promise((r) => setTimeout(r, 100))
+    // 0인 상태로 캡처하면 createImageBitmap이 에러를 던지므로 준비될 때까지 기다린다.
+    const ready = await waitForVideoReady(video)
+    if (!ready) {
+      // 진단용 — 재시도해도 계속 0이면 여기서 멈추는 것이므로 원인 파악에 필요하다.
+      console.warn("[kiosk/camera] capture skipped, video still not ready:", {
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight,
+        readyState: video.readyState,
+      })
+      return // 그래도 안 되면 이번 컷은 건너뛴다
     }
-    if (video.videoWidth === 0 || video.videoHeight === 0) return // 그래도 안 되면 이번 컷은 건너뛴다
 
     const canvas = document.createElement("canvas")
     canvas.width = video.videoWidth
@@ -114,6 +146,7 @@ export function CameraCapture({ onComplete }: Props) {
     }
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
     const bitmap = await createImageBitmap(canvas)
+    console.log("[kiosk/camera] captured cut", capturedRef.current.length + 1, "of", TOTAL_CUTS)
     capturedRef.current.push(bitmap)
 
     const nextCount = capturedRef.current.length
