@@ -22,6 +22,7 @@ export function ResultShare({ imageBlob, ohaeng, birthDate, onRetry, onRestart }
   const [previewUrl] = useState(() => URL.createObjectURL(imageBlob))
   const [uploadState, setUploadState] = useState<UploadState>("uploading")
   const [shareUrl, setShareUrl] = useState<string | null>(null)
+  const [errorDetail, setErrorDetail] = useState<string | null>(null)
   const uploadedRef = useRef(false)
   const preset = KIOSK_FLOWER_PRESETS[ohaeng]
 
@@ -42,12 +43,18 @@ export function ResultShare({ imageBlob, ohaeng, birthDate, onRetry, onRestart }
 
   async function upload() {
     setUploadState("uploading")
+    setErrorDetail(null)
     try {
       const form = new FormData()
       form.append("file", imageBlob, "kiosk-strip.jpg")
       form.append("ohaeng", ohaeng)
       const res = await fetch("/api/kiosk/photo", { method: "POST", body: form })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        // 원인 진단용 — Vercel 로그 없이도 화면에서 바로 원인을 볼 수 있게 표시한다.
+        const body = await res.json().catch(() => null)
+        setErrorDetail(body?.detail ?? null)
+        throw new Error()
+      }
       const data: { id: string } = await res.json()
 
       // QR은 사진 다운로드 페이지가 아니라, 기존 /saju 페이지로 딥링크한다.
@@ -88,6 +95,9 @@ export function ResultShare({ imageBlob, ohaeng, birthDate, onRetry, onRestart }
         {uploadState === "error" && (
           <div className="space-y-3">
             <p className="text-sm text-red-400">사진 저장에 실패했어요.</p>
+            {errorDetail && (
+              <p className="text-xs text-stone-400 break-all">({errorDetail})</p>
+            )}
             <Button onClick={upload} variant="outline" className="w-full">다시 시도</Button>
           </div>
         )}
