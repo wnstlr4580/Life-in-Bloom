@@ -18,6 +18,17 @@ const SORTS = [
   { value: "price_desc", label: "높은 가격순" },
 ]
 
+// 용도별 분류 (Product.useTags)
+const USES = [
+  { value: "", label: "모든 용도" },
+  { value: "생일", label: "🎂 생일" },
+  { value: "축하", label: "🎉 축하" },
+  { value: "개업", label: "🏪 개업" },
+  { value: "결혼", label: "💍 결혼·프로포즈" },
+  { value: "추모", label: "🕊️ 추모" },
+  { value: "감사", label: "💐 감사" },
+]
+
 const OHAENG_LABEL: Record<string, string> = {
   목: "🌿 나무(목) 기운", 화: "🔥 불(화) 기운", 토: "🌾 흙(토) 기운", 금: "✨ 금(금) 기운", 수: "💧 물(수) 기운",
 }
@@ -43,18 +54,20 @@ function ProductsContent() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [category, setCategory] = useState("")
+  const [use, setUse] = useState("")
   const [sort, setSort] = useState("latest")
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
 
-  // 검색어·오행이 바뀌면 1페이지부터
-  useEffect(() => { setPage(1) }, [q, ohaeng, category, sort])
+  // 필터가 바뀌면 1페이지부터
+  useEffect(() => { setPage(1) }, [q, ohaeng, category, use, sort])
 
   useEffect(() => {
     setLoading(true)
     const params = new URLSearchParams()
     if (category) params.set("category", category)
+    if (use) params.set("use", use)
     if (q) params.set("q", q)
     if (ohaeng) params.set("ohaeng", ohaeng)
     if (sort !== "latest") params.set("sort", sort)
@@ -67,7 +80,7 @@ function ProductsContent() {
         setTotal(d.total ?? 0)
       })
       .finally(() => setLoading(false))
-  }, [category, q, ohaeng, sort, page])
+  }, [category, use, q, ohaeng, sort, page])
 
   const clearFilter = () => router.push(pathname)
 
@@ -92,6 +105,23 @@ function ProductsContent() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* 용도별 필터 */}
+      <div className="flex gap-2 flex-wrap mb-4">
+        {USES.map((u) => (
+          <button
+            key={u.value}
+            onClick={() => setUse(u.value)}
+            className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+              use === u.value
+                ? "bg-stone-700 border-stone-700 text-white"
+                : "bg-white border-stone-200 text-stone-500 hover:border-stone-400"
+            }`}
+          >
+            {u.label}
+          </button>
+        ))}
       </div>
 
       {/* 활성 필터 + 정렬 */}

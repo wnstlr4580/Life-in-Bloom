@@ -158,6 +158,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
                 <Link href="/compat" className="hover:text-rose-500 transition-colors">궁합 보기</Link>
                 <Link href="/custom" className="hover:text-rose-500 transition-colors">꽃다발 만들기</Link>
                 <Link href="/products" className="hover:text-rose-500 transition-colors">꽃 & 식물</Link>
+                <Link href="/orders/lookup" className="hover:text-rose-500 transition-colors">주문 조회</Link>
               </div>
             </div>
             <div className="space-y-3">
@@ -167,6 +168,11 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
                 <p>평일 10:00 - 18:00 (주말·공휴일 휴무)</p>
                 <p>오전 11시 이전 주문 시 당일 배송</p>
                 <p>이메일: help@life-in-bloom.example</p>
+              </div>
+              {/* SNS — 실제 계정 주소로 교체 필요 */}
+              <div className="flex gap-3 pt-1">
+                <a href="https://instagram.com/" target="_blank" rel="noreferrer" className="text-xs text-stone-400 hover:text-rose-500 transition-colors">📷 인스타그램</a>
+                <a href="https://pf.kakao.com/" target="_blank" rel="noreferrer" className="text-xs text-stone-400 hover:text-rose-500 transition-colors">💬 카카오채널</a>
               </div>
             </div>
           </div>

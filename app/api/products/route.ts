@@ -7,6 +7,7 @@ export async function GET(req: NextRequest) {
   const ohaeng = searchParams.get("ohaeng")
   const color = searchParams.get("color")
   const q = searchParams.get("q")
+  const use = searchParams.get("use") // 용도: 생일/축하/개업/결혼/추모/감사
   const sort = searchParams.get("sort") // latest(기본) | price_asc | price_desc
   const page = Number(searchParams.get("page") ?? "1")
   const limit = 12
@@ -25,6 +26,7 @@ export async function GET(req: NextRequest) {
   if (category) query = query.eq("category", category)
   if (ohaeng) query = query.contains("ohaengTags", [ohaeng])
   if (color) query = query.contains("colorTags", [color])
+  if (use) query = query.contains("useTags", [use])
   if (q) query = query.or(`name.ilike.%${q}%,flowerMeaning.ilike.%${q}%`)
 
   const { data, count, error } = await query

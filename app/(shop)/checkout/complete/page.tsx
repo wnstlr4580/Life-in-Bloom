@@ -18,9 +18,14 @@ function CompleteContent() {
           소중한 꽃이 정성껏 포장되어<br />곧 찾아갈 거예요
         </p>
         {orderId && (
-          <p className="text-xs text-stone-300 font-mono bg-stone-50 rounded-lg px-3 py-2 inline-block">
-            주문번호: {orderId}
-          </p>
+          <div className="space-y-1.5">
+            <p className="text-xs text-stone-500 font-mono bg-stone-50 border border-stone-100 rounded-lg px-3 py-2 inline-block select-all">
+              주문번호: {orderId}
+            </p>
+            <p className="text-[11px] text-stone-400">
+              이 번호를 저장해두면 <Link href="/orders/lookup" className="text-rose-400 underline">주문 조회</Link>에서 배송 상태를 볼 수 있어요
+            </p>
+          </div>
         )}
       </div>
 

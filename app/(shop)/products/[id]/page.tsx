@@ -1,16 +1,23 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useParams } from "next/navigation"
-import { ShoppingBag, ArrowLeft, Heart } from "lucide-react"
+import { useSession, signIn } from "next-auth/react"
+import { ShoppingBag, ArrowLeft, Heart, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useCartStore } from "@/store/cartStore"
 import Link from "next/link"
+
+interface Review {
+  id: string; rating: number; content: string; createdAt: string
+  user: { name: string | null; image: string | null } | null
+}
 
 interface Product {
   id: string; name: string; description: string; price: number; stock: number
   images: string[]; flowerMeaning: string | null; ohaengTags: string[]
   colorTags: string[]; seasonTags: string[]; category: string
+  reviews?: Review[]
 }
 
 const OHAENG_EMOJI: Record<string, string> = { 목: "🌿", 화: "🔥", 토: "🌾", 금: "✨", 수: "💧" }
@@ -18,14 +25,47 @@ const CATEGORY_LABEL: Record<string, string> = { bouquet: "꽃다발", plant: "�
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const { data: session } = useSession()
   const [product, setProduct] = useState<Product | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
   const addItem = useCartStore((s) => s.addItem)
 
-  useEffect(() => {
+  // 리뷰 작성 폼
+  const [rating, setRating] = useState(5)
+  const [reviewText, setReviewText] = useState("")
+  const [reviewLoading, setReviewLoading] = useState(false)
+  const [reviewError, setReviewError] = useState("")
+
+  const loadProduct = useCallback(() => {
     fetch(`/api/products/${id}`).then((r) => r.json()).then(setProduct)
   }, [id])
+
+  useEffect(() => { loadProduct() }, [loadProduct])
+
+  const submitReview = async () => {
+    if (!reviewText.trim()) { setReviewError("리뷰 내용을 입력해주세요"); return }
+    setReviewLoading(true)
+    setReviewError("")
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: id, rating, content: reviewText }),
+      })
+      if (!res.ok) {
+        const d = await res.json()
+        throw new Error(d.error ?? "리뷰 저장에 실패했어요")
+      }
+      setReviewText("")
+      setRating(5)
+      loadProduct()
+    } catch (e) {
+      setReviewError(e instanceof Error ? e.message : "리뷰 저장에 실패했어요")
+    } finally {
+      setReviewLoading(false)
+    }
+  }
 
   const handleAddToCart = () => {
     if (!product) return
@@ -140,6 +180,87 @@ export default function ProductDetailPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* 리뷰 */}
+      <div className="mt-16 max-w-3xl">
+        <h2 className="text-lg font-bold text-stone-800 mb-1">
+          구매 후기 {product.reviews && product.reviews.length > 0 && `(${product.reviews.length})`}
+        </h2>
+        {product.reviews && product.reviews.length > 0 && (
+          <div className="flex items-center gap-1.5 mb-5">
+            <div className="flex">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <Star key={n} size={15}
+                  className={n <= Math.round(product.reviews!.reduce((a, r) => a + r.rating, 0) / product.reviews!.length)
+                    ? "fill-amber-400 text-amber-400" : "text-stone-200"} />
+              ))}
+            </div>
+            <span className="text-sm text-stone-500">
+              {(product.reviews.reduce((a, r) => a + r.rating, 0) / product.reviews.length).toFixed(1)}
+            </span>
+          </div>
+        )}
+
+        {/* 작성 폼 */}
+        <div className="bg-white rounded-2xl border border-stone-100 p-5 mb-6">
+          {session?.user ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-stone-600">별점</span>
+                <div className="flex">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button key={n} type="button" onClick={() => setRating(n)} className="p-0.5">
+                      <Star size={20} className={n <= rating ? "fill-amber-400 text-amber-400" : "text-stone-200 hover:text-amber-200"} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <textarea
+                value={reviewText}
+                onChange={(e) => setReviewText(e.target.value)}
+                placeholder="꽃은 어땠나요? 후기를 남겨주세요"
+                rows={3}
+                className="w-full rounded-xl border border-stone-200 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-rose-300"
+              />
+              {reviewError && <p className="text-xs text-red-500">{reviewError}</p>}
+              <div className="text-right">
+                <Button onClick={submitReview} disabled={reviewLoading} className="bg-rose-400 hover:bg-rose-500 text-white h-9 px-5 text-sm">
+                  {reviewLoading ? "등록 중..." : "후기 남기기"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-stone-500">로그인하면 후기를 남길 수 있어요</p>
+              <Button onClick={() => signIn("kakao")} variant="outline" className="h-9 text-sm border-stone-200">로그인</Button>
+            </div>
+          )}
+        </div>
+
+        {/* 리뷰 목록 */}
+        {product.reviews && product.reviews.length > 0 ? (
+          <div className="space-y-3">
+            {product.reviews.map((r) => (
+              <div key={r.id} className="bg-white rounded-xl border border-stone-100 p-4">
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-stone-700">{r.user?.name ?? "구매자"}</span>
+                    <div className="flex">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <Star key={n} size={12} className={n <= r.rating ? "fill-amber-400 text-amber-400" : "text-stone-200"} />
+                      ))}
+                    </div>
+                  </div>
+                  <span className="text-xs text-stone-400">{new Date(r.createdAt).toLocaleDateString("ko-KR")}</span>
+                </div>
+                <p className="text-sm text-stone-600 leading-relaxed">{r.content}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-stone-400 text-center py-8">아직 후기가 없어요. 첫 후기를 남겨보세요 🌸</p>
+        )}
       </div>
     </div>
   )
