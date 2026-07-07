@@ -10,7 +10,7 @@ const AUTO_NEXT_DELAY_MS = 1200 // 컷 사이 포즈를 바꿀 시간
 
 // 배포된 코드가 최신 수정사항을 포함하는지 콘솔에서 바로 확인하기 위한 빌드 마커.
 // 새로 수정할 때마다 이 문자열을 바꿔서, 지금 보고 있는 화면이 실제로 그 수정을 반영한 빌드인지 헷갈리지 않게 한다.
-console.log("[kiosk/camera] build marker: videoWidth-ready-event-fix-v2")
+console.log("[kiosk/camera] build marker: video-always-mounted-fix-v3")
 
 // video에 실제 프레임이 준비될 때까지 기다린다.
 // 이전엔 100ms씩 고정으로 재시도했는데, 배포 환경처럼 초기 디코딩이
@@ -162,14 +162,17 @@ export function CameraCapture({ onComplete }: Props) {
   return (
     <div className="w-full space-y-6">
       <div className="relative aspect-[9/16] w-full rounded-3xl overflow-hidden bg-stone-900">
-        {(status === "ready" || status === "counting") && (
-          <video
-            ref={videoRef}
-            playsInline
-            muted
-            className={`w-full h-full object-cover ${facingMode === "user" ? "-scale-x-100" : ""}`}
-          />
-        )}
+        {/* status와 상관없이 video 태그는 항상 DOM에 존재해야 한다.
+            예전엔 ready/counting일 때만 렌더링했는데, getUserMedia가 오래 걸리는
+            환경(배포 서버 등)에서는 그 사이 이 태그가 사라졌다 다시 생기면서
+            videoRef.current가 null이 되어 스트림 연결이 조용히 실패했다.
+            그래서 항상 렌더링해두고, 로딩/거부 상태일 땐 위에 안내문을 겹쳐 보여준다. */}
+        <video
+          ref={videoRef}
+          playsInline
+          muted
+          className={`absolute inset-0 w-full h-full object-cover ${facingMode === "user" ? "-scale-x-100" : ""}`}
+        />
 
         {status === "loading" && (
           <div className="absolute inset-0 flex items-center justify-center text-white/70 text-sm">
