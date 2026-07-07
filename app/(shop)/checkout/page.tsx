@@ -18,10 +18,36 @@ export default function CheckoutPage() {
   const total = totalPrice()
   const shippingFee = total >= 50000 ? 0 : 3000
 
-  const [form, setForm] = useState({ name: "", phone: "", address: "", addressDetail: "", giftMessage: "", giftWrapping: false })
+  const [form, setForm] = useState({
+    ordererName: "", ordererPhone: "",
+    name: "", phone: "", address: "", addressDetail: "",
+    deliveryDate: "", deliveryTime: "anytime",
+    giftMessage: "", giftWrapping: false,
+  })
   const [deliveryType, setDeliveryType] = useState<DeliveryType>("standard")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+
+  // 받는 날짜 최소값 (오늘)
+  const todayStr = new Date().toLocaleDateString("sv-SE")
+
+  // 카카오(다음) 우편번호 검색
+  const openPostcode = () => {
+    type PostcodeData = { roadAddress?: string; jibunAddress?: string }
+    const w = window as unknown as {
+      daum?: { Postcode: new (opts: { oncomplete: (d: PostcodeData) => void }) => { open: () => void } }
+    }
+    const open = () => {
+      w.daum && new w.daum.Postcode({
+        oncomplete: (d) => setForm((f) => ({ ...f, address: d.roadAddress || d.jibunAddress || "" })),
+      }).open()
+    }
+    if (w.daum?.Postcode) return open()
+    const script = document.createElement("script")
+    script.src = "https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"
+    script.onload = open
+    document.head.appendChild(script)
+  }
 
   if (items.length === 0) {
     return (
@@ -37,8 +63,20 @@ export default function CheckoutPage() {
   const grandTotal = total + shippingFee + giftFee + expressFee
 
   const validate = () => {
-    if (!form.name || !form.phone || !form.address) {
-      setError("배송 정보를 모두 입력해주세요")
+    if (!form.ordererName || !form.ordererPhone) {
+      setError("주문하시는 분의 이름과 연락처를 입력해주세요")
+      return false
+    }
+    if (!form.name || !form.phone) {
+      setError("받는 분의 이름과 연락처를 입력해주세요")
+      return false
+    }
+    if (deliveryType !== "pickup" && !form.address) {
+      setError("배송 주소를 입력해주세요")
+      return false
+    }
+    if (!form.deliveryDate) {
+      setError("받는 날짜를 선택해주세요")
       return false
     }
     return true
@@ -53,7 +91,11 @@ export default function CheckoutPage() {
         totalAmount: grandTotal,
         shippingFee: shippingFee + expressFee,
         deliveryType,
-        shippingAddr: { name: form.name, phone: form.phone, address: form.address, addressDetail: form.addressDetail },
+        shippingAddr: {
+          name: form.name, phone: form.phone, address: form.address, addressDetail: form.addressDetail,
+          ordererName: form.ordererName, ordererPhone: form.ordererPhone,
+          deliveryDate: form.deliveryDate, deliveryTime: form.deliveryTime,
+        },
         giftMessage: form.giftMessage || null,
         giftWrapping: form.giftWrapping,
         paymentId: paymentId ?? null,
@@ -83,7 +125,7 @@ export default function CheckoutPage() {
         totalAmount: grandTotal,
         currency: "CURRENCY_KRW",
         payMethod: "CARD",
-        customer: { fullName: form.name, phoneNumber: form.phone },
+        customer: { fullName: form.ordererName, phoneNumber: form.ordererPhone },
         redirectUrl: `${window.location.origin}/checkout/complete`,
       })
 
@@ -143,12 +185,36 @@ export default function CheckoutPage() {
             </div>
           </section>
 
-          {/* 배송지 */}
+          {/* 주문하시는 분 */}
           <section className="bg-white rounded-2xl p-6 border border-stone-100 space-y-4">
-            <h2 className="font-semibold text-stone-800">배송지 정보</h2>
+            <h2 className="font-semibold text-stone-800">주문하시는 분</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-xs text-stone-500">받는 분 *</Label>
+                <Label className="text-xs text-stone-500">이름 *</Label>
+                <Input value={form.ordererName} onChange={(e) => setForm((f) => ({ ...f, ordererName: e.target.value }))} placeholder="이름" className="rounded-xl border-stone-200" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-stone-500">연락처 *</Label>
+                <Input value={form.ordererPhone} onChange={(e) => setForm((f) => ({ ...f, ordererPhone: e.target.value }))} placeholder="010-0000-0000" className="rounded-xl border-stone-200" />
+              </div>
+            </div>
+          </section>
+
+          {/* 받는 분 */}
+          <section className="bg-white rounded-2xl p-6 border border-stone-100 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold text-stone-800">받는 분</h2>
+              <button
+                type="button"
+                onClick={() => setForm((f) => ({ ...f, name: f.ordererName, phone: f.ordererPhone }))}
+                className="text-xs text-rose-500 font-medium hover:text-rose-600"
+              >
+                주문하시는 분과 같아요
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-stone-500">이름 *</Label>
                 <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="이름" className="rounded-xl border-stone-200" />
               </div>
               <div className="space-y-1.5">
@@ -156,11 +222,50 @@ export default function CheckoutPage() {
                 <Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="010-0000-0000" className="rounded-xl border-stone-200" />
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs text-stone-500">주소 *</Label>
-              <Input value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} placeholder="도로명 주소" className="rounded-xl border-stone-200" />
-              <Input value={form.addressDetail} onChange={(e) => setForm((f) => ({ ...f, addressDetail: e.target.value }))} placeholder="상세 주소" className="mt-2 rounded-xl border-stone-200" />
+            {deliveryType !== "pickup" && (
+              <div className="space-y-1.5">
+                <Label className="text-xs text-stone-500">주소 *</Label>
+                <div className="flex gap-2">
+                  <Input value={form.address} readOnly onClick={openPostcode} placeholder="주소 검색을 눌러주세요" className="rounded-xl border-stone-200 cursor-pointer flex-1" />
+                  <Button type="button" variant="outline" onClick={openPostcode} className="rounded-xl border-stone-200 shrink-0">주소 검색</Button>
+                </div>
+                <Input value={form.addressDetail} onChange={(e) => setForm((f) => ({ ...f, addressDetail: e.target.value }))} placeholder="상세 주소 (동/호수 등)" className="mt-2 rounded-xl border-stone-200" />
+              </div>
+            )}
+          </section>
+
+          {/* 받는 날짜 */}
+          <section className="bg-white rounded-2xl p-6 border border-stone-100 space-y-4">
+            <h2 className="font-semibold text-stone-800">
+              {deliveryType === "pickup" ? "픽업 날짜" : "받는 날짜"}
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-stone-500">날짜 *</Label>
+                <Input
+                  type="date"
+                  min={todayStr}
+                  value={form.deliveryDate}
+                  onChange={(e) => setForm((f) => ({ ...f, deliveryDate: e.target.value }))}
+                  className="rounded-xl border-stone-200"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-stone-500">시간대</Label>
+                <select
+                  value={form.deliveryTime}
+                  onChange={(e) => setForm((f) => ({ ...f, deliveryTime: e.target.value }))}
+                  className="w-full h-9 rounded-xl border border-stone-200 px-3 text-sm text-stone-700 bg-white focus:outline-none focus:border-rose-300"
+                >
+                  <option value="anytime">상관없어요</option>
+                  <option value="morning">오전 (9시~12시)</option>
+                  <option value="afternoon">오후 (12시~18시)</option>
+                </select>
+              </div>
             </div>
+            <p className="text-xs text-stone-400">
+              기념일·경조사 날짜에 맞춰 신선한 꽃을 보내드려요. 당일 배송은 오전 11시 이전 주문 시 가능해요.
+            </p>
           </section>
 
           {/* 선물 옵션 */}

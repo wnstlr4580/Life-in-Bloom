@@ -1,6 +1,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
+import { HomeProducts } from "@/components/shop/HomeProducts"
 import { ArrowRight, Flower2, Sparkles, Leaf } from "lucide-react"
 
 export default function HomePage() {
@@ -86,6 +87,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* 실제 판매 상품 */}
+      <HomeProducts />
 
       {/* 서비스 바로가기 */}
       <section className="py-20 px-6 bg-stone-50">

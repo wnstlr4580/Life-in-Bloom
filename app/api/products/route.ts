@@ -6,6 +6,8 @@ export async function GET(req: NextRequest) {
   const category = searchParams.get("category")
   const ohaeng = searchParams.get("ohaeng")
   const color = searchParams.get("color")
+  const q = searchParams.get("q")
+  const sort = searchParams.get("sort") // latest(기본) | price_asc | price_desc
   const page = Number(searchParams.get("page") ?? "1")
   const limit = 12
 
@@ -13,12 +15,17 @@ export async function GET(req: NextRequest) {
     .from("Product")
     .select("id, name, price, images, flowerMeaning, category, stock", { count: "exact" })
     .eq("isActive", true)
-    .order("createdAt", { ascending: false })
-    .range((page - 1) * limit, page * limit - 1)
+
+  if (sort === "price_asc") query = query.order("price", { ascending: true })
+  else if (sort === "price_desc") query = query.order("price", { ascending: false })
+  else query = query.order("createdAt", { ascending: false })
+
+  query = query.range((page - 1) * limit, page * limit - 1)
 
   if (category) query = query.eq("category", category)
   if (ohaeng) query = query.contains("ohaengTags", [ohaeng])
   if (color) query = query.contains("colorTags", [color])
+  if (q) query = query.or(`name.ilike.%${q}%,flowerMeaning.ilike.%${q}%`)
 
   const { data, count, error } = await query
 

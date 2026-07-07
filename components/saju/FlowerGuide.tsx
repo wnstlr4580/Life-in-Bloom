@@ -1,3 +1,4 @@
+import Link from "next/link"
 import type { Ohaeng } from "@/lib/saju"
 import { FLOWERS_BY_OHAENG } from "@/lib/flowers"
 
@@ -46,6 +47,14 @@ export function FlowerGuide({ mainOhaeng, lackingOhaeng }: Props) {
           꽃집에서 이 꽃들을 찾아보세요. 당신의 기운을 더 빛나게 해줘요.
         </p>
         <FlowerCards ohaeng={mainOhaeng} count={8} />
+        <div className="text-center mt-4">
+          <Link
+            href={`/products?ohaeng=${mainOhaeng}`}
+            className="inline-block px-5 py-2.5 rounded-full bg-rose-400 hover:bg-rose-500 text-white text-sm font-semibold transition-colors"
+          >
+            🛒 내 기운에 맞는 꽃 상품 보러 가기
+          </Link>
+        </div>
       </div>
 
       {/* 부족한 기운을 채워주는 꽃 */}
