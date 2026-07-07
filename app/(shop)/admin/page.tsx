@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useSession, signIn } from "next-auth/react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
 const STATUS_LABEL: Record<string, string> = {
@@ -84,7 +85,10 @@ export default function AdminPage() {
     <div className="max-w-6xl mx-auto px-6 py-10">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-bold text-stone-800">주문 관리</h1>
-        <Button onClick={load} variant="outline" className="h-9 text-sm border-stone-200">새로고침</Button>
+        <div className="flex items-center gap-3">
+          <Link href="/admin/products" className="text-sm text-rose-500 font-medium hover:text-rose-600">상품 관리 →</Link>
+          <Button onClick={load} variant="outline" className="h-9 text-sm border-stone-200">새로고침</Button>
+        </div>
       </div>
 
       {orders.length === 0 ? (
