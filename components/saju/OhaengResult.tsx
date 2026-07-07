@@ -67,14 +67,11 @@ export function OhaengResult({ pillars, mainOhaeng, name }: Props) {
 
         {pillars.map((p, i) => {
           const c = OHAENG_COLOR[p.stemOhaeng]
-          const isMain = p.pillar === "일주"
           return (
             <div key={p.pillar} className="flex gap-3">
               {/* 타임라인 선 */}
               <div className="flex flex-col items-center">
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-base shrink-0 border-2 ${
-                  isMain ? `${c.border} bg-white shadow-sm` : "border-stone-200 bg-stone-50"
-                }`}>
+                <div className="w-9 h-9 rounded-full flex items-center justify-center text-base shrink-0 border-2 border-stone-200 bg-white shadow-sm">
                   {p.metaphorEmoji}
                 </div>
                 {i < pillars.length - 1 && (
@@ -83,7 +80,7 @@ export function OhaengResult({ pillars, mainOhaeng, name }: Props) {
               </div>
 
               {/* 카드 */}
-              <div className={`flex-1 rounded-xl border p-4 mb-3 ${isMain ? `${c.bg} ${c.border} shadow-sm` : "bg-white border-stone-100"}`}>
+              <div className="flex-1 rounded-xl border border-stone-100 bg-white p-4 mb-3">
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full mr-2 ${c.badge}`}>
