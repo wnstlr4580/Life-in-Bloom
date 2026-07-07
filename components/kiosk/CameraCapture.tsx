@@ -93,6 +93,15 @@ export function CameraCapture({ onComplete }: Props) {
   async function captureFrame() {
     const video = videoRef.current
     if (!video) return
+
+    // 카메라가 막 켜진 직후에는 video의 실제 프레임이 아직 준비되지 않아
+    // videoWidth/Height가 0일 수 있다 (배포 환경에서 더 자주 발생).
+    // 0인 상태로 캡처하면 createImageBitmap이 에러를 던지므로 잠깐 재확인한다.
+    for (let i = 0; i < 10 && (video.videoWidth === 0 || video.videoHeight === 0); i++) {
+      await new Promise((r) => setTimeout(r, 100))
+    }
+    if (video.videoWidth === 0 || video.videoHeight === 0) return // 그래도 안 되면 이번 컷은 건너뛴다
+
     const canvas = document.createElement("canvas")
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
