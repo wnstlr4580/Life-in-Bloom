@@ -126,6 +126,20 @@ export default function MyPage() {
             </Button>
           </div>
 
+          {/* 관리자 메뉴 */}
+          {session.user.isAdmin && (
+            <div className="bg-rose-50 rounded-2xl border border-rose-100 overflow-hidden">
+              <Link href="/admin" className="w-full flex items-center justify-between px-4 py-3.5 border-b border-rose-100 hover:bg-rose-100 transition-colors text-left">
+                <span className="text-sm font-semibold text-rose-600 flex items-center gap-2"><span>🛠️</span>관리자 — 주문 관리</span>
+                <ChevronRight size={14} className="text-rose-300" />
+              </Link>
+              <Link href="/admin/products" className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-rose-100 transition-colors text-left">
+                <span className="text-sm font-semibold text-rose-600 flex items-center gap-2"><span>🛠️</span>관리자 — 상품 관리</span>
+                <ChevronRight size={14} className="text-rose-300" />
+              </Link>
+            </div>
+          )}
+
           {/* 메뉴 */}
           <div className="bg-white rounded-2xl border border-stone-100 overflow-hidden">
             {[

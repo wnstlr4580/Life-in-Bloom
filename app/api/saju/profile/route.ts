@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getToken } from "next-auth/jwt"
+import { nanoid } from "nanoid"
 import { supabaseAdmin } from "@/lib/supabase"
 
 async function getEmail(req: NextRequest): Promise<string | null> {
@@ -49,12 +50,20 @@ export async function POST(req: NextRequest) {
 
   const { name, gender, birthDate, calendarType, birthHour, city } = await req.json()
 
-  await supabaseAdmin
+  // 기존 사용자의 실제 id(회원가입 시 생성된 값)를 그대로 유지 — 새로 지어내면 안 된다
+  const { data: existing } = await supabaseAdmin
+    .from("User")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle()
+
+  const { error } = await supabaseAdmin
     .from("User")
     .upsert(
-      { id: email, email, sajuName: name, gender, birthDate, calendarType, birthHour, city },
+      { id: existing?.id ?? nanoid(), email, sajuName: name, gender, birthDate, calendarType, birthHour, city },
       { onConflict: "email" }
     )
 
+  if (error) return NextResponse.json({ error: "저장에 실패했어요" }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

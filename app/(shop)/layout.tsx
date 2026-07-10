@@ -5,7 +5,7 @@ import { useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { useCartStore } from "@/store/cartStore"
 import { useSession, signIn, signOut } from "next-auth/react"
-import { ShoppingCart, Flower2, User, LogIn, Search } from "lucide-react"
+import { ShoppingCart, Flower2, User, LogIn, Search, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 const NAV = [
@@ -91,6 +91,15 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
                 )}
               </Button>
             </Link>
+
+            {session?.user?.isAdmin && (
+              <Link href="/admin">
+                <Button variant="ghost" size="sm" className="gap-1.5 text-rose-500 hover:text-rose-600">
+                  <Shield size={18} />
+                  <span className="text-sm hidden sm:inline">관리자</span>
+                </Button>
+              </Link>
+            )}
 
             {session?.user ? (
               <Link href="/mypage">
