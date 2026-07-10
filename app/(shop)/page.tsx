@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { HomeProducts } from "@/components/shop/HomeProducts"
 import { EventBanner } from "@/components/shop/EventBanner"
 import { BouquetGallery } from "@/components/shop/BouquetGallery"
-import { ArrowRight, Flower2, Sparkles, Leaf } from "lucide-react"
+import { ArrowRight, Flower2, Sparkles } from "lucide-react"
 
 export default function HomePage() {
   return (
@@ -61,38 +61,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 특징 섹션 */}
-      <section className="py-20 px-6 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl font-bold text-stone-800 text-center mb-12">왜 인생내꽃인가요?</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                icon: "🔮",
-                title: "오행 맞춤 추천",
-                desc: "생년월일의 천간을 분석해 목·화·토·금·수 오행에 맞는 꽃을 추천해요.",
-              },
-              {
-                icon: "💐",
-                title: "감성 꽃다발",
-                desc: "꽃말, 색감, 계절감까지 고려한 큐레이션으로 특별한 순간을 완성해요.",
-              },
-              {
-                icon: "🚚",
-                title: "당일 배송",
-                desc: "오전 11시 이전 주문 시 당일 배송. 신선한 꽃을 바로 받아보세요.",
-              },
-            ].map(({ icon, title, desc }) => (
-              <div key={title} className="text-center space-y-3 p-6 rounded-2xl hover:bg-stone-50 transition-colors">
-                <span className="text-4xl">{icon}</span>
-                <h3 className="font-bold text-stone-800">{title}</h3>
-                <p className="text-sm text-stone-500 leading-relaxed">{desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* 실제 판매 상품 */}
       <HomeProducts />
 
@@ -124,22 +92,6 @@ export default function HomePage() {
 
       {/* 손님들이 만든 꽃다발 후기 */}
       <BouquetGallery />
-
-      {/* CTA 섹션 */}
-      <section className="py-20 px-6 bg-gradient-to-r from-rose-400 to-pink-400 text-white">
-        <div className="max-w-6xl mx-auto text-center space-y-6">
-          <Leaf size={32} className="mx-auto opacity-80" />
-          <h2 className="text-3xl font-bold">지금 바로 나의 꽃을 찾아보세요</h2>
-          <p className="text-rose-100 max-w-md mx-auto">
-            단 30초, 생년월일만 입력하면 당신에게 어울리는 꽃을 알 수 있어요.
-          </p>
-          <Link href="/saju">
-            <Button className="h-12 px-8 bg-white text-rose-500 hover:bg-rose-50 font-semibold text-base">
-              오행 분석 시작하기
-            </Button>
-          </Link>
-        </div>
-      </section>
     </>
   )
 }
