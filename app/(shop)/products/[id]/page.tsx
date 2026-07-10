@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react"
 import { ShoppingBag, ArrowLeft, Heart, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useCartStore } from "@/store/cartStore"
+import { ProductGuide } from "@/components/shop/ProductGuide"
 import Link from "next/link"
 
 interface Review {
@@ -17,6 +18,7 @@ interface Product {
   id: string; name: string; description: string; price: number; stock: number
   images: string[]; flowerMeaning: string | null; ohaengTags: string[]
   colorTags: string[]; seasonTags: string[]; category: string
+  useTags?: string[] | null
   reviews?: Review[]
 }
 
@@ -220,6 +222,16 @@ export default function ProductDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* 상세 안내 — 상품 이야기·추천 순간·관리법·배송·교환환불 */}
+      <ProductGuide
+        name={product.name}
+        category={product.category}
+        description={product.description}
+        flowerMeaning={product.flowerMeaning}
+        ohaengTags={product.ohaengTags}
+        useTags={product.useTags}
+      />
 
       {/* 리뷰 */}
       <div className="mt-16 max-w-3xl">
