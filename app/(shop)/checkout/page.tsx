@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useCartStore } from "@/store/cartStore"
 import { Button } from "@/components/ui/button"
@@ -31,23 +31,44 @@ export default function CheckoutPage() {
   // 받는 날짜 최소값 (오늘)
   const todayStr = new Date().toLocaleDateString("sv-SE")
 
-  // 카카오(다음) 우편번호 검색
-  const openPostcode = () => {
+  // 카카오(다음) 우편번호 검색 — 팝업 차단을 피하려고 화면 안 레이어(embed)로 띄운다
+  const [postcodeOpen, setPostcodeOpen] = useState(false)
+  const postcodeRef = useRef<HTMLDivElement>(null)
+  const openPostcode = () => setPostcodeOpen(true)
+
+  useEffect(() => {
+    if (!postcodeOpen) return
     type PostcodeData = { roadAddress?: string; jibunAddress?: string }
     const w = window as unknown as {
-      daum?: { Postcode: new (opts: { oncomplete: (d: PostcodeData) => void }) => { open: () => void } }
+      daum?: {
+        Postcode: new (opts: {
+          oncomplete: (d: PostcodeData) => void
+          width?: string
+          height?: string
+        }) => { embed: (el: HTMLElement) => void }
+      }
     }
-    const open = () => {
-      w.daum && new w.daum.Postcode({
-        oncomplete: (d) => setForm((f) => ({ ...f, address: d.roadAddress || d.jibunAddress || "" })),
-      }).open()
+    const embed = () => {
+      if (!w.daum || !postcodeRef.current) return
+      postcodeRef.current.innerHTML = ""
+      new w.daum.Postcode({
+        oncomplete: (d) => {
+          setForm((f) => ({ ...f, address: d.roadAddress || d.jibunAddress || "" }))
+          setPostcodeOpen(false)
+        },
+        width: "100%",
+        height: "100%",
+      }).embed(postcodeRef.current)
     }
-    if (w.daum?.Postcode) return open()
-    const script = document.createElement("script")
-    script.src = "https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"
-    script.onload = open
-    document.head.appendChild(script)
-  }
+    if (w.daum?.Postcode) {
+      embed()
+    } else {
+      const script = document.createElement("script")
+      script.src = "https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"
+      script.onload = embed
+      document.head.appendChild(script)
+    }
+  }, [postcodeOpen])
 
   if (items.length === 0) {
     return (
@@ -113,6 +134,14 @@ export default function CheckoutPage() {
 
   const handlePayment = async () => {
     if (!validate()) return
+
+    // 결제 설정 확인 — 채널 키가 없으면 결제 자체가 불가능하다
+    const channelKey = process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY
+    if (!channelKey) {
+      setError("결제 설정이 아직 완료되지 않았어요. 관리자에게 문의해주세요. (포트원 채널 키 미등록)")
+      return
+    }
+
     setLoading(true)
     setError("")
 
@@ -121,8 +150,8 @@ export default function CheckoutPage() {
       const paymentId = `order_${nanoid()}`
 
       const response = await PortOne.requestPayment({
-        storeId: "store-b6ae6b94-3891-4a84-afce-0428f5b5de34",
-        channelKey: process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY!,
+        storeId: process.env.NEXT_PUBLIC_PORTONE_STORE_ID ?? "store-b6ae6b94-3891-4a84-afce-0428f5b5de34",
+        channelKey,
         paymentId,
         orderName: items.length === 1 ? items[0].product.name : `${items[0].product.name} 외 ${items.length - 1}건`,
         totalAmount: grandTotal,
@@ -163,6 +192,31 @@ export default function CheckoutPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10">
+      {/* 주소 검색 레이어 — 팝업 대신 화면 안에 띄워 팝업 차단을 피한다 */}
+      {postcodeOpen && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4"
+          onClick={() => setPostcodeOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl overflow-hidden w-full max-w-lg shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-stone-100">
+              <p className="text-sm font-semibold text-stone-700">주소 검색</p>
+              <button
+                onClick={() => setPostcodeOpen(false)}
+                className="text-stone-400 hover:text-stone-600 text-xl leading-none"
+                aria-label="닫기"
+              >
+                ×
+              </button>
+            </div>
+            <div ref={postcodeRef} className="h-[440px]" />
+          </div>
+        </div>
+      )}
+
       <h1 className="text-2xl font-bold text-stone-800 mb-8">주문 / 결제</h1>
 
       <div className="flex flex-col lg:flex-row gap-8">
