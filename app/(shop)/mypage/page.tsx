@@ -1,10 +1,19 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import { useSession, signIn, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
-import { Package, LogOut, User, ChevronRight } from "lucide-react"
+import { Package, LogOut, User, ChevronRight, Sparkles, Pencil } from "lucide-react"
 import Image from "next/image"
+
+const GENDER_LABEL: Record<string, string> = { male: "남성", female: "여성" }
+const CALENDAR_LABEL: Record<string, string> = { solar: "양력", lunar: "음력" }
+
+interface SajuProfile {
+  name: string; gender: string; birthDate: string
+  calendarType: string; birthHour: string; city: string
+}
 
 const STATUS_LABEL: Record<string, string> = {
   PENDING: "결제 대기", PAID: "결제 완료", PREPARING: "준비 중",
@@ -28,11 +37,16 @@ export default function MyPage() {
   const { data: session, status } = useSession()
   const [orders, setOrders] = useState<Order[]>([])
   const [loadingOrders, setLoadingOrders] = useState(false)
+  const [sajuProfile, setSajuProfile] = useState<SajuProfile | null>(null)
+  const [loadingSaju, setLoadingSaju] = useState(false)
 
   useEffect(() => {
     if (!session?.user) return
     setLoadingOrders(true)
     fetch("/api/orders").then((r) => r.json()).then((d) => setOrders(d.orders ?? [])).finally(() => setLoadingOrders(false))
+
+    setLoadingSaju(true)
+    fetch("/api/saju/profile").then((r) => r.json()).then((d) => setSajuProfile(d)).finally(() => setLoadingSaju(false))
   }, [session])
 
   if (status === "loading") {
@@ -89,22 +103,76 @@ export default function MyPage() {
           {/* 메뉴 */}
           <div className="bg-white rounded-2xl border border-stone-100 overflow-hidden">
             {[
-              { label: "주문 내역", emoji: "📦" },
               { label: "위시리스트", emoji: "🤍" },
-              { label: "나의 오행 분석", emoji: "🔮" },
               { label: "알림 설정", emoji: "🔔" },
-              { label: "이용약관", emoji: "📋" },
             ].map(({ label, emoji }) => (
               <button key={label} className="w-full flex items-center justify-between px-4 py-3.5 border-b last:border-0 border-stone-50 hover:bg-stone-50 transition-colors text-left">
                 <span className="text-sm text-stone-700 flex items-center gap-2"><span>{emoji}</span>{label}</span>
                 <ChevronRight size={14} className="text-stone-300" />
               </button>
             ))}
+            <Link href="/terms" className="w-full flex items-center justify-between px-4 py-3.5 border-b border-stone-50 hover:bg-stone-50 transition-colors text-left">
+              <span className="text-sm text-stone-700 flex items-center gap-2"><span>📋</span>이용약관</span>
+              <ChevronRight size={14} className="text-stone-300" />
+            </Link>
+            <Link href="/privacy" className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-stone-50 transition-colors text-left">
+              <span className="text-sm text-stone-700 flex items-center gap-2"><span>🔒</span>개인정보처리방침</span>
+              <ChevronRight size={14} className="text-stone-300" />
+            </Link>
           </div>
         </div>
 
-        {/* 메인 컨텐츠 — 주문 내역 */}
-        <div className="flex-1">
+        {/* 메인 컨텐츠 */}
+        <div className="flex-1 space-y-6">
+          {/* 나의 오행 분석 정보 */}
+          <div className="bg-white rounded-2xl border border-stone-100 overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-stone-50">
+              <h2 className="font-semibold text-stone-800 flex items-center gap-2">
+                <Sparkles size={16} /> 나의 오행 분석 정보
+              </h2>
+              <Link href="/saju" className="text-sm text-rose-400 hover:text-rose-500 flex items-center gap-1">
+                <Pencil size={13} /> {sajuProfile ? "다시 분석하기" : "분석하러 가기"}
+              </Link>
+            </div>
+
+            {loadingSaju ? (
+              <div className="py-10 flex justify-center"><div className="w-6 h-6 border-2 border-rose-300 border-t-transparent rounded-full animate-spin" /></div>
+            ) : !sajuProfile ? (
+              <div className="py-12 text-center text-stone-400">
+                <p className="text-3xl mb-3">🔮</p>
+                <p className="text-sm">아직 저장된 사주 정보가 없어요</p>
+              </div>
+            ) : (
+              <div className="p-6 grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <p className="text-xs text-stone-400 mb-1">이름</p>
+                  <p className="text-stone-800 font-medium">{sajuProfile.name || "미입력"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-stone-400 mb-1">성별</p>
+                  <p className="text-stone-800 font-medium">{GENDER_LABEL[sajuProfile.gender] ?? sajuProfile.gender}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-stone-400 mb-1">생년월일</p>
+                  <p className="text-stone-800 font-medium">{sajuProfile.birthDate} ({CALENDAR_LABEL[sajuProfile.calendarType] ?? sajuProfile.calendarType})</p>
+                </div>
+                <div>
+                  <p className="text-xs text-stone-400 mb-1">태어난 시간</p>
+                  <p className="text-stone-800 font-medium">{sajuProfile.birthHour === "unknown" ? "모름" : sajuProfile.birthHour}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-stone-400 mb-1">태어난 지역</p>
+                  <p className="text-stone-800 font-medium">{sajuProfile.city || "미입력"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-stone-400 mb-1">가입 이메일</p>
+                  <p className="text-stone-800 font-medium truncate">{session.user.email}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 주문 내역 */}
           <div className="bg-white rounded-2xl border border-stone-100 overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-stone-50">
               <h2 className="font-semibold text-stone-800 flex items-center gap-2">
