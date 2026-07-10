@@ -92,6 +92,9 @@ export default function MyPage() {
             Google로 시작하기
           </Button>
         </div>
+        <Link href="/login" className="text-sm text-stone-400 hover:text-rose-500 underline">
+          이메일로 로그인
+        </Link>
       </div>
     )
   }

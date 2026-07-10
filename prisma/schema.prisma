@@ -14,6 +14,8 @@ model User {
   email        String    @unique
   name         String?
   image        String?
+  password     String? // 이메일/비밀번호 회원가입 시 bcrypt 해시 저장 (소셜 로그인 계정은 null)
+  isAdmin      Boolean   @default(false)
   birthDate    DateTime?
   calendarType String?   @default("solar")
   ohaengType   String?
@@ -80,7 +82,7 @@ model CartItem {
 
 model Order {
   id            String      @id @default(cuid())
-  userId        String
+  userId        String? // 비회원 주문은 null — 주문번호+연락처로 /orders/lookup 조회
   status        OrderStatus @default(PENDING)
   totalAmount   Int
   shippingFee   Int         @default(0)
@@ -94,7 +96,7 @@ model Order {
   qrCode        String?     @unique
   createdAt     DateTime    @default(now())
 
-  user  User        @relation(fields: [userId], references: [id])
+  user  User?       @relation(fields: [userId], references: [id])
   items OrderItem[]
 }
 

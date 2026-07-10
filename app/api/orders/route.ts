@@ -10,8 +10,9 @@ interface OrderItemInput {
 }
 
 export async function POST(req: Request) {
+  // 로그인 없이도 주문할 수 있다 — 비회원 주문은 userId 없이 저장되고,
+  // /orders/lookup(주문번호 + 연락처)으로 조회한다.
   const session = await auth()
-  if (!session?.user?.id) return NextResponse.json({ error: "로그인이 필요합니다" }, { status: 401 })
 
   const { items, totalAmount, shippingFee, deliveryType, shippingAddr, giftMessage, giftWrapping, paymentId } = await req.json()
 
@@ -25,7 +26,7 @@ export async function POST(req: Request) {
     .from("Order")
     .insert({
       id: orderId,
-      userId: session.user.id,
+      userId: session?.user?.id ?? null,
       totalAmount,
       shippingFee: shippingFee ?? 0,
       deliveryType,
