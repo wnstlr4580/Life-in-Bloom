@@ -76,7 +76,9 @@ export function OhaengBalance({ pillars, lackingProducts = [] }: Props) {
     ORDER.map(o => [o, total > 0 ? Math.round((raw[o] / total) * 100) : 0])
   ) as Record<Ohaeng, number>
 
-  const needFlower = ORDER.filter(o => pct[o] < 20)
+  // 가장 부족한 기운 하나만 꽃 추천에 사용
+  const weakest = ORDER.reduce((a, b) => (pct[b] < pct[a] ? b : a))
+  const needFlower = pct[weakest] < 20 ? [weakest] : []
 
   // 최댓값 기준 상대 스케일 — 가장 강한 기운이 외곽에 닿도록
   const maxPct = Math.max(...ORDER.map(o => pct[o]), 1)

@@ -35,7 +35,9 @@ export async function POST(req: NextRequest) {
   const pct = Object.fromEntries(
     OHAENG_ALL.map(o => [o, total > 0 ? Math.round((raw[o] / total) * 100) : 0])
   ) as Record<Ohaeng, number>
-  const lackingOhaeng = OHAENG_ALL.filter(o => pct[o] < 20)
+  // 가장 부족한 기운 하나만 추천에 사용 (20% 미만일 때만 — 균형 잡힌 사주는 없음)
+  const weakest = OHAENG_ALL.reduce((a, b) => (pct[b] < pct[a] ? b : a))
+  const lackingOhaeng = pct[weakest] < 20 ? [weakest] : []
 
   // 부족한 기운별 상품 조회 + 대표 오행 상품 + 계절 상품 병렬 조회
   const lackingQueries = lackingOhaeng.map(o =>
