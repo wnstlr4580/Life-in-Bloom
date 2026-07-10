@@ -55,6 +55,10 @@ function ProductsContent() {
   const [loading, setLoading] = useState(true)
   const [category, setCategory] = useState("")
   const [use, setUse] = useState("")
+
+  // 메가메뉴 링크(?category= / ?use=)로 진입하면 필터에 반영
+  useEffect(() => { setCategory(searchParams.get("category") ?? "") }, [searchParams])
+  useEffect(() => { setUse(searchParams.get("use") ?? "") }, [searchParams])
   const [sort, setSort] = useState("latest")
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)

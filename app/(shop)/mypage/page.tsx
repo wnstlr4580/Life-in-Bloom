@@ -42,6 +42,7 @@ export default function MyPage() {
   const [loadingSaju, setLoadingSaju] = useState(false)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [points, setPoints] = useState<number | null>(null)
 
   const loadSajuProfile = useCallback(() => {
     setLoadingSaju(true)
@@ -52,6 +53,7 @@ export default function MyPage() {
     if (!session?.user) return
     setLoadingOrders(true)
     fetch("/api/orders").then((r) => r.json()).then((d) => setOrders(d.orders ?? [])).finally(() => setLoadingOrders(false))
+    fetch("/api/me").then((r) => r.json()).then((d) => setPoints(d?.points ?? 0)).catch(() => {})
     loadSajuProfile()
   }, [session, loadSajuProfile])
 
@@ -121,6 +123,12 @@ export default function MyPage() {
                 <p className="text-xs text-stone-400 truncate">{session.user.email}</p>
               </div>
             </div>
+            {points !== null && (
+              <div className="flex items-center justify-between bg-rose-50 rounded-xl px-3.5 py-2.5">
+                <span className="text-xs text-stone-600">보유 포인트</span>
+                <span className="text-sm font-bold text-rose-500">{points.toLocaleString()}P</span>
+              </div>
+            )}
             <Button variant="outline" size="sm" onClick={() => signOut({ callbackUrl: "/" })} className="w-full gap-2 text-stone-500">
               <LogOut size={14} /> 로그아웃
             </Button>

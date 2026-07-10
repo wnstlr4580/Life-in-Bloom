@@ -1,100 +1,26 @@
 "use client"
 
-import { useState, useMemo, useEffect, useRef } from "react"
+import { useState, useMemo, useEffect, useRef, Suspense } from "react"
 import { useCartStore } from "@/store/cartStore"
+import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
-import { ShoppingCart, Sparkles, RefreshCw, Star, RotateCcw } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { ShoppingCart, Sparkles, RefreshCw, Star, RotateCcw, Camera } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { nanoid } from "nanoid"
 import Image from "next/image"
+import { SIZES, FLOWERS, WRAPPING, COLOR_FILTER, COLOR_LABEL } from "@/lib/customFlowers"
 
-const SIZES = [
-  { id: "mini",  name: "미니",  emoji: "🌷", stems: 7,  mainStems: 4,  maxAdditional: 3,  desc: "약 7송이",  engVolume: "tiny petite hand-tied bouquet with only a few stems, minimal and delicate, small enough to hold in one hand" },
-  { id: "basic", name: "기본",  emoji: "💐", stems: 12, mainStems: 6,  maxAdditional: 6,  desc: "약 12송이", engVolume: "medium-sized hand-tied bouquet with moderate fullness, classic everyday bouquet size" },
-  { id: "full",  name: "풍성",  emoji: "🌸", stems: 18, mainStems: 9,  maxAdditional: 9,  desc: "약 18송이", engVolume: "large lush full bouquet with abundant blooms densely packed, voluminous and impressive" },
-  { id: "large", name: "대형",  emoji: "🌺", stems: 25, mainStems: 12, maxAdditional: 13, desc: "약 25송이", engVolume: "grand oversized premium bouquet with dramatic volume, extremely full and lavish with blooms overflowing" },
-]
-
-const FLOWERS = [
-  // 장미
-  { id: "rose-red",             group: "장미",     name: "빨간 장미",   engDesc: "red roses with deep velvety petals",                            emoji: "🌹", img: "/flowers/red_rose.jpg",               color: "red",    price: 3000, ohaeng: "화" },
-  { id: "rose-pink",            group: "장미",     name: "핑크 장미",   engDesc: "soft pink roses with delicate petals",                          emoji: "🌸", img: "/flowers/pink_rose.jpg",              color: "pink",   price: 3000, ohaeng: "화" },
-  { id: "rose-white",           group: "장미",     name: "흰 장미",     engDesc: "white roses with pure pristine petals",                         emoji: "🤍", img: "/flowers/white_rose.jpg",             color: "white",  price: 3000, ohaeng: "금" },
-  { id: "rose-yellow",          group: "장미",     name: "노란 장미",   engDesc: "bright yellow roses with cheerful petals",                      emoji: "💛", img: "/flowers/yellow_rose.jpg",            color: "yellow", price: 3000, ohaeng: "토" },
-  // 튤립
-  { id: "tulip-pink",           group: "튤립",     name: "핑크 튤립",   engDesc: "pink tulips with smooth cup-shaped blooms",                     emoji: "🌷", img: "/flowers/pink_tulip.jpg",             color: "pink",   price: 2500, ohaeng: "목" },
-  { id: "tulip-white",          group: "튤립",     name: "흰 튤립",     engDesc: "white tulips with elegant cup-shaped blooms",                   emoji: "🤍", img: "/flowers/white_tulip.jpg",            color: "white",  price: 2500, ohaeng: "금" },
-  { id: "tulip-purple",         group: "튤립",     name: "보라 튤립",   engDesc: "purple tulips with rich velvety cup-shaped blooms",             emoji: "💜", img: "/flowers/purple_tulip.jpg",           color: "purple", price: 2500, ohaeng: "수" },
-  { id: "tulip-orange",         group: "튤립",     name: "주황 튤립",   engDesc: "orange tulips with vibrant warm cup-shaped blooms",             emoji: "🧡", img: "/flowers/orange_tulip.jpg",           color: "orange", price: 2500, ohaeng: "화" },
-  { id: "tulip-yellow",         group: "튤립",     name: "노란 튤립",   engDesc: "yellow tulips with bright sunny cup-shaped blooms",             emoji: "💛", img: "/flowers/yellow_tulip.jpg",           color: "yellow", price: 2500, ohaeng: "토" },
-  // 백합
-  { id: "lily-white",           group: "백합",     name: "흰 백합",     engDesc: "white oriental lilies with large open blooms",                  emoji: "🤍", img: "/flowers/white_lily.jpg",             color: "white",  price: 3500, ohaeng: "금" },
-  { id: "lily-pink",            group: "백합",     name: "핑크 백합",   engDesc: "pink oriental lilies with large open blooms",                   emoji: "🌸", img: "/flowers/pink_lily.jpg",              color: "pink",   price: 3500, ohaeng: "화" },
-  // 수국
-  { id: "hydrangea-blue",       group: "수국",     name: "파란 수국",   engDesc: "blue hydrangea clusters with tiny mophead florets",             emoji: "💙", img: "/flowers/blue_hydrangea.jpg",         color: "blue",   price: 4000, ohaeng: "수" },
-  { id: "hydrangea-pink",       group: "수국",     name: "핑크 수국",   engDesc: "pink hydrangea clusters with soft mophead florets",             emoji: "🌸", img: "/flowers/pink_hydrangea.jpg",         color: "pink",   price: 4000, ohaeng: "화" },
-  // 카네이션
-  { id: "carnation-pink",       group: "카네이션", name: "핑크 카네이션", engDesc: "pink carnations with ruffled fringed petals",                 emoji: "🌸", img: "/flowers/pink_carnation.jpg",         color: "pink",   price: 2000, ohaeng: "화" },
-  { id: "carnation-red",        group: "카네이션", name: "빨간 카네이션", engDesc: "red carnations with ruffled fringed petals",                  emoji: "🌹", img: "/flowers/red_carnation.jpg",          color: "red",    price: 2000, ohaeng: "화" },
-  { id: "carnation-purple",     group: "카네이션", name: "보라 카네이션", engDesc: "purple carnations with ruffled fringed petals",               emoji: "💜", img: "/flowers/purple_carnation.jpg",       color: "purple", price: 2000, ohaeng: "수" },
-  { id: "carnation-white",      group: "카네이션", name: "흰 카네이션",  engDesc: "white carnations with ruffled fringed petals",                 emoji: "🤍", img: "/flowers/white_carnation.jpg",        color: "white",  price: 2000, ohaeng: "금" },
-  // 작약
-  { id: "peony-pink",           group: "작약",     name: "핑크 작약",   engDesc: "pink peonies with lush full ruffled blooms",                    emoji: "🌸", img: "/flowers/pink_paeonia.jpg",           color: "pink",   price: 5000, ohaeng: "화" },
-  { id: "peony-red",            group: "작약",     name: "빨간 작약",   engDesc: "red peonies with lush full ruffled blooms",                     emoji: "🌹", img: "/flowers/red_paeonia.jpg",            color: "red",    price: 5000, ohaeng: "화" },
-  { id: "peony-purple",         group: "작약",     name: "보라 작약",   engDesc: "purple peonies with lush full ruffled blooms",                  emoji: "💜", img: "/flowers/purple_paeonia.jpg",         color: "purple", price: 5000, ohaeng: "수" },
-  { id: "peony-white",          group: "작약",     name: "흰 작약",     engDesc: "white peonies with lush full ruffled blooms",                   emoji: "🤍", img: "/flowers/white_paeonia.jpg",          color: "white",  price: 5000, ohaeng: "금" },
-  { id: "peony-orange",         group: "작약",     name: "주황 작약",   engDesc: "orange peonies with lush full ruffled blooms",                  emoji: "🧡", img: "/flowers/orange_paeonia.jpg",         color: "orange", price: 5000, ohaeng: "화" },
-  // 거베라
-  { id: "gerbera-orange",       group: "거베라",   name: "주황 거베라",  engDesc: "bright orange gerbera daisies with bold circular blooms",       emoji: "🧡", img: "/flowers/orange_gerbera.jpg",         color: "orange", price: 2500, ohaeng: "화" },
-  { id: "gerbera-pink",         group: "거베라",   name: "핑크 거베라",  engDesc: "pink gerbera daisies with bold circular blooms",                emoji: "🌸", img: "/flowers/pink_gerbera.jpg",           color: "pink",   price: 2500, ohaeng: "화" },
-  { id: "gerbera-red",          group: "거베라",   name: "빨간 거베라",  engDesc: "red gerbera daisies with bold circular blooms",                 emoji: "🌹", img: "/flowers/red_gerbera.jpg",            color: "red",    price: 2500, ohaeng: "화" },
-  { id: "gerbera-yellow",       group: "거베라",   name: "노란 거베라",  engDesc: "yellow gerbera daisies with bold circular blooms",              emoji: "💛", img: "/flowers/yellow_gerbera.jpg",         color: "yellow", price: 2500, ohaeng: "토" },
-  // 아네모네
-  { id: "anemone-blue",         group: "아네모네", name: "파란 아네모네", engDesc: "blue anemones with dark button centers and silky petals",      emoji: "💙", img: "/flowers/blue_anemone.jpg",           color: "blue",   price: 3000, ohaeng: "수" },
-  { id: "anemone-pink",         group: "아네모네", name: "핑크 아네모네", engDesc: "pink anemones with dark button centers and silky petals",      emoji: "🌸", img: "/flowers/pink_anemone.jpg",           color: "pink",   price: 3000, ohaeng: "화" },
-  { id: "anemone-purple",       group: "아네모네", name: "보라 아네모네", engDesc: "purple anemones with dark button centers and silky petals",    emoji: "💜", img: "/flowers/purple_anemone.jpg",         color: "purple", price: 3000, ohaeng: "수" },
-  { id: "anemone-red",          group: "아네모네", name: "빨간 아네모네", engDesc: "red anemones with dark button centers and silky petals",       emoji: "🌹", img: "/flowers/red_anemone.jpg",            color: "red",    price: 3000, ohaeng: "화" },
-  // 국화
-  { id: "mum-white",            group: "국화",     name: "흰 국화",     engDesc: "white chrysanthemums with layered petals",                      emoji: "🤍", img: "/flowers/white_mum.jpg",              color: "white",  price: 2000, ohaeng: "금" },
-  { id: "mum-pink",             group: "국화",     name: "핑크 국화",   engDesc: "pink chrysanthemums with layered petals",                       emoji: "🌸", img: "/flowers/pink_mum.jpg",               color: "pink",   price: 2000, ohaeng: "화" },
-  { id: "mum-yellow",           group: "국화",     name: "노란 국화",   engDesc: "yellow chrysanthemums with layered petals",                     emoji: "💛", img: "/flowers/yellow_mum.jpg",             color: "yellow", price: 2000, ohaeng: "토" },
-  // 스위트피
-  { id: "sweetpea-pink",        group: "스위트피", name: "핑크 스위트피", engDesc: "pink sweet pea flowers with delicate butterfly-shaped petals", emoji: "🌸", img: "/flowers/pink_sweatpea.jpg",          color: "pink",   price: 2500, ohaeng: "목" },
-  { id: "sweetpea-white",       group: "스위트피", name: "흰 스위트피",  engDesc: "white sweet pea flowers with delicate butterfly-shaped petals", emoji: "🤍", img: "/flowers/white_sweatpea.jpg",         color: "white",  price: 2500, ohaeng: "금" },
-  // 안개꽃
-  { id: "babysbreath-white",    group: "안개꽃",   name: "흰 안개꽃",   engDesc: "white baby's breath with tiny cloud-like clusters",             emoji: "🤍", img: "/flowers/white_baby%27s_breath.jpg",  color: "white",  price: 1500, ohaeng: "금" },
-  { id: "babysbreath-pink",     group: "안개꽃",   name: "핑크 안개꽃", engDesc: "pink baby's breath with tiny cloud-like clusters",              emoji: "🌸", img: "/flowers/pink_baby%27s_breath.jpg",   color: "pink",   price: 1500, ohaeng: "화" },
-  { id: "babysbreath-purple",   group: "안개꽃",   name: "보라 안개꽃", engDesc: "purple baby's breath with tiny cloud-like clusters",            emoji: "💜", img: "/flowers/purple_baby%27s_breath.jpg", color: "purple", price: 1500, ohaeng: "수" },
-  // 칼라
-  { id: "calla-pink",           group: "칼라",     name: "핑크 칼라",   engDesc: "pink calla lilies with elegant trumpet-shaped blooms",          emoji: "🌸", img: "/flowers/pink_calla.jpg",             color: "pink",   price: 3500, ohaeng: "화" },
-  { id: "calla-red",            group: "칼라",     name: "빨간 칼라",   engDesc: "red calla lilies with elegant trumpet-shaped blooms",           emoji: "🌹", img: "/flowers/red_calla.jpg",              color: "red",    price: 3500, ohaeng: "화" },
-  { id: "calla-white",          group: "칼라",     name: "흰 칼라",     engDesc: "white calla lilies with elegant trumpet-shaped blooms",         emoji: "🤍", img: "/flowers/white_calla.jpg",            color: "white",  price: 3500, ohaeng: "금" },
-  // 단일 색 꽃
-  { id: "sunflower",            group: "해바라기", name: "해바라기",    engDesc: "bright yellow sunflowers with dark centers",                    emoji: "🌻", img: "/flowers/yellow_sunflower.jpg",       color: "yellow", price: 2000, ohaeng: "토" },
-  { id: "lavender",             group: "라벤더",   name: "라벤더",      engDesc: "purple lavender sprigs with delicate florets",                  emoji: "💜", img: "/flowers/purple_lavender.jpg",        color: "purple", price: 2500, ohaeng: "수" },
-  { id: "daisy",                group: "데이지",   name: "데이지",      engDesc: "white daisy flowers with yellow button centers",                emoji: "🌼", img: "/flowers/white_daisy.jpg",            color: "white",  price: 1500, ohaeng: "토" },
-  { id: "freesia",              group: "프리지아", name: "프리지아",    engDesc: "yellow freesia with fragrant tubular blooms",                   emoji: "🌼", img: "/flowers/yellow_freesia.jpg",         color: "yellow", price: 2000, ohaeng: "토" },
-  { id: "chamomile",            group: "카모마일", name: "카모마일",    engDesc: "white chamomile flowers with yellow centers and daisy-like petals", emoji: "🌼", img: "/flowers/white_chamomile.jpg",     color: "white",  price: 1500, ohaeng: "토" },
-  { id: "eucalyptus",           group: "유칼립투스", name: "유칼립투스", engDesc: "green eucalyptus sprigs with silvery round leaves",            emoji: "🌿", img: "/flowers/green_eucalyptus.jpg",       color: "green",  price: 2000, ohaeng: "목" },
-]
-
-const WRAPPING = [
-  { id: "kraft",       name: "크라프트지",   emoji: "📦", price: 1500, engStyle: "lower half of bouquet wrapped in rustic brown kraft paper secured with natural twine bow at the stems" },
-  { id: "cellophane",  name: "투명 셀로판",  emoji: "✨", price: 2000, engStyle: "flowers wrapped in transparent clear cellophane film tied with a thin satin ribbon, flowers fully visible through wrapping" },
-  { id: "linen",       name: "린넨 천 포장", emoji: "🌿", price: 2500, engStyle: "bouquet stems wrapped in natural beige linen fabric tied with a simple cotton ribbon" },
-  { id: "newspaper",   name: "신문지 빈티지", emoji: "📰", price: 1500, engStyle: "bouquet wrapped in vintage newspaper pages secured with rustic twine string, retro style" },
-  { id: "hanji",       name: "한지 포장",    emoji: "🏮", price: 3000, engStyle: "bouquet wrapped in multiple layers of pastel-colored Korean hanji tissue paper in soft pink, mint, lavender, and cream tones, creating a ruffled layered paper wrapping with delicate texture, tied with a thin ribbon" },
-  { id: "bouquet",     name: "부케 스타일",  emoji: "💍", price: 5000, engStyle: "professional wedding bouquet style, stems tightly bound with white satin ribbon wrapped spirally down the handle, elegant formal presentation" },
-]
-
-const COLOR_FILTER = ["전체", "red", "pink", "white", "yellow", "purple", "orange", "blue", "green"]
-const COLOR_LABEL: Record<string, string> = {
-  전체: "전체", red: "레드", pink: "핑크", white: "화이트",
-  yellow: "옐로우", purple: "퍼플", orange: "오렌지", blue: "블루", green: "그린",
+interface Composition {
+  sizeId: string
+  mainFlowerId: string | null
+  additionalFlowerIds: string[]
+  wrappingId: string
 }
 
-export default function CustomPage() {
+function CustomContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const { data: session } = useSession()
   const addItem = useCartStore((s) => s.addItem)
 
   const [size, setSize] = useState(SIZES[1])
@@ -109,6 +35,66 @@ export default function CustomPage() {
   const [elapsed, setElapsed] = useState(0)
   const elapsedRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [added, setAdded] = useState(false)
+
+  // 후기 작성 폼
+  const [postOpen, setPostOpen] = useState(false)
+  const [postFile, setPostFile] = useState<File | null>(null)
+  const [postContent, setPostContent] = useState("")
+  const [postSaving, setPostSaving] = useState(false)
+  const [postMessage, setPostMessage] = useState("")
+
+  // 후기 갤러리의 "이 조합 그대로 만들기"로 들어온 경우 조합을 불러온다
+  const loadedPostRef = useRef(false)
+  useEffect(() => {
+    const postId = searchParams.get("post")
+    if (!postId || loadedPostRef.current) return
+    loadedPostRef.current = true
+    fetch(`/api/bouquet-posts/${postId}`)
+      .then((r) => { if (!r.ok) throw new Error(); return r.json() })
+      .then((post) => {
+        const c = post.composition as Composition
+        const s = SIZES.find((x) => x.id === c.sizeId)
+        const w = WRAPPING.find((x) => x.id === c.wrappingId)
+        if (s) setSize(s)
+        if (w) setWrapping(w)
+        if (c.mainFlowerId && FLOWERS.some((f) => f.id === c.mainFlowerId)) setMainFlowerId(c.mainFlowerId)
+        setAdditionalFlowerIds(new Set((c.additionalFlowerIds ?? []).filter((id) => FLOWERS.some((f) => f.id === id))))
+        // 이 조합으로 주문이 완료되면 글쓴이에게 포인트가 적립되도록 기억해둔다
+        sessionStorage.setItem("bouquetSourcePost", postId)
+      })
+      .catch(() => {})
+  }, [searchParams])
+
+  const currentComposition = (): Composition => ({
+    sizeId: size.id,
+    mainFlowerId,
+    additionalFlowerIds: [...additionalFlowerIds],
+    wrappingId: wrapping.id,
+  })
+
+  const handlePostSubmit = async () => {
+    if (!postFile) { setPostMessage("꽃다발 사진을 골라주세요"); return }
+    if (!mainFlowerId) { setPostMessage("꽃 조합을 먼저 선택해주세요"); return }
+    setPostSaving(true)
+    setPostMessage("")
+    try {
+      const form = new FormData()
+      form.append("file", postFile)
+      form.append("content", postContent)
+      form.append("composition", JSON.stringify(currentComposition()))
+      const res = await fetch("/api/bouquet-posts", { method: "POST", body: form })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error ?? "후기 올리기에 실패했어요")
+      setPostMessage("후기가 올라갔어요! 홈 화면에서 확인해보세요 🌸")
+      setPostFile(null)
+      setPostContent("")
+      setPostOpen(false)
+    } catch (e) {
+      setPostMessage(e instanceof Error ? e.message : "후기 올리기에 실패했어요")
+    } finally {
+      setPostSaving(false)
+    }
+  }
 
   useEffect(() => {
     if (generating) {
@@ -555,10 +541,60 @@ export default function CustomPage() {
                 <ShoppingCart size={16} />
                 {added ? "담겼어요! 🌸" : generatedImageUrl ? "이 꽃다발로 주문하기" : "장바구니 담기"}
               </Button>
+
+              {/* 후기 올리기 — 받은 꽃다발 사진 자랑 + 포인트 안내 */}
+              {hasSelection && session?.user && (
+                <div className="border-t border-stone-100 pt-3">
+                  {!postOpen ? (
+                    <button
+                      onClick={() => { setPostOpen(true); setPostMessage("") }}
+                      className="w-full flex items-center justify-center gap-1.5 text-xs text-stone-500 hover:text-rose-500 border border-stone-200 hover:border-rose-200 py-2.5 rounded-xl transition-colors"
+                    >
+                      <Camera size={13} /> 받은 꽃다발 후기 올리기
+                    </button>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-stone-700">📸 이 조합으로 받은 꽃다발 자랑하기</p>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setPostFile(e.target.files?.[0] ?? null)}
+                        className="w-full text-xs text-stone-500 file:mr-2 file:rounded-lg file:border-0 file:bg-rose-50 file:text-rose-500 file:text-xs file:px-3 file:py-1.5"
+                      />
+                      <textarea
+                        value={postContent}
+                        onChange={(e) => setPostContent(e.target.value)}
+                        placeholder="한마디 남겨주세요 (예: 프로포즈 대성공!)"
+                        rows={2}
+                        className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs resize-none focus:outline-none focus:ring-1 focus:ring-rose-300"
+                      />
+                      <div className="flex gap-2">
+                        <Button onClick={handlePostSubmit} disabled={postSaving} className="flex-1 h-8 bg-rose-400 hover:bg-rose-500 text-white text-xs">
+                          {postSaving ? "올리는 중..." : "올리기"}
+                        </Button>
+                        <Button variant="outline" onClick={() => setPostOpen(false)} className="h-8 text-xs border-stone-200 text-stone-500">취소</Button>
+                      </div>
+                      <p className="text-[10px] text-stone-400 leading-relaxed">
+                        다른 분이 이 조합 그대로 구매하면 500포인트를 드려요
+                      </p>
+                    </div>
+                  )}
+                  {postMessage && <p className="text-[11px] text-rose-500 mt-1.5 text-center">{postMessage}</p>}
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
     </div>
+  )
+}
+
+// useSearchParams()는 Suspense 경계 안에서 써야 한다
+export default function CustomPage() {
+  return (
+    <Suspense fallback={null}>
+      <CustomContent />
+    </Suspense>
   )
 }

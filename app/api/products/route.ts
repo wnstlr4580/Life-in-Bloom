@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabaseAdmin
     .from("Product")
-    .select("id, name, price, images, flowerMeaning, category, stock", { count: "exact" })
+    .select("id, name, price, images, flowerMeaning, category, stock, reviews:Review(rating)", { count: "exact" })
     .eq("isActive", true)
 
   if (sort === "price_asc") query = query.order("price", { ascending: true })
@@ -33,6 +33,17 @@ export async function GET(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  // 리뷰 평균 별점·후기 수 집계 (원본 리뷰 배열은 응답에서 제거)
+  const products = (data ?? []).map((p) => {
+    const { reviews, ...rest } = p as typeof p & { reviews: { rating: number }[] | null }
+    const list = reviews ?? []
+    return {
+      ...rest,
+      reviewCount: list.length,
+      ratingAvg: list.length > 0 ? +(list.reduce((a, r) => a + r.rating, 0) / list.length).toFixed(1) : null,
+    }
+  })
+
   const total = count ?? 0
-  return NextResponse.json({ products: data ?? [], total, page, totalPages: Math.ceil(total / limit) })
+  return NextResponse.json({ products, total, page, totalPages: Math.ceil(total / limit) })
 }

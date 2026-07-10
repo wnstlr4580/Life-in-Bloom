@@ -2,11 +2,16 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { HomeProducts } from "@/components/shop/HomeProducts"
+import { EventBanner } from "@/components/shop/EventBanner"
+import { BouquetGallery } from "@/components/shop/BouquetGallery"
 import { ArrowRight, Flower2, Sparkles, Leaf } from "lucide-react"
 
 export default function HomePage() {
   return (
     <>
+      {/* 기획전 배너 */}
+      <EventBanner />
+
       {/* 히어로 섹션 */}
       <section className="bg-gradient-to-br from-rose-50 via-white to-stone-50 py-24 px-6">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-12">
@@ -116,6 +121,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* 손님들이 만든 꽃다발 후기 */}
+      <BouquetGallery />
 
       {/* CTA 섹션 */}
       <section className="py-20 px-6 bg-gradient-to-r from-rose-400 to-pink-400 text-white">

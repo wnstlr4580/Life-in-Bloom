@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   // /orders/lookup(주문번호 + 연락처)으로 조회한다.
   const session = await auth()
 
-  const { items, totalAmount, shippingFee, deliveryType, shippingAddr, giftMessage, giftWrapping, paymentId } = await req.json()
+  const { items, totalAmount, shippingFee, deliveryType, shippingAddr, giftMessage, giftWrapping, paymentId, sourcePostId } = await req.json()
 
   if (!items?.length || !totalAmount || !deliveryType || !shippingAddr) {
     return NextResponse.json({ error: "필수 정보가 누락되었습니다" }, { status: 400 })
@@ -53,6 +53,35 @@ export async function POST(req: Request) {
     )
 
   if (itemsError) return NextResponse.json({ error: itemsError.message }, { status: 500 })
+
+  // 후기 갤러리의 조합을 그대로 구매한 경우 — 구매 횟수 증가 + 글쓴이 포인트 적립
+  if (sourcePostId && typeof sourcePostId === "string") {
+    const POINT_PER_ORDER = 500
+    const { data: post } = await supabaseAdmin
+      .from("BouquetPost")
+      .select("id, userId, derivedOrderCount")
+      .eq("id", sourcePostId)
+      .maybeSingle()
+    if (post) {
+      await supabaseAdmin
+        .from("BouquetPost")
+        .update({ derivedOrderCount: (post.derivedOrderCount ?? 0) + 1 })
+        .eq("id", post.id)
+      if (post.userId && post.userId !== session?.user?.id) {
+        const { data: author } = await supabaseAdmin
+          .from("User")
+          .select("points")
+          .eq("id", post.userId)
+          .maybeSingle()
+        if (author) {
+          await supabaseAdmin
+            .from("User")
+            .update({ points: (author.points ?? 0) + POINT_PER_ORDER })
+            .eq("id", post.userId)
+        }
+      }
+    }
+  }
 
   return NextResponse.json({ orderId }, { status: 201 })
 }

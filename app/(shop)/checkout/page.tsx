@@ -99,12 +99,15 @@ export default function CheckoutPage() {
         giftMessage: form.giftMessage || null,
         giftWrapping: form.giftWrapping,
         paymentId: paymentId ?? null,
+        // 후기 갤러리의 조합 그대로 만든 주문이면 글쓴이 포인트 적립용으로 전달
+        sourcePostId: typeof window !== "undefined" ? sessionStorage.getItem("bouquetSourcePost") : null,
       }),
     })
     if (!res.ok) {
       const d = await res.json()
       throw new Error(d.error ?? "주문에 실패했습니다")
     }
+    sessionStorage.removeItem("bouquetSourcePost")
     return res.json()
   }
 

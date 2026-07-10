@@ -16,6 +16,7 @@ model User {
   image        String?
   password     String? // 이메일/비밀번호 회원가입 시 bcrypt 해시 저장 (소셜 로그인 계정은 null)
   isAdmin      Boolean   @default(false)
+  points       Int       @default(0) // 꽃다발 후기 조합 판매 적립 포인트
   sajuName     String? // 사주 분석 시 입력한 이름 (계정 이름과 다를 수 있음)
   gender       String?
   birthDate    DateTime?
@@ -200,6 +201,19 @@ model CustomOption {
   imageUrl   String
 
   base CustomBase @relation(fields: [baseId], references: [id])
+}
+
+// ─── 커스텀 꽃다발 후기 갤러리 ────────────────────────
+
+model BouquetPost {
+  id                String   @id @default(cuid())
+  userId            String?
+  authorName        String?
+  imageUrl          String // 손님이 올린 실제 꽃다발 사진 (Vercel Blob)
+  composition       Json // { sizeId, mainFlowerId, additionalFlowerIds, wrappingId }
+  content           String?
+  derivedOrderCount Int      @default(0) // 이 조합 그대로 구매된 횟수 — 늘어날 때마다 글쓴이 포인트 적립
+  createdAt         DateTime @default(now())
 }
 
 // ─── 오행 포토부스 (키오스크) ─────────────────────────

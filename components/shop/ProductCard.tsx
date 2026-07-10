@@ -9,6 +9,8 @@ interface Props {
   flowerMeaning: string | null
   category: string
   stock?: number
+  ratingAvg?: number | null
+  reviewCount?: number
 }
 
 const CATEGORY_LABEL: Record<string, string> = {
@@ -19,7 +21,7 @@ const CATEGORY_LABEL: Record<string, string> = {
   subscription: "구독",
 }
 
-export function ProductCard({ id, name, price, images, flowerMeaning, category, stock }: Props) {
+export function ProductCard({ id, name, price, images, flowerMeaning, category, stock, ratingAvg, reviewCount }: Props) {
   const soldOut = stock === 0
   return (
     <Link href={`/products/${id}`} className="group">
@@ -52,6 +54,12 @@ export function ProductCard({ id, name, price, images, flowerMeaning, category, 
           <p className="text-sm font-semibold text-stone-800 line-clamp-1">{name}</p>
           {flowerMeaning && (
             <p className="text-xs text-stone-400 mt-0.5 line-clamp-1">{flowerMeaning}</p>
+          )}
+          {ratingAvg != null && (reviewCount ?? 0) > 0 && (
+            <p className="text-xs text-stone-500 mt-1">
+              <span className="text-amber-400">★</span> {ratingAvg}
+              <span className="text-stone-400"> ({reviewCount})</span>
+            </p>
           )}
           <p className="text-base font-bold text-rose-500 mt-1.5">
             {price.toLocaleString()}원

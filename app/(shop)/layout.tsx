@@ -8,12 +8,46 @@ import { useSession, signIn, signOut } from "next-auth/react"
 import { ShoppingCart, Flower2, User, LogIn, Search, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-const NAV = [
-  { href: "/", label: "홈" },
-  { href: "/saju", label: "나의 꽃 찾기" },
-  { href: "/compat", label: "궁합 보기" },
-  { href: "/products", label: "꽃 & 식물" },
-  { href: "/custom", label: "꽃다발 만들기" },
+interface NavChild { href: string; label: string }
+interface NavItem { href: string; label: string; children?: NavChild[] }
+
+const NAV: NavItem[] = [
+  {
+    href: "/products", label: "꽃 & 식물",
+    children: [
+      { href: "/products", label: "전체 상품" },
+      { href: "/products?category=bouquet", label: "꽃다발" },
+      { href: "/products?category=plant", label: "화분" },
+      { href: "/products?category=wreath", label: "화환" },
+      { href: "/products?category=dried", label: "드라이플라워" },
+    ],
+  },
+  {
+    href: "/products", label: "선물 · 용도별",
+    children: [
+      { href: "/products?use=생일", label: "🎂 생일" },
+      { href: "/products?use=축하", label: "🎉 축하" },
+      { href: "/products?use=개업", label: "🏪 개업" },
+      { href: "/products?use=결혼", label: "💍 결혼 · 프로포즈" },
+      { href: "/products?use=추모", label: "🕊️ 추모" },
+      { href: "/products?use=감사", label: "💐 감사" },
+    ],
+  },
+  {
+    href: "/saju", label: "오행 서비스",
+    children: [
+      { href: "/saju", label: "🔮 나의 꽃 찾기" },
+      { href: "/compat", label: "💞 궁합 보기" },
+      { href: "/kiosk", label: "📸 오행 포토부스" },
+    ],
+  },
+  {
+    href: "/custom", label: "꽃다발 만들기",
+    children: [
+      { href: "/custom", label: "💐 만들러 가기" },
+      { href: "/#bouquet-gallery", label: "📸 손님들의 꽃다발" },
+    ],
+  },
 ]
 
 export default function ShopLayout({ children }: { children: React.ReactNode }) {
@@ -42,22 +76,38 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
             <span className="text-lg font-bold text-stone-800">인생내꽃</span>
           </Link>
 
-          {/* 가운데 네비 */}
+          {/* 가운데 네비 — 중메뉴에 마우스를 올리면 소메뉴가 펼쳐진다 */}
           <nav className="hidden md:flex items-center gap-1">
-            {NAV.map(({ href, label }) => {
-              const active = pathname === href || (href !== "/" && pathname.startsWith(href))
+            {NAV.map(({ href, label, children }) => {
+              const active = pathname === href || (href !== "/" && pathname.startsWith(href.split("?")[0]))
               return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    active
-                      ? "bg-rose-50 text-rose-500"
-                      : "text-stone-600 hover:text-stone-900 hover:bg-stone-50"
-                  }`}
-                >
-                  {label}
-                </Link>
+                <div key={label} className="relative group">
+                  <Link
+                    href={href}
+                    className={`inline-block px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      active
+                        ? "bg-rose-50 text-rose-500"
+                        : "text-stone-600 hover:text-stone-900 hover:bg-stone-50"
+                    }`}
+                  >
+                    {label}
+                  </Link>
+                  {children && (
+                    <div className="absolute left-0 top-full pt-1 hidden group-hover:block z-50">
+                      <div className="bg-white border border-stone-100 rounded-xl shadow-lg py-2 min-w-44">
+                        {children.map((c) => (
+                          <Link
+                            key={c.label}
+                            href={c.href}
+                            className="block px-4 py-2 text-sm text-stone-600 hover:bg-rose-50 hover:text-rose-500 transition-colors"
+                          >
+                            {c.label}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )
             })}
           </nav>
@@ -127,10 +177,10 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
         {/* 모바일 네비 */}
         <div className="md:hidden border-t border-stone-50 flex">
           {NAV.map(({ href, label }) => {
-            const active = pathname === href || (href !== "/" && pathname.startsWith(href))
+            const active = pathname === href || (href !== "/" && pathname.startsWith(href.split("?")[0]))
             return (
               <Link
-                key={href}
+                key={label}
                 href={href}
                 className={`flex-1 text-center py-2.5 text-xs font-medium transition-colors ${
                   active ? "text-rose-500 border-b-2 border-rose-400" : "text-stone-500"
