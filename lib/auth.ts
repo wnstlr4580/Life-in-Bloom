@@ -69,14 +69,17 @@ const nextAuth = NextAuth({
       if (trigger === "update" && session?.name) {
         token.name = session.name as string
       }
-      if (user) {
-        token.id = user.id
+      if (user) token.id = user.id
+      // 관리자 여부는 매번 DB에서 최신값을 읽는다
+      // (로그인 중에 관리자로 지정돼도 재로그인 없이 바로 반영되도록)
+      if (token.email) {
         const { data } = await supabaseAdmin
           .from("User")
-          .select("isAdmin")
-          .eq("email", user.email ?? "")
+          .select("id, isAdmin")
+          .eq("email", token.email as string)
           .maybeSingle()
         token.isAdmin = data?.isAdmin ?? false
+        if (!token.id && data?.id) token.id = data.id
       }
       return token
     },
