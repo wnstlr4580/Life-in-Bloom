@@ -55,16 +55,26 @@ async function canTouch(req: NextRequest, postId: string) {
   return { ok: true as const }
 }
 
-// 후기 한마디 수정
+// 후기 수정 — 한마디와 꽃 조합 모두 고칠 수 있다
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const check = await canTouch(req, id)
   if (!check.ok) return NextResponse.json({ error: check.error }, { status: check.status })
 
-  const { content } = await req.json()
+  const { content, composition } = await req.json()
+
+  const update: Record<string, unknown> = {}
+  if (content !== undefined) update.content = String(content ?? "").trim() || null
+  if (composition !== undefined) {
+    if (!composition || typeof composition !== "object" || !composition.sizeId) {
+      return NextResponse.json({ error: "꽃 조합 정보가 올바르지 않아요" }, { status: 400 })
+    }
+    update.composition = composition
+  }
+
   const { error } = await supabaseAdmin
     .from("BouquetPost")
-    .update({ content: String(content ?? "").trim() || null })
+    .update(update)
     .eq("id", id)
 
   if (error) return NextResponse.json({ error: "수정에 실패했어요" }, { status: 500 })

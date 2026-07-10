@@ -26,22 +26,24 @@ export async function POST(req: NextRequest) {
 
   const { data: user } = await supabaseAdmin
     .from("User")
-    .select("id")
+    .select("id, isAdmin")
     .eq("email", email)
     .maybeSingle()
   if (!user) return NextResponse.json({ error: "사용자 정보를 찾을 수 없어요" }, { status: 401 })
 
-  // 구매 이력 확인 — 이 상품을 주문(취소 제외)한 사람만 후기 작성 가능
-  const { data: purchased } = await supabaseAdmin
-    .from("OrderItem")
-    .select("id, order:Order!inner(userId, status)")
-    .eq("productId", productId)
-    .eq("order.userId", user.id)
-    .neq("order.status", "CANCELLED")
-    .limit(1)
+  // 구매 이력 확인 — 이 상품을 주문(취소 제외)한 사람만 후기 작성 가능 (관리자는 예외)
+  if (user.isAdmin !== true) {
+    const { data: purchased } = await supabaseAdmin
+      .from("OrderItem")
+      .select("id, order:Order!inner(userId, status)")
+      .eq("productId", productId)
+      .eq("order.userId", user.id)
+      .neq("order.status", "CANCELLED")
+      .limit(1)
 
-  if (!purchased?.length) {
-    return NextResponse.json({ error: "이 상품을 구매하신 분만 후기를 남길 수 있어요" }, { status: 403 })
+    if (!purchased?.length) {
+      return NextResponse.json({ error: "이 상품을 구매하신 분만 후기를 남길 수 있어요" }, { status: 403 })
+    }
   }
 
   const { data, error } = await supabaseAdmin

@@ -18,7 +18,7 @@ async function getUser(req: NextRequest) {
   if (!email) return null
   const { data } = await supabaseAdmin
     .from("User")
-    .select("id, name")
+    .select("id, name, isAdmin")
     .eq("email", email)
     .maybeSingle()
   return data
@@ -40,6 +40,21 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const user = await getUser(req)
   if (!user) return NextResponse.json({ error: "로그인이 필요해요" }, { status: 401 })
+
+  // 커스텀 꽃다발을 구매한 사람만 후기 작성 가능 (관리자는 예외)
+  if (user.isAdmin !== true) {
+    const { data: purchased } = await supabaseAdmin
+      .from("OrderItem")
+      .select("id, order:Order!inner(userId, status)")
+      .like("productId", "custom_%")
+      .eq("order.userId", user.id)
+      .neq("order.status", "CANCELLED")
+      .limit(1)
+
+    if (!purchased?.length) {
+      return NextResponse.json({ error: "커스텀 꽃다발을 구매하신 분만 후기를 올릴 수 있어요" }, { status: 403 })
+    }
+  }
 
   const form = await req.formData()
   const file = form.get("file")

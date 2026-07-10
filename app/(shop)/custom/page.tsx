@@ -43,13 +43,19 @@ function CustomContent() {
   const [postSaving, setPostSaving] = useState(false)
   const [postMessage, setPostMessage] = useState("")
 
-  // 후기 갤러리의 "이 조합 그대로 만들기"로 들어온 경우 조합을 불러온다
+  // 내 후기 수정 모드 (?edit=ID)
+  const [editPostId, setEditPostId] = useState<string | null>(null)
+  const [editSaving, setEditSaving] = useState(false)
+
+  // 후기 갤러리에서 진입: ?post=ID(그대로 만들기) 또는 ?edit=ID(내 후기 수정)
   const loadedPostRef = useRef(false)
   useEffect(() => {
     const postId = searchParams.get("post")
-    if (!postId || loadedPostRef.current) return
+    const editId = searchParams.get("edit")
+    const targetId = editId ?? postId
+    if (!targetId || loadedPostRef.current) return
     loadedPostRef.current = true
-    fetch(`/api/bouquet-posts/${postId}`)
+    fetch(`/api/bouquet-posts/${targetId}`)
       .then((r) => { if (!r.ok) throw new Error(); return r.json() })
       .then((post) => {
         const c = post.composition as Composition
@@ -59,11 +65,39 @@ function CustomContent() {
         if (w) setWrapping(w)
         if (c.mainFlowerId && FLOWERS.some((f) => f.id === c.mainFlowerId)) setMainFlowerId(c.mainFlowerId)
         setAdditionalFlowerIds(new Set((c.additionalFlowerIds ?? []).filter((id) => FLOWERS.some((f) => f.id === id))))
-        // 이 조합으로 주문이 완료되면 글쓴이에게 포인트가 적립되도록 기억해둔다
-        sessionStorage.setItem("bouquetSourcePost", postId)
+        if (editId) {
+          // 수정 모드 — 기존 한마디를 불러오고, 포인트 적립 대상이 아니므로 sourcePost는 기록하지 않는다
+          setEditPostId(editId)
+          setPostContent(post.content ?? "")
+        } else if (postId) {
+          // 이 조합으로 주문이 완료되면 글쓴이에게 포인트가 적립되도록 기억해둔다
+          sessionStorage.setItem("bouquetSourcePost", postId)
+        }
       })
       .catch(() => {})
   }, [searchParams])
+
+  // 수정 저장 — 현재 화면의 조합과 한마디로 후기를 갱신
+  const handleEditSave = async () => {
+    if (!editPostId) return
+    if (!mainFlowerId) { setPostMessage("꽃을 하나 이상 선택해주세요"); return }
+    setEditSaving(true)
+    setPostMessage("")
+    try {
+      const res = await fetch(`/api/bouquet-posts/${editPostId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ composition: currentComposition(), content: postContent }),
+      })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error ?? "수정에 실패했어요")
+      router.push("/#bouquet-gallery")
+    } catch (e) {
+      setPostMessage(e instanceof Error ? e.message : "수정에 실패했어요")
+    } finally {
+      setEditSaving(false)
+    }
+  }
 
   const currentComposition = (): Composition => ({
     sizeId: size.id,
@@ -310,6 +344,12 @@ function CustomContent() {
           <Sparkles size={22} className="text-rose-400" /> 나만의 꽃다발 만들기
         </h1>
         <p className="text-stone-400 text-sm mt-1">크기를 선택하고 마음에 드는 꽃을 골라보세요. AI가 꽃다발 이미지를 만들어 드려요.</p>
+        {editPostId && (
+          <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700">
+            ✏️ <span className="font-semibold">내 후기를 수정하고 있어요.</span> 꽃 조합과 한마디를 고친 뒤 오른쪽 아래
+            <span className="font-semibold"> 수정 저장</span> 버튼을 눌러주세요.
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
@@ -542,8 +582,26 @@ function CustomContent() {
                 {added ? "담겼어요! 🌸" : generatedImageUrl ? "이 꽃다발로 주문하기" : "장바구니 담기"}
               </Button>
 
+              {/* 후기 수정 모드 — 조합·한마디를 고쳐 저장 */}
+              {editPostId && (
+                <div className="border-t border-stone-100 pt-3 space-y-2">
+                  <p className="text-xs font-semibold text-stone-700">✏️ 후기 수정</p>
+                  <textarea
+                    value={postContent}
+                    onChange={(e) => setPostContent(e.target.value)}
+                    placeholder="한마디를 남겨주세요"
+                    rows={2}
+                    className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs resize-none focus:outline-none focus:ring-1 focus:ring-rose-300"
+                  />
+                  <Button onClick={handleEditSave} disabled={editSaving} className="w-full h-9 bg-amber-400 hover:bg-amber-500 text-white text-xs font-semibold">
+                    {editSaving ? "저장 중..." : "수정 저장"}
+                  </Button>
+                  {postMessage && <p className="text-[11px] text-rose-500 text-center">{postMessage}</p>}
+                </div>
+              )}
+
               {/* 후기 올리기 — 받은 꽃다발 사진 자랑 + 포인트 안내 */}
-              {hasSelection && session?.user && (
+              {!editPostId && hasSelection && session?.user && (
                 <div className="border-t border-stone-100 pt-3">
                   {!postOpen ? (
                     <button
