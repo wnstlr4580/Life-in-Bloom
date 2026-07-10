@@ -35,7 +35,7 @@ interface Order {
 }
 
 export default function MyPage() {
-  const { data: session, status } = useSession()
+  const { data: session, status, update } = useSession()
   const [orders, setOrders] = useState<Order[]>([])
   const [loadingOrders, setLoadingOrders] = useState(false)
   const [sajuProfile, setSajuProfile] = useState<SajuProfile | null>(null)
@@ -43,6 +43,32 @@ export default function MyPage() {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [points, setPoints] = useState<number | null>(null)
+
+  // 닉네임 변경
+  const [nickEditing, setNickEditing] = useState(false)
+  const [nickInput, setNickInput] = useState("")
+  const [nickSaving, setNickSaving] = useState(false)
+  const [nickError, setNickError] = useState("")
+
+  const handleNickSave = async () => {
+    setNickSaving(true)
+    setNickError("")
+    try {
+      const res = await fetch("/api/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: nickInput }),
+      })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error ?? "닉네임 변경에 실패했어요")
+      await update({ name: d.name }) // 세션(헤더 표시) 즉시 갱신
+      setNickEditing(false)
+    } catch (e) {
+      setNickError(e instanceof Error ? e.message : "닉네임 변경에 실패했어요")
+    } finally {
+      setNickSaving(false)
+    }
+  }
 
   const loadSajuProfile = useCallback(() => {
     setLoadingSaju(true)
@@ -118,11 +144,41 @@ export default function MyPage() {
                   <User size={28} className="text-rose-300" />
                 )}
               </div>
-              <div className="min-w-0">
-                <p className="font-bold text-stone-800 truncate">{session.user.name ?? "꽃 애호가"}</p>
+              <div className="min-w-0 flex-1">
+                {nickEditing ? (
+                  <div className="space-y-1.5">
+                    <input
+                      value={nickInput}
+                      onChange={(e) => setNickInput(e.target.value)}
+                      maxLength={12}
+                      placeholder="닉네임 (2~12자)"
+                      className="w-full rounded-lg border border-stone-200 px-2 py-1 text-sm text-stone-800 focus:outline-none focus:border-rose-300"
+                    />
+                    <div className="flex gap-1.5">
+                      <button onClick={handleNickSave} disabled={nickSaving} className="text-xs px-2 py-1 rounded-lg bg-rose-400 text-white font-medium disabled:opacity-50">
+                        {nickSaving ? "저장 중" : "저장"}
+                      </button>
+                      <button onClick={() => { setNickEditing(false); setNickError("") }} className="text-xs px-2 py-1 rounded-lg text-stone-400 border border-stone-200">
+                        취소
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="font-bold text-stone-800 truncate flex items-center gap-1.5">
+                    {session.user.name ?? "꽃 애호가"}
+                    <button
+                      onClick={() => { setNickInput(session.user.name ?? ""); setNickEditing(true) }}
+                      className="text-stone-300 hover:text-rose-400 transition-colors shrink-0"
+                      aria-label="닉네임 변경"
+                    >
+                      <Pencil size={12} />
+                    </button>
+                  </p>
+                )}
                 <p className="text-xs text-stone-400 truncate">{session.user.email}</p>
               </div>
             </div>
+            {nickError && <p className="text-xs text-red-500">{nickError}</p>}
             {points !== null && (
               <div className="flex items-center justify-between bg-rose-50 rounded-xl px-3.5 py-2.5">
                 <span className="text-xs text-stone-600">보유 포인트</span>

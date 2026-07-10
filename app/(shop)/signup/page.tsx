@@ -55,8 +55,8 @@ export default function SignupPage() {
 
       <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-stone-100 p-6 space-y-4">
         <div className="space-y-1.5">
-          <Label className="text-xs text-stone-500">이름</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="이름" className="rounded-xl border-stone-200" />
+          <Label className="text-xs text-stone-500">닉네임 * (2~12자, 중복 불가)</Label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={12} placeholder="닉네임" className="rounded-xl border-stone-200" />
         </div>
         <div className="space-y-1.5">
           <Label className="text-xs text-stone-500">이메일 *</Label>

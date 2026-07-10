@@ -64,7 +64,11 @@ const nextAuth = NextAuth({
       )
       return true
     },
-    jwt: async ({ token, user }) => {
+    jwt: async ({ token, user, trigger, session }) => {
+      // 닉네임 변경 시 클라이언트의 update({ name }) 호출로 토큰 갱신
+      if (trigger === "update" && session?.name) {
+        token.name = session.name as string
+      }
       if (user) {
         token.id = user.id
         const { data } = await supabaseAdmin
