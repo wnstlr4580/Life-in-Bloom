@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useParams } from "next/navigation"
-import { useSession, signIn } from "next-auth/react"
+import { useSession } from "next-auth/react"
 import { ShoppingBag, ArrowLeft, Heart, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useCartStore } from "@/store/cartStore"
@@ -272,7 +272,7 @@ export default function ProductDetailPage() {
           ) : (
             <div className="flex items-center justify-between">
               <p className="text-sm text-stone-500">로그인하면 후기를 남길 수 있어요</p>
-              <Button onClick={() => signIn("kakao")} variant="outline" className="h-9 text-sm border-stone-200">로그인</Button>
+              <Link href="/login"><Button variant="outline" className="h-9 text-sm border-stone-200">로그인</Button></Link>
             </div>
           )}
         </div>

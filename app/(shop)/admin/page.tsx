@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { useSession, signIn } from "next-auth/react"
+import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
@@ -66,7 +66,7 @@ export default function AdminPage() {
     return (
       <div className="max-w-md mx-auto px-6 py-32 text-center space-y-4">
         <p className="text-stone-500">관리자 로그인이 필요해요</p>
-        <Button onClick={() => signIn("kakao")} className="bg-rose-400 hover:bg-rose-500 text-white">로그인</Button>
+        <Link href="/login?callbackUrl=/admin"><Button className="bg-rose-400 hover:bg-rose-500 text-white">로그인</Button></Link>
       </div>
     )
   }

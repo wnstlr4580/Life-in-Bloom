@@ -161,15 +161,16 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
                 </Button>
               </Link>
             ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => signIn("kakao")}
-                className="gap-1.5 text-stone-600"
-              >
-                <LogIn size={18} />
-                <span className="text-sm hidden sm:inline">로그인</span>
-              </Button>
+              <Link href="/login">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 text-stone-600"
+                >
+                  <LogIn size={18} />
+                  <span className="text-sm hidden sm:inline">로그인</span>
+                </Button>
+              </Link>
             )}
           </div>
         </div>
