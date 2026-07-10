@@ -9,7 +9,7 @@ import { useCartStore } from "@/store/cartStore"
 import Link from "next/link"
 
 interface Review {
-  id: string; rating: number; content: string; createdAt: string
+  id: string; rating: number; content: string; createdAt: string; userId: string
   user: { name: string | null; image: string | null } | null
 }
 
@@ -36,6 +36,45 @@ export default function ProductDetailPage() {
   const [reviewText, setReviewText] = useState("")
   const [reviewLoading, setReviewLoading] = useState(false)
   const [reviewError, setReviewError] = useState("")
+
+  // 리뷰 수정 (본인 또는 관리자)
+  const [editingReviewId, setEditingReviewId] = useState<string | null>(null)
+  const [editRating, setEditRating] = useState(5)
+  const [editText, setEditText] = useState("")
+  const [editSaving, setEditSaving] = useState(false)
+
+  const canManage = (r: Review) =>
+    !!session?.user && (session.user.id === r.userId || session.user.isAdmin)
+
+  const startEditReview = (r: Review) => {
+    setEditingReviewId(r.id)
+    setEditRating(r.rating)
+    setEditText(r.content)
+  }
+
+  const saveEditReview = async () => {
+    if (!editingReviewId) return
+    setEditSaving(true)
+    try {
+      const res = await fetch(`/api/reviews/${editingReviewId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating: editRating, content: editText }),
+      })
+      if (res.ok) {
+        setEditingReviewId(null)
+        loadProduct()
+      }
+    } finally {
+      setEditSaving(false)
+    }
+  }
+
+  const deleteReview = async (reviewId: string) => {
+    if (!confirm("이 후기를 삭제할까요?")) return
+    const res = await fetch(`/api/reviews/${reviewId}`, { method: "DELETE" })
+    if (res.ok) loadProduct()
+  }
 
   const loadProduct = useCallback(() => {
     fetch(`/api/products/${id}`).then((r) => r.json()).then(setProduct)
@@ -252,9 +291,42 @@ export default function ProductDetailPage() {
                       ))}
                     </div>
                   </div>
-                  <span className="text-xs text-stone-400">{new Date(r.createdAt).toLocaleDateString("ko-KR")}</span>
+                  <div className="flex items-center gap-2">
+                    {canManage(r) && editingReviewId !== r.id && (
+                      <>
+                        <button onClick={() => startEditReview(r)} className="text-xs text-stone-400 hover:text-rose-500">수정</button>
+                        <button onClick={() => deleteReview(r.id)} className="text-xs text-stone-400 hover:text-red-500">삭제</button>
+                      </>
+                    )}
+                    <span className="text-xs text-stone-400">{new Date(r.createdAt).toLocaleDateString("ko-KR")}</span>
+                  </div>
                 </div>
-                <p className="text-sm text-stone-600 leading-relaxed">{r.content}</p>
+
+                {editingReviewId === r.id ? (
+                  <div className="space-y-2 mt-2">
+                    <div className="flex">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <button key={n} type="button" onClick={() => setEditRating(n)} className="p-0.5">
+                          <Star size={18} className={n <= editRating ? "fill-amber-400 text-amber-400" : "text-stone-200"} />
+                        </button>
+                      ))}
+                    </div>
+                    <textarea
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      rows={2}
+                      className="w-full rounded-xl border border-stone-200 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-rose-300"
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <Button onClick={saveEditReview} disabled={editSaving} className="h-8 px-4 bg-rose-400 hover:bg-rose-500 text-white text-xs">
+                        {editSaving ? "저장 중..." : "저장"}
+                      </Button>
+                      <Button variant="outline" onClick={() => setEditingReviewId(null)} className="h-8 px-4 text-xs border-stone-200 text-stone-500">취소</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-stone-600 leading-relaxed">{r.content}</p>
+                )}
               </div>
             ))}
           </div>

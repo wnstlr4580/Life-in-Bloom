@@ -9,7 +9,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
     .select(`
       *,
       reviews:Review(
-        id, rating, content, createdAt,
+        id, rating, content, createdAt, userId,
         user:User(name, image)
       )
     `)

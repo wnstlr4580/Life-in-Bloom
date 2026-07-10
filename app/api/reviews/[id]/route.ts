@@ -2,20 +2,6 @@ import { NextRequest, NextResponse } from "next/server"
 import { getToken } from "next-auth/jwt"
 import { supabaseAdmin } from "@/lib/supabase"
 
-// 후기 단건 조회 — /custom?post=ID 에서 조합을 불러올 때 사용
-export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-
-  const { data } = await supabaseAdmin
-    .from("BouquetPost")
-    .select("id, authorName, imageUrl, composition, content, derivedOrderCount")
-    .eq("id", id)
-    .maybeSingle()
-
-  if (!data) return NextResponse.json({ error: "후기를 찾을 수 없어요" }, { status: 404 })
-  return NextResponse.json(data)
-}
-
 // 요청자 확인 — 본인 글이거나 관리자면 수정/삭제 가능
 async function getActor(req: NextRequest): Promise<{ id: string; isAdmin: boolean } | null> {
   const token = await getToken({
@@ -38,46 +24,48 @@ async function getActor(req: NextRequest): Promise<{ id: string; isAdmin: boolea
   return { id: data.id, isAdmin: data.isAdmin === true }
 }
 
-async function canTouch(req: NextRequest, postId: string) {
+async function canTouch(req: NextRequest, reviewId: string) {
   const actor = await getActor(req)
   if (!actor) return { ok: false as const, status: 401, error: "로그인이 필요해요" }
 
-  const { data: post } = await supabaseAdmin
-    .from("BouquetPost")
+  const { data: review } = await supabaseAdmin
+    .from("Review")
     .select("id, userId")
-    .eq("id", postId)
+    .eq("id", reviewId)
     .maybeSingle()
-  if (!post) return { ok: false as const, status: 404, error: "후기를 찾을 수 없어요" }
+  if (!review) return { ok: false as const, status: 404, error: "후기를 찾을 수 없어요" }
 
-  if (post.userId !== actor.id && !actor.isAdmin) {
-    return { ok: false as const, status: 403, error: "내가 올린 후기만 고칠 수 있어요" }
+  if (review.userId !== actor.id && !actor.isAdmin) {
+    return { ok: false as const, status: 403, error: "내가 쓴 후기만 고칠 수 있어요" }
   }
   return { ok: true as const }
 }
 
-// 후기 한마디 수정
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const check = await canTouch(req, id)
   if (!check.ok) return NextResponse.json({ error: check.error }, { status: check.status })
 
-  const { content } = await req.json()
+  const { rating, content } = await req.json()
+  if (!rating || rating < 1 || rating > 5 || !content?.trim()) {
+    return NextResponse.json({ error: "별점과 내용을 입력해주세요" }, { status: 400 })
+  }
+
   const { error } = await supabaseAdmin
-    .from("BouquetPost")
-    .update({ content: String(content ?? "").trim() || null })
+    .from("Review")
+    .update({ rating, content: content.trim() })
     .eq("id", id)
 
   if (error) return NextResponse.json({ error: "수정에 실패했어요" }, { status: 500 })
   return NextResponse.json({ ok: true })
 }
 
-// 후기 삭제
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const check = await canTouch(req, id)
   if (!check.ok) return NextResponse.json({ error: check.error }, { status: check.status })
 
-  const { error } = await supabaseAdmin.from("BouquetPost").delete().eq("id", id)
+  const { error } = await supabaseAdmin.from("Review").delete().eq("id", id)
   if (error) return NextResponse.json({ error: "삭제에 실패했어요" }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

@@ -28,7 +28,7 @@ async function getUser(req: NextRequest) {
 export async function GET() {
   const { data, error } = await supabaseAdmin
     .from("BouquetPost")
-    .select("id, authorName, imageUrl, composition, content, derivedOrderCount, createdAt")
+    .select("id, userId, authorName, imageUrl, composition, content, derivedOrderCount, createdAt")
     .order("createdAt", { ascending: false })
     .limit(8)
 

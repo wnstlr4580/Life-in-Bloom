@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useSession } from "next-auth/react"
 import { FLOWERS, SIZES, WRAPPING } from "@/lib/customFlowers"
 
 interface Composition {
@@ -13,6 +14,7 @@ interface Composition {
 
 interface Post {
   id: string
+  userId: string | null
   authorName: string | null
   imageUrl: string
   composition: Composition
@@ -35,15 +37,49 @@ function compositionSummary(c: Composition): string {
 }
 
 export function BouquetGallery() {
+  const { data: session } = useSession()
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
+  // 한마디 수정 (본인 또는 관리자)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editContent, setEditContent] = useState("")
+  const [editSaving, setEditSaving] = useState(false)
+
+  const load = () => {
     fetch("/api/bouquet-posts")
       .then((r) => r.json())
       .then((d) => setPosts(d.posts ?? []))
       .finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(() => { load() }, [])
+
+  const canManage = (post: Post) =>
+    !!session?.user && (session.user.id === post.userId || session.user.isAdmin)
+
+  const saveEdit = async (postId: string) => {
+    setEditSaving(true)
+    try {
+      const res = await fetch(`/api/bouquet-posts/${postId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: editContent }),
+      })
+      if (res.ok) {
+        setEditingId(null)
+        load()
+      }
+    } finally {
+      setEditSaving(false)
+    }
+  }
+
+  const deletePost = async (postId: string) => {
+    if (!confirm("이 후기를 삭제할까요?")) return
+    const res = await fetch(`/api/bouquet-posts/${postId}`, { method: "DELETE" })
+    if (res.ok) load()
+  }
 
   if (!loading && posts.length === 0) {
     return (
@@ -91,8 +127,42 @@ export function BouquetGallery() {
                   )}
                 </div>
                 <div className="p-3 flex-1 flex flex-col gap-1.5">
-                  <p className="text-xs font-semibold text-stone-700">{post.authorName ?? "꽃 애호가"}</p>
-                  {post.content && <p className="text-xs text-stone-500 line-clamp-2">{post.content}</p>}
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-stone-700">{post.authorName ?? "꽃 애호가"}</p>
+                    {canManage(post) && editingId !== post.id && (
+                      <div className="flex gap-1.5">
+                        <button
+                          onClick={() => { setEditingId(post.id); setEditContent(post.content ?? "") }}
+                          className="text-[10px] text-stone-400 hover:text-rose-500"
+                        >
+                          수정
+                        </button>
+                        <button onClick={() => deletePost(post.id)} className="text-[10px] text-stone-400 hover:text-red-500">
+                          삭제
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {editingId === post.id ? (
+                    <div className="space-y-1.5">
+                      <textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        rows={2}
+                        className="w-full rounded-lg border border-stone-200 px-2 py-1.5 text-xs resize-none focus:outline-none focus:ring-1 focus:ring-rose-300"
+                      />
+                      <div className="flex gap-1.5">
+                        <button onClick={() => saveEdit(post.id)} disabled={editSaving} className="flex-1 text-[11px] font-semibold text-white bg-rose-400 hover:bg-rose-500 rounded-lg py-1.5 disabled:opacity-50">
+                          {editSaving ? "저장 중" : "저장"}
+                        </button>
+                        <button onClick={() => setEditingId(null)} className="text-[11px] text-stone-400 border border-stone-200 rounded-lg px-2.5">취소</button>
+                      </div>
+                    </div>
+                  ) : (
+                    post.content && <p className="text-xs text-stone-500 line-clamp-2">{post.content}</p>
+                  )}
+
                   <p className="text-[10px] text-stone-400 line-clamp-2">{compositionSummary(post.composition)}</p>
                   <Link
                     href={`/custom?post=${post.id}`}
