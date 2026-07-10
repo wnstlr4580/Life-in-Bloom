@@ -64,6 +64,6 @@ export async function POST(req: NextRequest) {
       { onConflict: "email" }
     )
 
-  if (error) return NextResponse.json({ error: "저장에 실패했어요", detail: error.message, existingId: existing?.id }, { status: 500 })
+  if (error) return NextResponse.json({ error: "저장에 실패했어요" }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

@@ -16,8 +16,12 @@ model User {
   image        String?
   password     String? // 이메일/비밀번호 회원가입 시 bcrypt 해시 저장 (소셜 로그인 계정은 null)
   isAdmin      Boolean   @default(false)
+  sajuName     String? // 사주 분석 시 입력한 이름 (계정 이름과 다를 수 있음)
+  gender       String?
   birthDate    DateTime?
   calendarType String?   @default("solar")
+  birthHour    String?
+  city         String?
   ohaengType   String?
   createdAt    DateTime  @default(now())
 
