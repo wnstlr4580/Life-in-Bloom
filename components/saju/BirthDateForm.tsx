@@ -27,6 +27,7 @@ interface Props {
   onSubmit: (data: SubmitData) => void
   loading: boolean
   defaultValues?: DefaultValues
+  submitLabel?: string
 }
 
 const ALL_CITIES = [
@@ -61,7 +62,7 @@ const currentYear = new Date().getFullYear()
 const YEARS = Array.from({ length: currentYear - 1919 }, (_, i) => currentYear - i)
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1)
 
-export function BirthDateForm({ onSubmit, loading, defaultValues }: Props) {
+export function BirthDateForm({ onSubmit, loading, defaultValues, submitLabel }: Props) {
   const [name, setName] = useState(defaultValues?.name ?? "")
   const [gender, setGender] = useState<"male" | "female">((defaultValues?.gender as "male" | "female") ?? "female")
   const [year, setYear] = useState(defaultValues?.birthDate?.slice(0, 4) ?? "")
@@ -305,7 +306,7 @@ export function BirthDateForm({ onSubmit, loading, defaultValues }: Props) {
           disabled={!canSubmit || loading}
           className="w-full bg-rose-400 hover:bg-rose-500 text-white disabled:opacity-40"
         >
-          {loading ? "분석 중..." : "나의 꽃 찾기 🌸"}
+          {loading ? "저장 중..." : submitLabel ?? "나의 꽃 찾기 🌸"}
         </Button>
       </form>
 

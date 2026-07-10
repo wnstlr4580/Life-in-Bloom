@@ -1,11 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
 import { useSession, signIn, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Package, LogOut, User, ChevronRight, Sparkles, Pencil } from "lucide-react"
 import Image from "next/image"
+import { BirthDateForm } from "@/components/saju/BirthDateForm"
 
 const GENDER_LABEL: Record<string, string> = { male: "남성", female: "여성" }
 const CALENDAR_LABEL: Record<string, string> = { solar: "양력", lunar: "음력" }
@@ -39,15 +40,37 @@ export default function MyPage() {
   const [loadingOrders, setLoadingOrders] = useState(false)
   const [sajuProfile, setSajuProfile] = useState<SajuProfile | null>(null)
   const [loadingSaju, setLoadingSaju] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  const loadSajuProfile = useCallback(() => {
+    setLoadingSaju(true)
+    return fetch("/api/saju/profile").then((r) => r.json()).then((d) => setSajuProfile(d)).finally(() => setLoadingSaju(false))
+  }, [])
 
   useEffect(() => {
     if (!session?.user) return
     setLoadingOrders(true)
     fetch("/api/orders").then((r) => r.json()).then((d) => setOrders(d.orders ?? [])).finally(() => setLoadingOrders(false))
+    loadSajuProfile()
+  }, [session, loadSajuProfile])
 
-    setLoadingSaju(true)
-    fetch("/api/saju/profile").then((r) => r.json()).then((d) => setSajuProfile(d)).finally(() => setLoadingSaju(false))
-  }, [session])
+  const handleSaveProfile = async (data: {
+    name: string; gender: string; birthDate: string; birthHour: string; city: string; calendarType: string
+  }) => {
+    setSaving(true)
+    try {
+      await fetch("/api/saju/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+      await loadSajuProfile()
+      setEditing(false)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   if (status === "loading") {
     return <div className="max-w-6xl mx-auto px-6 py-32 flex justify-center"><div className="w-8 h-8 border-2 border-rose-300 border-t-transparent rounded-full animate-spin" /></div>
@@ -130,12 +153,26 @@ export default function MyPage() {
               <h2 className="font-semibold text-stone-800 flex items-center gap-2">
                 <Sparkles size={16} /> 나의 오행 분석 정보
               </h2>
-              <Link href="/saju" className="text-sm text-rose-400 hover:text-rose-500 flex items-center gap-1">
-                <Pencil size={13} /> {sajuProfile ? "다시 분석하기" : "분석하러 가기"}
-              </Link>
+              {!editing && (
+                <button onClick={() => setEditing(true)} className="text-sm text-rose-400 hover:text-rose-500 flex items-center gap-1">
+                  <Pencil size={13} /> {sajuProfile ? "정보 수정" : "정보 입력"}
+                </button>
+              )}
             </div>
 
-            {loadingSaju ? (
+            {editing ? (
+              <div className="p-6 max-w-md">
+                <BirthDateForm
+                  onSubmit={handleSaveProfile}
+                  loading={saving}
+                  defaultValues={sajuProfile ?? undefined}
+                  submitLabel="저장하기"
+                />
+                <button onClick={() => setEditing(false)} className="w-full text-center text-sm text-stone-400 hover:text-stone-600 mt-3">
+                  취소
+                </button>
+              </div>
+            ) : loadingSaju ? (
               <div className="py-10 flex justify-center"><div className="w-6 h-6 border-2 border-rose-300 border-t-transparent rounded-full animate-spin" /></div>
             ) : !sajuProfile ? (
               <div className="py-12 text-center text-stone-400">
@@ -167,6 +204,11 @@ export default function MyPage() {
                 <div>
                   <p className="text-xs text-stone-400 mb-1">가입 이메일</p>
                   <p className="text-stone-800 font-medium truncate">{session.user.email}</p>
+                </div>
+                <div className="col-span-2 sm:col-span-3 pt-1">
+                  <Link href="/saju" className="text-xs text-rose-400 hover:text-rose-500">
+                    → 이 정보로 오행 분석 결과 다시 보기
+                  </Link>
                 </div>
               </div>
             )}
