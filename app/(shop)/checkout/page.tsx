@@ -108,7 +108,7 @@ export default function CheckoutPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        items: items.map((i) => ({ productId: i.productId, quantity: i.quantity, price: i.product.price })),
+        items: items.map((i) => ({ productId: i.productId, quantity: i.quantity, price: i.product.price, name: i.product.name, images: i.product.images, composition: i.composition ?? null })),
         totalAmount: grandTotal,
         shippingFee: shippingFee + expressFee,
         deliveryType,
@@ -135,56 +135,17 @@ export default function CheckoutPage() {
   const handlePayment = async () => {
     if (!validate()) return
 
-    // 결제 설정 확인 — 채널 키가 없으면 결제 자체가 불가능하다
-    const channelKey = process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY
-    if (!channelKey) {
-      setError("결제 설정이 아직 완료되지 않았어요. 관리자에게 문의해주세요. (포트원 채널 키 미등록)")
-      return
-    }
-
     setLoading(true)
     setError("")
 
     try {
-      const PortOne = (await import("@portone/browser-sdk/v2")).default
-      const paymentId = `order_${nanoid()}`
-
-      const response = await PortOne.requestPayment({
-        storeId: process.env.NEXT_PUBLIC_PORTONE_STORE_ID ?? "store-b6ae6b94-3891-4a84-afce-0428f5b5de34",
-        channelKey,
-        paymentId,
-        orderName: items.length === 1 ? items[0].product.name : `${items[0].product.name} 외 ${items.length - 1}건`,
-        totalAmount: grandTotal,
-        currency: "CURRENCY_KRW",
-        payMethod: "CARD",
-        customer: { fullName: form.ordererName, phoneNumber: form.ordererPhone },
-        redirectUrl: `${window.location.origin}/checkout/complete`,
-      })
-
-      if (response?.code) {
-        // 결제 취소 또는 실패
-        if (response.code !== "USER_CANCEL") setError(response.message ?? "결제에 실패했습니다")
-        return
-      }
-
-      // 서버에서 결제 검증
-      const verifyRes = await fetch("/api/payment/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paymentId, expectedAmount: grandTotal }),
-      })
-
-      if (!verifyRes.ok) {
-        const d = await verifyRes.json()
-        throw new Error(d.error ?? "결제 검증에 실패했습니다")
-      }
-
-      // 주문 생성
+      // 테스트용: 결제 모듈 없이 바로 주문 완료 처리
+      const paymentId = `test_${nanoid()}`
       const { orderId } = await createOrder(paymentId)
       clear()
       router.push(`/checkout/complete?orderId=${orderId}`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "결제 중 오류가 발생했습니다")
+      setError(err instanceof Error ? err.message : "주문 처리 중 오류가 발생했습니다")
     } finally {
       setLoading(false)
     }

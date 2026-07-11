@@ -7,6 +7,9 @@ interface OrderItemInput {
   productId: string
   quantity: number
   price: number
+  name?: string
+  images?: string[]
+  composition?: unknown
 }
 
 export async function POST(req: Request) {
@@ -40,6 +43,28 @@ export async function POST(req: Request) {
 
   if (orderError) return NextResponse.json({ error: orderError.message }, { status: 500 })
 
+  // 커스텀 꽃다발은 클라이언트에서 생성한 임시 ID라 Product 테이블에 없음 — 먼저 upsert
+  const customItems = (items as OrderItemInput[]).filter((i) => i.productId.startsWith("custom_"))
+  if (customItems.length > 0) {
+    await supabaseAdmin.from("Product").upsert(
+      customItems.map((i) => ({
+        id: i.productId,
+        name: i.name ?? "커스텀 꽃다발",
+        description: "커스텀 꽃다발",
+        price: i.price,
+        stock: 0,
+        category: "custom",
+        images: (i.images ?? []).map((img) => img.startsWith("data:") ? "" : img).filter(Boolean),
+        flowerMeaning: i.composition ? JSON.stringify(i.composition) : null,
+        ohaengTags: [],
+        seasonTags: [],
+        colorTags: [],
+        isActive: false,
+      })),
+      { onConflict: "id" }
+    )
+  }
+
   const { error: itemsError } = await supabaseAdmin
     .from("OrderItem")
     .insert(
@@ -52,7 +77,10 @@ export async function POST(req: Request) {
       }))
     )
 
-  if (itemsError) return NextResponse.json({ error: itemsError.message }, { status: 500 })
+  if (itemsError) {
+    await supabaseAdmin.from("Order").delete().eq("id", orderId)
+    return NextResponse.json({ error: itemsError.message }, { status: 500 })
+  }
 
   // 후기 갤러리의 조합을 그대로 구매한 경우 — 구매 횟수 증가 + 글쓴이 포인트 적립
   if (sourcePostId && typeof sourcePostId === "string") {
@@ -96,7 +124,7 @@ export async function GET() {
       id, status, totalAmount, createdAt,
       items:OrderItem(
         id, quantity, price,
-        product:Product(id, name, images, price)
+        product:Product(id, name, images, price, flowerMeaning)
       )
     `)
     .eq("userId", session.user.id)

@@ -248,6 +248,25 @@ function getCoupleFlower(a: Ohaeng, b: Ohaeng): { flower: string; desc: string }
   return map[key] ?? { flower: "혼합 꽃다발", desc: "서로 다른 기운이 만나 새로운 아름다움을 만들어냅니다" }
 }
 
+// 오행 조합 → 꽃다발 만들기 페이지 꽃 ID 매핑 (Unicode 정렬 기준 키: 금 < 목 < 수 < 토 < 화)
+export const COUPLE_FLOWER_IDS: Record<string, { mainId: string; additionalIds: string[] }> = {
+  "금-금": { mainId: "lily-white",       additionalIds: ["babysbreath-white"] },
+  "금-목": { mainId: "lily-white",       additionalIds: ["tulip-pink"] },
+  "금-수": { mainId: "lavender",         additionalIds: ["carnation-pink"] },
+  "금-토": { mainId: "lily-white",       additionalIds: ["freesia"] },
+  "금-화": { mainId: "rose-red",         additionalIds: ["carnation-white"] },
+  "목-목": { mainId: "tulip-pink",       additionalIds: ["chamomile"] },
+  "목-수": { mainId: "hydrangea-blue",   additionalIds: ["daisy"] },
+  "목-토": { mainId: "tulip-pink",       additionalIds: ["mum-yellow"] },
+  "목-화": { mainId: "sunflower",        additionalIds: ["tulip-pink"] },
+  "수-수": { mainId: "hydrangea-blue",   additionalIds: ["lavender"] },
+  "수-토": { mainId: "freesia",          additionalIds: ["lavender"] },
+  "수-화": { mainId: "hydrangea-blue",   additionalIds: ["sunflower"] },
+  "토-토": { mainId: "mum-yellow",       additionalIds: ["sunflower"] },
+  "토-화": { mainId: "mum-pink",         additionalIds: ["rose-red"] },
+  "화-화": { mainId: "rose-red",         additionalIds: ["gerbera-red"] },
+}
+
 // 점수 등급
 export function gradeLabel(score: number): { label: string; emoji: string; color: string } {
   if (score >= 85) return { label: "천생연분", emoji: "💕", color: "text-rose-500" }

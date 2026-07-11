@@ -91,7 +91,7 @@ export default function HomePage() {
       </section>
 
       {/* 손님들이 만든 꽃다발 후기 */}
-      <BouquetGallery />
+      <BouquetGallery showViewAll />
     </>
   )
 }

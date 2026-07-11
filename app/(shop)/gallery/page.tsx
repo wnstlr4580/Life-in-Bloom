@@ -36,19 +36,35 @@ function compositionSummary(c: Composition): string {
     .join(" · ")
 }
 
-export function BouquetGallery({ limit = 8, showViewAll = false }: { limit?: number; showViewAll?: boolean }) {
+const PAGE_SIZE = 20
+
+export default function GalleryPage() {
   const { data: session } = useSession()
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
 
-  const load = () => {
-    fetch(`/api/bouquet-posts?limit=${limit}`)
-      .then((r) => r.json())
-      .then((d) => setPosts(d.posts ?? []))
-      .finally(() => setLoading(false))
+  const loadPage = async (p: number) => {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/bouquet-posts?limit=${PAGE_SIZE}&page=${p}`)
+      const data = await res.json()
+      const fetched: Post[] = data.posts ?? []
+      setPosts((prev) => p === 1 ? fetched : [...prev, ...fetched])
+      setHasMore(fetched.length === PAGE_SIZE)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { loadPage(1) }, [])
+
+  const loadMore = () => {
+    const next = page + 1
+    setPage(next)
+    loadPage(next)
+  }
 
   const canManage = (post: Post) =>
     !!session?.user && (session.user.id === post.userId || session.user.isAdmin)
@@ -56,47 +72,36 @@ export function BouquetGallery({ limit = 8, showViewAll = false }: { limit?: num
   const deletePost = async (postId: string) => {
     if (!confirm("이 후기를 삭제할까요?")) return
     const res = await fetch(`/api/bouquet-posts/${postId}`, { method: "DELETE" })
-    if (res.ok) load()
-  }
-
-  if (!loading && posts.length === 0) {
-    return (
-      <section id="bouquet-gallery" className="py-20 px-6 bg-white">
-        <div className="max-w-6xl mx-auto text-center">
-          <h2 className="text-2xl font-bold text-stone-800 mb-3">📸 손님들이 만든 꽃다발</h2>
-          <p className="text-stone-500 text-sm mb-6">
-            첫 후기의 주인공이 되어보세요. 다른 분이 내 조합 그대로 구매하면 500포인트를 드려요!
-          </p>
-          <Link href="/custom" className="inline-block px-6 py-3 rounded-full bg-rose-400 hover:bg-rose-500 text-white text-sm font-semibold transition-colors">
-            💐 꽃다발 만들러 가기
-          </Link>
-        </div>
-      </section>
-    )
+    if (res.ok) loadPage(1)
   }
 
   return (
-    <section id="bouquet-gallery" className="py-20 px-6 bg-white">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-10">
-          <h2 className="text-2xl font-bold text-stone-800 mb-2">📸 손님들이 만든 꽃다발</h2>
-          <p className="text-stone-500 text-sm">
-            마음에 드는 조합이 있다면 그대로 만들 수 있어요 · 내 조합이 팔리면 500포인트 적립
-          </p>
-          {showViewAll && (
-            <Link href="/gallery" className="inline-block mt-3 text-sm text-rose-500 hover:text-rose-600 font-medium underline underline-offset-2">
-              전체 갤러리 보기 →
-            </Link>
-          )}
-        </div>
+    <div className="max-w-6xl mx-auto px-6 py-10">
+      <div className="text-center mb-10">
+        <h1 className="text-2xl font-bold text-stone-800 mb-2">🖼️ 꽃다발 갤러리</h1>
+        <p className="text-stone-500 text-sm mb-4">
+          손님들이 만든 꽃다발 모음 · 마음에 드는 조합 그대로 만들 수 있어요
+        </p>
+        <Link
+          href="/custom"
+          className="inline-block px-6 py-2.5 rounded-full bg-rose-400 hover:bg-rose-500 text-white text-sm font-semibold transition-colors"
+        >
+          💐 나만의 꽃다발 만들기
+        </Link>
+      </div>
 
-        {loading ? (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="bg-stone-50 rounded-2xl aspect-[3/4] animate-pulse" />
-            ))}
-          </div>
-        ) : (
+      {loading && posts.length === 0 ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="bg-stone-50 rounded-2xl aspect-[3/4] animate-pulse" />
+          ))}
+        </div>
+      ) : posts.length === 0 ? (
+        <div className="text-center py-20 text-stone-400 text-sm">
+          아직 공유된 꽃다발이 없어요. 첫 번째로 공유해보세요!
+        </div>
+      ) : (
+        <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {posts.map((post) => (
               <div key={post.id} className="bg-white rounded-2xl overflow-hidden border border-stone-100 hover:border-rose-200 hover:shadow-lg transition-all flex flex-col">
@@ -114,11 +119,7 @@ export function BouquetGallery({ limit = 8, showViewAll = false }: { limit?: num
                     <p className="text-xs font-semibold text-stone-700">{post.authorName ?? "꽃 애호가"}</p>
                     {canManage(post) && (
                       <div className="flex gap-1.5">
-                        <Link
-                          href={`/custom?edit=${post.id}`}
-                          className="text-[10px] text-stone-400 hover:text-rose-500 flex items-center gap-0.5"
-                          aria-label="후기 수정"
-                        >
+                        <Link href={`/custom?edit=${post.id}`} className="text-[10px] text-stone-400 hover:text-rose-500">
                           ✏️ 수정
                         </Link>
                         <button onClick={() => deletePost(post.id)} className="text-[10px] text-stone-400 hover:text-red-500">
@@ -127,9 +128,7 @@ export function BouquetGallery({ limit = 8, showViewAll = false }: { limit?: num
                       </div>
                     )}
                   </div>
-
                   {post.content && <p className="text-xs text-stone-500 line-clamp-2">{post.content}</p>}
-
                   <p className="text-[10px] text-stone-400 line-clamp-2">{compositionSummary(post.composition)}</p>
                   <Link
                     href={`/custom?post=${post.id}`}
@@ -141,8 +140,20 @@ export function BouquetGallery({ limit = 8, showViewAll = false }: { limit?: num
               </div>
             ))}
           </div>
-        )}
-      </div>
-    </section>
+
+          {hasMore && (
+            <div className="text-center mt-8">
+              <button
+                onClick={loadMore}
+                disabled={loading}
+                className="px-8 py-3 rounded-full border border-stone-200 text-stone-600 hover:border-rose-300 hover:text-rose-500 text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {loading ? "불러오는 중..." : "더 보기"}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
   )
 }

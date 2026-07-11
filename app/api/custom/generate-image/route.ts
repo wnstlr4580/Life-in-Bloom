@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server"
 
 export async function POST(req: NextRequest) {
-  const { prompt, negative } = await req.json()
+  const { prompt, negative, seed } = await req.json()
 
   if (!prompt) {
     return NextResponse.json({ error: "프롬프트가 없습니다." }, { status: 400 })
   }
 
-  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?model=flux-realism&width=512&height=512&nologo=true&negative=${encodeURIComponent(negative ?? "")}&seed=${Date.now()}`
+  const finalSeed = typeof seed === "number" ? seed : Date.now()
+  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?model=flux-realism&width=768&height=768&nologo=true&negative=${encodeURIComponent(negative ?? "")}&seed=${finalSeed}`
 
   const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 90000)
+  const timeoutId = setTimeout(() => controller.abort(), 120000)
 
   try {
     const res = await fetch(url, { signal: controller.signal })
