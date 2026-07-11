@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { useCartStore } from "@/store/cartStore"
 import { useSession, signIn, signOut } from "next-auth/react"
@@ -56,6 +56,8 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
   const totalCount = useCartStore((s) => s.totalCount())
   const { data: session } = useSession()
   const [query, setQuery] = useState("")
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -134,7 +136,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
               >
                 <ShoppingCart size={18} />
                 <span className="text-sm">장바구니</span>
-                {totalCount > 0 && (
+                {mounted && totalCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 bg-rose-400 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-0.5">
                     {totalCount > 99 ? "99+" : totalCount}
                   </span>
@@ -245,7 +247,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
           </div>
 
           <div className="pt-6 border-t border-stone-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stone-400">
-            <p>© {new Date().getFullYear()} 인생내꽃. All rights reserved.</p>
+            <p>© 2025 인생내꽃. All rights reserved.</p>
             <div className="flex gap-5">
               <Link href="/terms" className="hover:text-stone-600 transition-colors">이용약관</Link>
               <Link href="/privacy" className="hover:text-stone-600 transition-colors font-medium">개인정보처리방침</Link>

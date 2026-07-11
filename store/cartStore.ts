@@ -5,6 +5,12 @@ export interface CartItem {
   id: string
   productId: string
   quantity: number
+  composition?: {
+    sizeId: string
+    mainFlowerId: string | null
+    additionalFlowerIds: string[]
+    wrappingId: string
+  }
   product: {
     id: string
     name: string

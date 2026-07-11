@@ -2,8 +2,9 @@
 
 import { useState } from "react"
 import { calculateSaju } from "@/lib/saju"
-import { calcCompat, gradeLabel } from "@/lib/compat"
+import { calcCompat, gradeLabel, COUPLE_FLOWER_IDS } from "@/lib/compat"
 import type { PersonSaju, CompatScore } from "@/lib/compat"
+import Link from "next/link"
 
 // ─── helpers ────────────────────────────────────────────────
 const CHEONGAN = ["갑","을","병","정","무","기","경","신","임","계"]
@@ -312,6 +313,21 @@ function CompatResult({ a, b, result }: { a: PersonSaju; b: PersonSaju; result: 
         <p className="text-sm font-bold text-rose-700">💐 두 사람을 위한 꽃</p>
         <p className="text-base font-bold text-stone-800">{result.coupleFlower}</p>
         <p className="text-xs text-stone-500 leading-relaxed">{result.coupleDesc}</p>
+        {(() => {
+          const ohaengKey = [a.mainOhaeng, b.mainOhaeng].sort().join("-")
+          const flowerIds = COUPLE_FLOWER_IDS[ohaengKey]
+          const customUrl = flowerIds
+            ? `/custom?flowers=${[flowerIds.mainId, ...flowerIds.additionalIds].join(",")}`
+            : "/custom"
+          return (
+            <Link
+              href={customUrl}
+              className="mt-1 block w-full text-center py-2.5 rounded-xl bg-rose-400 hover:bg-rose-500 text-white text-sm font-semibold transition-colors"
+            >
+              💐 이 꽃으로 꽃다발 만들기
+            </Link>
+          )
+        })()}
       </div>
 
       {/* 안내 */}

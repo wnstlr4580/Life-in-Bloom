@@ -70,12 +70,12 @@ export const FLOWERS = [
 ]
 
 export const WRAPPING = [
-  { id: "kraft",       name: "크라프트지",   emoji: "📦", price: 1500, engStyle: "lower half of bouquet wrapped in rustic brown kraft paper secured with natural twine bow at the stems" },
-  { id: "cellophane",  name: "투명 셀로판",  emoji: "✨", price: 2000, engStyle: "flowers wrapped in transparent clear cellophane film tied with a thin satin ribbon, flowers fully visible through wrapping" },
-  { id: "linen",       name: "린넨 천 포장", emoji: "🌿", price: 2500, engStyle: "bouquet stems wrapped in natural beige linen fabric tied with a simple cotton ribbon" },
-  { id: "newspaper",   name: "신문지 빈티지", emoji: "📰", price: 1500, engStyle: "bouquet wrapped in vintage newspaper pages secured with rustic twine string, retro style" },
-  { id: "hanji",       name: "한지 포장",    emoji: "🏮", price: 3000, engStyle: "bouquet wrapped in multiple layers of pastel-colored Korean hanji tissue paper in soft pink, mint, lavender, and cream tones, creating a ruffled layered paper wrapping with delicate texture, tied with a thin ribbon" },
-  { id: "bouquet",     name: "부케 스타일",  emoji: "💍", price: 5000, engStyle: "professional wedding bouquet style, stems tightly bound with white satin ribbon wrapped spirally down the handle, elegant formal presentation" },
+  { id: "kraft",       name: "크라프트지",   emoji: "📦", price: 1500, desc: "자연스러운 갈색 종이로 감싸 소박하고 따뜻한 느낌을 줘요. 일상적인 선물이나 캐주얼한 분위기에 잘 어울려요.", engStyle: "lower half of bouquet wrapped in rustic brown kraft paper secured with natural twine bow at the stems" },
+  { id: "cellophane",  name: "투명 셀로판",  emoji: "✨", price: 2000, desc: "꽃이 그대로 보이는 투명 필름으로 감싸요. 꽃의 색감과 형태를 가장 잘 살려주는 포장이에요.", engStyle: "flowers wrapped in transparent clear cellophane film tied with a thin satin ribbon, flowers fully visible through wrapping" },
+  { id: "linen",       name: "린넨 천 포장", emoji: "🌿", price: 2500, desc: "부드러운 린넨 천으로 감싸 자연스럽고 세련된 분위기를 연출해요. 감성적인 선물에 제격이에요.", engStyle: "bouquet stems wrapped in natural beige linen fabric tied with a simple cotton ribbon" },
+  { id: "newspaper",   name: "신문지 빈티지", emoji: "📰", price: 1500, desc: "빈티지 신문지로 감싸 레트로하고 개성 있는 감성을 표현해요. 독특한 분위기를 원하는 분께 추천해요.", engStyle: "bouquet wrapped in vintage newspaper pages secured with rustic twine string, retro style" },
+  { id: "hanji",       name: "한지 포장",    emoji: "🏮", price: 3000, desc: "은은한 색감의 한지로 겹겹이 감싸 고급스럽고 전통적인 아름다움을 담아요. 특별한 날의 선물로 잘 어울려요.", engStyle: "bouquet wrapped in multiple layers of pastel-colored Korean hanji tissue paper in soft pink, mint, lavender, and cream tones, creating a ruffled layered paper wrapping with delicate texture, tied with a thin ribbon" },
+  { id: "bouquet",     name: "부케 스타일",  emoji: "💍", price: 5000, desc: "웨딩 부케처럼 손잡이를 새틴 리본으로 단단히 감아요. 격식 있고 우아한 자리에서 빛나는 포장이에요.", engStyle: "professional wedding bouquet style, stems tightly bound with white satin ribbon wrapped spirally down the handle, elegant formal presentation" },
 ]
 
 export const COLOR_FILTER = ["전체", "red", "pink", "white", "yellow", "purple", "orange", "blue", "green"]

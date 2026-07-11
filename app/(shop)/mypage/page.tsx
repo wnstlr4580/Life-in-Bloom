@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
 import { useSession, signIn, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
-import { Package, LogOut, User, ChevronRight, Sparkles, Pencil } from "lucide-react"
+import { Package, LogOut, User, ChevronRight, Sparkles, Pencil, Camera } from "lucide-react"
 import Image from "next/image"
 import { BirthDateForm } from "@/components/saju/BirthDateForm"
 
@@ -28,7 +28,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 interface OrderItem {
   id: string; quantity: number; price: number
-  product: { id: string; name: string; images: string[] }
+  product: { id: string; name: string; images: string[]; flowerMeaning?: string | null }
 }
 interface Order {
   id: string; status: string; totalAmount: number; createdAt: string; items: OrderItem[]
@@ -43,6 +43,39 @@ export default function MyPage() {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [points, setPoints] = useState<number | null>(null)
+
+  // 받은 꽃다발 후기 올리기
+  const [reviewingOrderId, setReviewingOrderId] = useState<string | null>(null)
+  const [reviewFile, setReviewFile] = useState<File | null>(null)
+  const [reviewContent, setReviewContent] = useState("")
+  const [reviewSaving, setReviewSaving] = useState(false)
+  const [reviewMessage, setReviewMessage] = useState("")
+
+  const handleReviewSubmit = async (orderId: string) => {
+    if (!reviewFile) { setReviewMessage("꽃다발 사진을 골라주세요"); return }
+    setReviewSaving(true)
+    setReviewMessage("")
+    try {
+      const order = orders.find((o) => o.id === orderId)
+      const compositionStr = order?.items.find((i) => i.product.flowerMeaning)?.product.flowerMeaning
+      const composition = compositionStr ? JSON.parse(compositionStr) : {}
+      const form = new FormData()
+      form.append("file", reviewFile)
+      form.append("content", reviewContent)
+      form.append("composition", JSON.stringify(composition))
+      const res = await fetch("/api/bouquet-posts", { method: "POST", body: form })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error ?? "후기 올리기에 실패했어요")
+      setReviewMessage("후기가 올라갔어요! 🌸")
+      setReviewFile(null)
+      setReviewContent("")
+      setTimeout(() => { setReviewingOrderId(null); setReviewMessage("") }, 2000)
+    } catch (e) {
+      setReviewMessage(e instanceof Error ? e.message : "후기 올리기에 실패했어요")
+    } finally {
+      setReviewSaving(false)
+    }
+  }
 
   // 닉네임 변경
   const [nickEditing, setNickEditing] = useState(false)
@@ -342,6 +375,43 @@ export default function MyPage() {
                         상세보기 <ChevronRight size={14} />
                       </button>
                     </div>
+                    {order.status !== "CANCELLED" && order.status !== "PENDING" && (
+                      <div className="mt-3 border-t border-stone-100 pt-3">
+                        {reviewingOrderId !== order.id ? (
+                          <button
+                            onClick={() => { setReviewingOrderId(order.id); setReviewFile(null); setReviewContent(""); setReviewMessage("") }}
+                            className="w-full flex items-center justify-center gap-1.5 text-xs text-stone-500 hover:text-rose-500 border border-stone-200 hover:border-rose-200 py-2 rounded-xl transition-colors"
+                          >
+                            <Camera size={13} /> 받은 꽃다발 후기 올리기
+                          </button>
+                        ) : (
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold text-stone-700">📸 받은 꽃다발 사진 자랑하기</p>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => setReviewFile(e.target.files?.[0] ?? null)}
+                              className="w-full text-xs text-stone-500 file:mr-2 file:rounded-lg file:border-0 file:bg-rose-50 file:text-rose-500 file:text-xs file:px-3 file:py-1.5"
+                            />
+                            <textarea
+                              value={reviewContent}
+                              onChange={(e) => setReviewContent(e.target.value)}
+                              placeholder="한마디 남겨주세요 (예: 프로포즈 대성공!)"
+                              rows={2}
+                              className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs resize-none focus:outline-none focus:ring-1 focus:ring-rose-300"
+                            />
+                            <div className="flex gap-2">
+                              <Button onClick={() => handleReviewSubmit(order.id)} disabled={reviewSaving} className="flex-1 h-8 bg-rose-400 hover:bg-rose-500 text-white text-xs">
+                                {reviewSaving ? "올리는 중..." : "올리기"}
+                              </Button>
+                              <Button variant="outline" onClick={() => setReviewingOrderId(null)} className="h-8 text-xs border-stone-200 text-stone-500">취소</Button>
+                            </div>
+                            <p className="text-[10px] text-stone-400">다른 분이 이 조합 그대로 구매하면 500포인트를 드려요</p>
+                            {reviewMessage && <p className="text-[11px] text-rose-500 text-center">{reviewMessage}</p>}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

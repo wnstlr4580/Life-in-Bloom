@@ -119,14 +119,19 @@ function SajuPageContent() {
         body: JSON.stringify(data),
       })
       if (!res.ok) throw new Error()
-      setResult(await res.json())
+      const analyzed = await res.json()
+      setResult(analyzed)
 
       // 로그인 상태이면 자동 저장
       if (session?.user) {
         fetch("/api/saju/profile", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+          body: JSON.stringify({
+            ...data,
+            ohaengType: analyzed.ohaeng ?? null,
+            lackingOhaengType: analyzed.lackingProducts?.[0]?.ohaeng ?? null,
+          }),
         }).then(() => setSavedProfile(data)).catch(() => {})
       }
     } catch {
