@@ -4,10 +4,10 @@ import { useCallback, useState } from "react"
 import { BirthDateQuickForm } from "@/components/kiosk/BirthDateQuickForm"
 import { CameraCapture } from "@/components/kiosk/CameraCapture"
 import { ResultShare } from "@/components/kiosk/ResultShare"
-import { analyzeOhaeng, type Ohaeng } from "@/lib/saju"
+import { type Ohaeng } from "@/lib/saju"
 import { segmentPerson } from "@/lib/kiosk/segmentation"
 import { compositeSingleCut, buildFourCutStrip } from "@/lib/kiosk/compositeCanvas"
-import { pickBackground } from "@/lib/kiosk/backgrounds"
+import { pickFlowerPreset, type KioskFlowerPreset } from "@/lib/kiosk/backgrounds"
 
 const TOTAL_CUTS = 4
 
@@ -19,6 +19,7 @@ export default function KioskPage() {
   const [step, setStep] = useState<Step>("intro")
   const [birthDate, setBirthDate] = useState<string | null>(null)
   const [ohaeng, setOhaeng] = useState<Ohaeng | null>(null)
+  const [preset, setPreset] = useState<KioskFlowerPreset | null>(null)
   const [resultBlob, setResultBlob] = useState<Blob | null>(null)
   const [processingProgress, setProcessingProgress] = useState(0)
 
@@ -26,32 +27,34 @@ export default function KioskPage() {
     setStep("intro")
     setBirthDate(null)
     setOhaeng(null)
+    setPreset(null)
     setResultBlob(null)
     setProcessingProgress(0)
   }, [])
 
   const handleBirthSubmit = (date: string) => {
     setBirthDate(date)
-    setOhaeng(analyzeOhaeng(new Date(date)))
+    const result = pickFlowerPreset(new Date(date))
+    setOhaeng(result.ohaeng)
+    setPreset(result.preset)
     setStep("capture")
   }
 
   // 4컷을 순서대로 세그멘테이션 + 배경 합성한 뒤 하나의 스트립으로 조립한다.
   // 어떤 꽃이 나올지는 이 단계가 끝나고 결과 화면에서만 처음 공개된다.
   const handleCaptureComplete = async (images: ImageBitmap[]) => {
-    if (!ohaeng) return
+    if (!ohaeng || !preset) return
     setStep("processing")
     setProcessingProgress(0)
     try {
-      const backgroundUrl = pickBackground(ohaeng)
       const cuts: HTMLCanvasElement[] = []
       for (const image of images) {
         const mask = await segmentPerson(image)
-        const cut = await compositeSingleCut(image, mask, backgroundUrl)
+        const cut = await compositeSingleCut(image, mask, preset.background)
         cuts.push(cut)
         setProcessingProgress((p) => p + 1)
       }
-      const blob = await buildFourCutStrip(cuts, ohaeng)
+      const blob = await buildFourCutStrip(cuts, preset)
       setResultBlob(blob)
       setStep("result")
     } catch {
@@ -103,11 +106,12 @@ export default function KioskPage() {
         </div>
       )}
 
-      {step === "result" && resultBlob && ohaeng && birthDate && (
+      {step === "result" && resultBlob && ohaeng && preset && birthDate && (
         <div className="w-full max-w-sm">
           <ResultShare
             imageBlob={resultBlob}
             ohaeng={ohaeng}
+            preset={preset}
             birthDate={birthDate}
             onRetry={() => setStep("capture")}
             onRestart={reset}

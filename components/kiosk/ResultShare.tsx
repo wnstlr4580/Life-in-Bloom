@@ -5,12 +5,13 @@ import QRCode from "react-qr-code"
 import { Button } from "@/components/ui/button"
 import { RotateCcw, Home, ExternalLink } from "lucide-react"
 import type { Ohaeng } from "@/lib/saju"
-import { KIOSK_FLOWER_PRESETS } from "@/lib/kiosk/backgrounds"
+import type { KioskFlowerPreset } from "@/lib/kiosk/backgrounds"
 import { KIOSK_RESULT_IDLE_MS } from "@/lib/kiosk/constants"
 
 interface Props {
   imageBlob: Blob
   ohaeng: Ohaeng
+  preset: KioskFlowerPreset
   birthDate: string
   onRetry: () => void
   onRestart: () => void
@@ -18,13 +19,12 @@ interface Props {
 
 type UploadState = "uploading" | "done" | "error"
 
-export function ResultShare({ imageBlob, ohaeng, birthDate, onRetry, onRestart }: Props) {
+export function ResultShare({ imageBlob, ohaeng, preset, birthDate, onRetry, onRestart }: Props) {
   const [previewUrl] = useState(() => URL.createObjectURL(imageBlob))
   const [uploadState, setUploadState] = useState<UploadState>("uploading")
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const [errorDetail, setErrorDetail] = useState<string | null>(null)
   const uploadedRef = useRef(false)
-  const preset = KIOSK_FLOWER_PRESETS[ohaeng]
 
   useEffect(() => {
     if (uploadedRef.current) return
@@ -84,7 +84,7 @@ export function ResultShare({ imageBlob, ohaeng, birthDate, onRetry, onRestart }
       </div>
 
       <p className="text-center text-sm font-semibold text-stone-700">
-        {preset.flowerName} · {preset.meaning}
+        {preset.name} · {preset.meaning}
       </p>
 
       <div className="bg-white rounded-2xl border border-stone-100 p-5 text-center space-y-3">
