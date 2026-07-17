@@ -64,6 +64,7 @@ export default function KioskPage() {
   const [preset, setPreset] = useState<KioskFlowerPreset | null>(null)
   const [resultBlob, setResultBlob] = useState<Blob | null>(null)
   const [processingProgress, setProcessingProgress] = useState(0)
+  const [errorMessage, setErrorMessage] = useState("합성 중 문제가 발생했어요. 다시 시도해 주세요.")
 
   const reset = useCallback(() => {
     setStep("intro")
@@ -71,6 +72,7 @@ export default function KioskPage() {
     setPreset(null)
     setResultBlob(null)
     setProcessingProgress(0)
+    setErrorMessage("합성 중 문제가 발생했어요. 다시 시도해 주세요.")
   }, [])
 
   // 생일꽃 — 탄생화 선정에 필요한 월·일만 입력받는다.
@@ -104,7 +106,13 @@ export default function KioskPage() {
       const blob = await buildFourCutStrip(cuts, activePreset)
       setResultBlob(blob)
       setStep("result")
-    } catch {
+    } catch (error) {
+      console.error("[kiosk] photo composition failed:", error)
+      setErrorMessage(
+        error instanceof Error && error.message.includes("test strip not found")
+          ? "테스트 사진을 불러오지 못했어요. 잠시 후 다시 시도해 주세요."
+          : "합성 중 문제가 발생했어요. 다시 시도해 주세요."
+      )
       setStep("error")
     }
   }
@@ -122,7 +130,13 @@ export default function KioskPage() {
     try {
       const images = await loadTestCuts()
       await composeCuts(images, preset)
-    } catch {
+    } catch (error) {
+      console.error("[kiosk] test photo composition failed:", error)
+      setErrorMessage(
+        error instanceof Error && error.message.includes("test strip not found")
+          ? "테스트 사진을 불러오지 못했어요. 잠시 후 다시 시도해 주세요."
+          : "합성 중 문제가 발생했어요. 다시 시도해 주세요."
+      )
       setStep("error")
     }
   }
@@ -221,7 +235,7 @@ export default function KioskPage() {
       {step === "error" && (
         <div className="text-center space-y-4 max-w-sm">
           <p className="text-4xl">😢</p>
-          <p className="text-stone-500 text-sm">합성 중 문제가 발생했어요. 다시 시도해 주세요.</p>
+          <p className="text-stone-500 text-sm">{errorMessage}</p>
           <button
             onClick={() => setStep("capture")}
             className="px-6 py-3 rounded-xl bg-stone-700 text-white text-sm font-medium"
