@@ -1,36 +1,38 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import QRCode from "react-qr-code"
 import { Button } from "@/components/ui/button"
 import { RotateCcw, Home, ExternalLink } from "lucide-react"
-import type { Ohaeng } from "@/lib/saju"
-import type { KioskFlowerPreset } from "@/lib/kiosk/backgrounds"
+import type { KioskFlowerPreset } from "@/lib/kiosk/flowers"
+import { stampQrOnStrip } from "@/lib/kiosk/compositeCanvas"
 import { KIOSK_RESULT_IDLE_MS } from "@/lib/kiosk/constants"
 
 interface Props {
   imageBlob: Blob
-  ohaeng: Ohaeng
+  headline: string // 모드별 결과 문구 (예: "12월 1일, 당신의 생일꽃은 …")
   preset: KioskFlowerPreset
-  birthDate: string
+  birthDate: string | null // 생일꽃 모드에서만 존재 — QR 딥링크의 자동 사주분석에 사용
   onRetry: () => void
   onRestart: () => void
 }
 
 type UploadState = "uploading" | "done" | "error"
 
-export function ResultShare({ imageBlob, ohaeng, preset, birthDate, onRetry, onRestart }: Props) {
-  const [previewUrl] = useState(() => URL.createObjectURL(imageBlob))
+export function ResultShare({ imageBlob, headline, preset, birthDate, onRetry, onRestart }: Props) {
+  const [previewUrl, setPreviewUrl] = useState(() => URL.createObjectURL(imageBlob))
   const [uploadState, setUploadState] = useState<UploadState>("uploading")
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const [errorDetail, setErrorDetail] = useState<string | null>(null)
   const uploadedRef = useRef(false)
+  // QR 스탬프 후 previewUrl이 바뀌므로, 언마운트 시점의 최신 URL을 해제하기 위한 ref
+  const previewUrlRef = useRef(previewUrl)
+  previewUrlRef.current = previewUrl
 
   useEffect(() => {
     if (uploadedRef.current) return
     uploadedRef.current = true
     upload()
-    return () => URL.revokeObjectURL(previewUrl)
+    return () => URL.revokeObjectURL(previewUrlRef.current)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -47,7 +49,7 @@ export function ResultShare({ imageBlob, ohaeng, preset, birthDate, onRetry, onR
     try {
       const form = new FormData()
       form.append("file", imageBlob, "kiosk-strip.jpg")
-      form.append("ohaeng", ohaeng)
+      form.append("flower", preset.name)
       const res = await fetch("/api/kiosk/photo", { method: "POST", body: form })
       if (!res.ok) {
         // 원인 진단용 — Vercel 로그 없이도 화면에서 바로 원인을 볼 수 있게 표시한다.
@@ -58,11 +60,23 @@ export function ResultShare({ imageBlob, ohaeng, preset, birthDate, onRetry, onR
       const data: { id: string } = await res.json()
 
       // QR은 사진 다운로드 페이지가 아니라, 기존 /saju 페이지로 딥링크한다.
-      // 생년월일을 그대로 넘겨 자동으로 오행 분석을 실행하고,
-      // kiosk 파라미터로 방금 찍은 네컷 사진도 함께 보여준다.
+      // 생일꽃 모드면 생년월일을 실어 자동 사주분석까지 연결하고, 다른 모드는
+      // /saju에서 직접 입력한다. kiosk 파라미터로 네컷 사진도 함께 보여준다.
       const url = new URL("/saju", window.location.origin)
-      url.searchParams.set("birthDate", birthDate)
+      if (birthDate) url.searchParams.set("birthDate", birthDate)
       url.searchParams.set("kiosk", data.id)
+
+      // QR을 별도 위젯 대신 네컷 프레임 하단 여백에 직접 박는다.
+      // 실패해도 결과 자체는 유효하므로 원본 미리보기 + 링크 버튼으로 진행한다.
+      try {
+        const stamped = await stampQrOnStrip(imageBlob, url.toString())
+        const stampedUrl = URL.createObjectURL(stamped)
+        setPreviewUrl((prev) => {
+          URL.revokeObjectURL(prev)
+          return stampedUrl
+        })
+      } catch {}
+
       setShareUrl(url.toString())
       setUploadState("done")
     } catch {
@@ -73,12 +87,11 @@ export function ResultShare({ imageBlob, ohaeng, preset, birthDate, onRetry, onR
   return (
     <div className="w-full space-y-5">
       <p className="text-center text-sm font-semibold text-rose-500">
-        짠! 당신의 기운은 {ohaeng}(五行)예요
+        짠! {headline}
       </p>
 
-      <div className="mx-auto w-[55%] max-w-[260px] rounded-2xl overflow-hidden shadow-md bg-stone-100">
-        {/* 실제 인생네컷처럼 좁고 긴 스트립 전체가 스크롤 없이 한 번에 보이도록
-            너비를 줄여서 원본 비율 그대로 표시한다. */}
+      <div className="mx-auto w-[85%] max-w-[340px] rounded-2xl overflow-hidden shadow-md bg-stone-100">
+        {/* QR이 프레임 안에 들어갔으므로 사진이 주인공 — 크게 보여준다. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={previewUrl} alt="합성된 네컷" className="w-full h-auto block" />
       </div>
@@ -87,7 +100,7 @@ export function ResultShare({ imageBlob, ohaeng, preset, birthDate, onRetry, onR
         {preset.name} · {preset.meaning}
       </p>
 
-      <div className="bg-white rounded-2xl border border-stone-100 p-5 text-center space-y-3">
+      <div className="text-center space-y-2">
         {uploadState === "uploading" && (
           <p className="text-sm text-stone-500">사진을 저장하고 있어요...</p>
         )}
@@ -104,17 +117,17 @@ export function ResultShare({ imageBlob, ohaeng, preset, birthDate, onRetry, onR
 
         {uploadState === "done" && shareUrl && (
           <>
-            <p className="text-sm font-semibold text-stone-700">QR로 자세한 사주 풀이를 확인하세요</p>
-            <div className="flex justify-center py-2">
-              <div className="bg-white p-3 rounded-xl border border-stone-100">
-                <QRCode value={shareUrl} size={180} />
-              </div>
-            </div>
-            <p className="text-xs text-stone-400">사진 저장, 오늘의 운세, 오행 분석까지 함께 볼 수 있어요</p>
+            <p className="text-sm text-stone-600">
+              사진 속 QR을 스캔하면 사진을 저장하고 오행 사주 분석도 할 수 있어요
+            </p>
             {/* 실제 키오스크에서는 QR 스캔이 자연스럽지만, PC로 테스트할 땐
-                폰 없이 바로 확인할 수 있도록 링크 버튼도 같이 둔다. */}
-            <Button onClick={() => window.open(shareUrl, "_blank")} variant="outline" className="w-full gap-1.5">
-              <ExternalLink size={16} /> 웹페이지 바로가기
+                폰 없이 바로 확인할 수 있도록 작은 링크만 둔다. */}
+            <Button
+              onClick={() => window.open(shareUrl, "_blank")}
+              variant="ghost"
+              className="h-8 gap-1 text-xs text-stone-400 hover:text-stone-600"
+            >
+              <ExternalLink size={13} /> 웹페이지 바로가기
             </Button>
           </>
         )}
