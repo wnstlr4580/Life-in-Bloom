@@ -1,0 +1,1883 @@
+{
+  "_comment": "색깔별 꽃말 테이블 — species+color 조합당 1행. 꽃말 초안은 통용 꽃말 기준, 콘텐츠 검수 필요.",
+  "meanings": [
+    {
+      "species": "rose",
+      "color": "red",
+      "meaning": "열정적인 사랑",
+      "meaningEn": "passionate love"
+    },
+    {
+      "species": "rose",
+      "color": "pink",
+      "meaning": "행복한 사랑",
+      "meaningEn": "happy love"
+    },
+    {
+      "species": "rose",
+      "color": "white",
+      "meaning": "존경, 순결한 사랑",
+      "meaningEn": "respect and pure love"
+    },
+    {
+      "species": "rose",
+      "color": "yellow",
+      "meaning": "영원한 우정",
+      "meaningEn": "everlasting friendship"
+    },
+    {
+      "species": "tulip",
+      "color": "pink",
+      "meaning": "사랑의 고백",
+      "meaningEn": "confession of love"
+    },
+    {
+      "species": "tulip",
+      "color": "white",
+      "meaning": "새로운 시작",
+      "meaningEn": "a new beginning"
+    },
+    {
+      "species": "tulip",
+      "color": "purple",
+      "meaning": "영원한 사랑",
+      "meaningEn": "eternal love"
+    },
+    {
+      "species": "tulip",
+      "color": "orange",
+      "meaning": "따뜻한 매력",
+      "meaningEn": "warm charm"
+    },
+    {
+      "species": "tulip",
+      "color": "yellow",
+      "meaning": "밝은 미소, 희망",
+      "meaningEn": "bright smile and hope"
+    },
+    {
+      "species": "lily",
+      "color": "white",
+      "meaning": "순수, 깨끗한 마음",
+      "meaningEn": "purity of heart"
+    },
+    {
+      "species": "lily",
+      "color": "pink",
+      "meaning": "풍요와 번영",
+      "meaningEn": "abundance and prosperity"
+    },
+    {
+      "species": "hydrangea",
+      "color": "blue",
+      "meaning": "진심, 한결같은 마음",
+      "meaningEn": "sincere, unchanging heart"
+    },
+    {
+      "species": "hydrangea",
+      "color": "pink",
+      "meaning": "진실한 사랑",
+      "meaningEn": "true love"
+    },
+    {
+      "species": "carnation",
+      "color": "pink",
+      "meaning": "감사, 아름다운 마음",
+      "meaningEn": "gratitude"
+    },
+    {
+      "species": "carnation",
+      "color": "red",
+      "meaning": "존경과 사랑",
+      "meaningEn": "respect and love"
+    },
+    {
+      "species": "carnation",
+      "color": "purple",
+      "meaning": "기품 있는 마음",
+      "meaningEn": "graceful heart"
+    },
+    {
+      "species": "carnation",
+      "color": "white",
+      "meaning": "순수한 사랑과 존경",
+      "meaningEn": "pure love and respect"
+    },
+    {
+      "species": "peony",
+      "color": "pink",
+      "meaning": "수줍은 행복",
+      "meaningEn": "shy happiness"
+    },
+    {
+      "species": "peony",
+      "color": "red",
+      "meaning": "화려한 사랑",
+      "meaningEn": "splendid love"
+    },
+    {
+      "species": "peony",
+      "color": "purple",
+      "meaning": "고귀한 매력",
+      "meaningEn": "noble charm"
+    },
+    {
+      "species": "peony",
+      "color": "white",
+      "meaning": "수줍은 아름다움",
+      "meaningEn": "bashful beauty"
+    },
+    {
+      "species": "peony",
+      "color": "orange",
+      "meaning": "따뜻한 행복",
+      "meaningEn": "warm happiness"
+    },
+    {
+      "species": "gerbera",
+      "color": "orange",
+      "meaning": "언제나 밝은 마음",
+      "meaningEn": "always cheerful"
+    },
+    {
+      "species": "gerbera",
+      "color": "pink",
+      "meaning": "순수한 설렘",
+      "meaningEn": "innocent excitement"
+    },
+    {
+      "species": "gerbera",
+      "color": "red",
+      "meaning": "정열",
+      "meaningEn": "passion"
+    },
+    {
+      "species": "gerbera",
+      "color": "yellow",
+      "meaning": "친근한 미소",
+      "meaningEn": "friendly smile"
+    },
+    {
+      "species": "anemone",
+      "color": "blue",
+      "meaning": "당신을 믿어요",
+      "meaningEn": "I trust you"
+    },
+    {
+      "species": "anemone",
+      "color": "pink",
+      "meaning": "설레는 기대",
+      "meaningEn": "sweet anticipation"
+    },
+    {
+      "species": "anemone",
+      "color": "purple",
+      "meaning": "당신을 기다려요",
+      "meaningEn": "waiting for you"
+    },
+    {
+      "species": "anemone",
+      "color": "red",
+      "meaning": "그대를 사랑해요",
+      "meaningEn": "I love you"
+    },
+    {
+      "species": "mum",
+      "color": "white",
+      "meaning": "성실, 진실",
+      "meaningEn": "sincerity and truth"
+    },
+    {
+      "species": "mum",
+      "color": "pink",
+      "meaning": "순수한 사랑",
+      "meaningEn": "pure love"
+    },
+    {
+      "species": "mum",
+      "color": "yellow",
+      "meaning": "고결한 마음",
+      "meaningEn": "noble heart"
+    },
+    {
+      "species": "sweetpea",
+      "color": "pink",
+      "meaning": "우아한 즐거움",
+      "meaningEn": "graceful delight"
+    },
+    {
+      "species": "sweetpea",
+      "color": "white",
+      "meaning": "새로운 출발",
+      "meaningEn": "a fresh departure"
+    },
+    {
+      "species": "babysbreath",
+      "color": "white",
+      "meaning": "맑은 마음, 약속",
+      "meaningEn": "pure heart and promise"
+    },
+    {
+      "species": "babysbreath",
+      "color": "pink",
+      "meaning": "사랑스러운 마음",
+      "meaningEn": "lovely heart"
+    },
+    {
+      "species": "babysbreath",
+      "color": "purple",
+      "meaning": "은은한 사랑",
+      "meaningEn": "gentle love"
+    },
+    {
+      "species": "calla",
+      "color": "pink",
+      "meaning": "사랑스러운 매력",
+      "meaningEn": "lovely charm"
+    },
+    {
+      "species": "calla",
+      "color": "red",
+      "meaning": "정열적인 아름다움",
+      "meaningEn": "passionate beauty"
+    },
+    {
+      "species": "calla",
+      "color": "white",
+      "meaning": "순수한 아름다움",
+      "meaningEn": "pure beauty"
+    },
+    {
+      "species": "sunflower",
+      "color": "yellow",
+      "meaning": "당신만 바라봐요",
+      "meaningEn": "eyes only for you"
+    },
+    {
+      "species": "lavender",
+      "color": "purple",
+      "meaning": "기다림, 침묵의 사랑",
+      "meaningEn": "silent love"
+    },
+    {
+      "species": "daisy",
+      "color": "white",
+      "meaning": "순수한 마음, 평화",
+      "meaningEn": "innocence and peace"
+    },
+    {
+      "species": "freesia",
+      "color": "yellow",
+      "meaning": "새로운 출발을 응원해요",
+      "meaningEn": "cheering your new start"
+    },
+    {
+      "species": "chamomile",
+      "color": "white",
+      "meaning": "힘든 날을 이겨내는 힘",
+      "meaningEn": "strength in adversity"
+    },
+    {
+      "species": "eucalyptus",
+      "color": "green",
+      "meaning": "추억, 다시 힘내는 마음",
+      "meaningEn": "cherished memories"
+    },
+    {
+      "species": "snowdrop",
+      "color": "white",
+      "meaning": "깊은 애정",
+      "meaningEn": ""
+    },
+    {
+      "species": "narcissus",
+      "color": "yellow",
+      "meaning": "사랑에 답하여",
+      "meaningEn": ""
+    },
+    {
+      "species": "crocus",
+      "color": "white",
+      "meaning": "후회 없는 청춘",
+      "meaningEn": ""
+    },
+    {
+      "species": "hyacinth",
+      "color": "white",
+      "meaning": "차분한 사랑",
+      "meaningEn": ""
+    },
+    {
+      "species": "hepatica",
+      "color": "white",
+      "meaning": "인내",
+      "meaningEn": ""
+    },
+    {
+      "species": "violet",
+      "color": "white",
+      "meaning": "순진무구한 사랑",
+      "meaningEn": ""
+    },
+    {
+      "species": "violet",
+      "color": "purple",
+      "meaning": "사랑",
+      "meaningEn": ""
+    },
+    {
+      "species": "violet",
+      "color": "yellow",
+      "meaning": "수줍은 사랑",
+      "meaningEn": ""
+    },
+    {
+      "species": "boxtree",
+      "color": "white",
+      "meaning": "참고 견뎌냄",
+      "meaningEn": ""
+    },
+    {
+      "species": "arborvitae",
+      "color": "white",
+      "meaning": "견고한 사랑",
+      "meaningEn": ""
+    },
+    {
+      "species": "alyssum",
+      "color": "white",
+      "meaning": "뛰어난 아름다움",
+      "meaningEn": ""
+    },
+    {
+      "species": "narcissus",
+      "color": "white",
+      "meaning": "신비",
+      "meaningEn": ""
+    },
+    {
+      "species": "cyclamen",
+      "color": "white",
+      "meaning": "내성적 성격",
+      "meaningEn": ""
+    },
+    {
+      "species": "thorn",
+      "color": "white",
+      "meaning": "엄격",
+      "meaningEn": ""
+    },
+    {
+      "species": "hyacinth",
+      "color": "yellow",
+      "meaning": "승부",
+      "meaningEn": ""
+    },
+    {
+      "species": "rumex",
+      "color": "white",
+      "meaning": "친근한 정",
+      "meaningEn": ""
+    },
+    {
+      "species": "indian-mallow",
+      "color": "white",
+      "meaning": "억측",
+      "meaningEn": ""
+    },
+    {
+      "species": "pine",
+      "color": "white",
+      "meaning": "불로장수",
+      "meaningEn": ""
+    },
+    {
+      "species": "buttercup",
+      "color": "white",
+      "meaning": "천진난만",
+      "meaningEn": ""
+    },
+    {
+      "species": "ivy",
+      "color": "white",
+      "meaning": "우정",
+      "meaningEn": ""
+    },
+    {
+      "species": "moss",
+      "color": "white",
+      "meaning": "모성애",
+      "meaningEn": ""
+    },
+    {
+      "species": "bulrush",
+      "color": "white",
+      "meaning": "순종",
+      "meaningEn": ""
+    },
+    {
+      "species": "cerastium",
+      "color": "white",
+      "meaning": "순진",
+      "meaningEn": ""
+    },
+    {
+      "species": "mimosa",
+      "color": "white",
+      "meaning": "예민한 마음",
+      "meaningEn": ""
+    },
+    {
+      "species": "sorbus",
+      "color": "white",
+      "meaning": "게으름을 모르는 마음",
+      "meaningEn": ""
+    },
+    {
+      "species": "kf001",
+      "color": "white",
+      "meaning": "용기",
+      "meaningEn": ""
+    },
+    {
+      "species": "marsh-marigold",
+      "color": "white",
+      "meaning": "반드시 오고야 말 행복",
+      "meaningEn": ""
+    },
+    {
+      "species": "primrose",
+      "color": "white",
+      "meaning": "젊은 시절과 고뇌",
+      "meaningEn": ""
+    },
+    {
+      "species": "quince",
+      "color": "white",
+      "meaning": "평범",
+      "meaningEn": ""
+    },
+    {
+      "species": "cardamine",
+      "color": "white",
+      "meaning": "그대에게 바친다",
+      "meaningEn": ""
+    },
+    {
+      "species": "primrose",
+      "color": "red",
+      "meaning": "돌보지 않는 아름다움",
+      "meaningEn": ""
+    },
+    {
+      "species": "fern",
+      "color": "white",
+      "meaning": "사랑스러움",
+      "meaningEn": ""
+    },
+    {
+      "species": "horseleek",
+      "color": "white",
+      "meaning": "가사에 근면",
+      "meaningEn": ""
+    },
+    {
+      "species": "forget-me-not",
+      "color": "white",
+      "meaning": "날 잊지 말아요",
+      "meaningEn": ""
+    },
+    {
+      "species": "saxifrage",
+      "color": "white",
+      "meaning": "절실한 애정",
+      "meaningEn": ""
+    },
+    {
+      "species": "myrtle",
+      "color": "white",
+      "meaning": "사랑의 속삭임",
+      "meaningEn": ""
+    },
+    {
+      "species": "daphne",
+      "color": "white",
+      "meaning": "영광",
+      "meaningEn": ""
+    },
+    {
+      "species": "balm",
+      "color": "white",
+      "meaning": "동정",
+      "meaningEn": ""
+    },
+    {
+      "species": "justicia",
+      "color": "white",
+      "meaning": "가련미의 극치",
+      "meaningEn": ""
+    },
+    {
+      "species": "canary-grass",
+      "color": "white",
+      "meaning": "끈기",
+      "meaningEn": ""
+    },
+    {
+      "species": "cedar",
+      "color": "white",
+      "meaning": "그대를 위해 살다",
+      "meaningEn": ""
+    },
+    {
+      "species": "laurel",
+      "color": "white",
+      "meaning": "명예",
+      "meaningEn": ""
+    },
+    {
+      "species": "wildflower",
+      "color": "white",
+      "meaning": "친숙한 자연",
+      "meaningEn": ""
+    },
+    {
+      "species": "oak",
+      "color": "white",
+      "meaning": "붙임성이 좋다",
+      "meaningEn": ""
+    },
+    {
+      "species": "kalmia",
+      "color": "white",
+      "meaning": "커다란 희망",
+      "meaningEn": ""
+    },
+    {
+      "species": "nemophila",
+      "color": "white",
+      "meaning": "애국심",
+      "meaningEn": ""
+    },
+    {
+      "species": "hibiscus-syriacus",
+      "color": "white",
+      "meaning": "섬세한 아름다움",
+      "meaningEn": ""
+    },
+    {
+      "species": "apricot",
+      "color": "white",
+      "meaning": "아가씨의 수줍음",
+      "meaningEn": ""
+    },
+    {
+      "species": "periwinkle",
+      "color": "white",
+      "meaning": "즐거운 추억",
+      "meaningEn": ""
+    },
+    {
+      "species": "adonis",
+      "color": "white",
+      "meaning": "추억",
+      "meaningEn": ""
+    },
+    {
+      "species": "star-of-bethlehem",
+      "color": "white",
+      "meaning": "순수",
+      "meaningEn": ""
+    },
+    {
+      "species": "barley",
+      "color": "white",
+      "meaning": "일치단결",
+      "meaningEn": ""
+    },
+    {
+      "species": "armeria",
+      "color": "white",
+      "meaning": "배려",
+      "meaningEn": ""
+    },
+    {
+      "species": "astragalus",
+      "color": "white",
+      "meaning": "나의 행복",
+      "meaningEn": ""
+    },
+    {
+      "species": "raspberry",
+      "color": "white",
+      "meaning": "애정",
+      "meaningEn": ""
+    },
+    {
+      "species": "cornflower",
+      "color": "white",
+      "meaning": "행복함",
+      "meaningEn": ""
+    },
+    {
+      "species": "chestnut",
+      "color": "white",
+      "meaning": "진심",
+      "meaningEn": ""
+    },
+    {
+      "species": "larch",
+      "color": "white",
+      "meaning": "대담",
+      "meaningEn": ""
+    },
+    {
+      "species": "elm",
+      "color": "white",
+      "meaning": "고귀함",
+      "meaningEn": ""
+    },
+    {
+      "species": "ixeris",
+      "color": "white",
+      "meaning": "순박함",
+      "meaningEn": ""
+    },
+    {
+      "species": "weeping-willow",
+      "color": "white",
+      "meaning": "사랑의 슬픔",
+      "meaningEn": ""
+    },
+    {
+      "species": "hosta",
+      "color": "white",
+      "meaning": "사랑의 망각",
+      "meaningEn": ""
+    },
+    {
+      "species": "almond",
+      "color": "white",
+      "meaning": "희망",
+      "meaningEn": ""
+    },
+    {
+      "species": "carrot",
+      "color": "white",
+      "meaning": "죽음도 아깝지 않으리",
+      "meaningEn": ""
+    },
+    {
+      "species": "mint",
+      "color": "white",
+      "meaning": "미덕",
+      "meaningEn": ""
+    },
+    {
+      "species": "bean-blossom",
+      "color": "white",
+      "meaning": "반드시 오고야 말 행복",
+      "meaningEn": ""
+    },
+    {
+      "species": "asparagus",
+      "color": "white",
+      "meaning": "무변화",
+      "meaningEn": ""
+    },
+    {
+      "species": "gardenia",
+      "color": "white",
+      "meaning": "한없는 즐거움",
+      "meaningEn": ""
+    },
+    {
+      "species": "cherry-blossom",
+      "color": "white",
+      "meaning": "인생의 출발",
+      "meaningEn": ""
+    },
+    {
+      "species": "mallow",
+      "color": "white",
+      "meaning": "은혜",
+      "meaningEn": ""
+    },
+    {
+      "species": "gladiolus",
+      "color": "white",
+      "meaning": "정열적인 사랑",
+      "meaningEn": ""
+    },
+    {
+      "species": "california-poppy",
+      "color": "white",
+      "meaning": "희망",
+      "meaningEn": ""
+    },
+    {
+      "species": "vine",
+      "color": "white",
+      "meaning": "아름다움",
+      "meaningEn": ""
+    },
+    {
+      "species": "calceolaria",
+      "color": "white",
+      "meaning": "도움",
+      "meaningEn": ""
+    },
+    {
+      "species": "acacia",
+      "color": "white",
+      "meaning": "품위",
+      "meaningEn": ""
+    },
+    {
+      "species": "burdock",
+      "color": "white",
+      "meaning": "괴롭히지 말아요",
+      "meaningEn": ""
+    },
+    {
+      "species": "broom",
+      "color": "white",
+      "meaning": "청초",
+      "meaningEn": ""
+    },
+    {
+      "species": "nigella",
+      "color": "white",
+      "meaning": "꿈길의 애정",
+      "meaningEn": ""
+    },
+    {
+      "species": "daffodil",
+      "color": "white",
+      "meaning": "존경",
+      "meaningEn": ""
+    },
+    {
+      "species": "fig",
+      "color": "white",
+      "meaning": "풍부",
+      "meaningEn": ""
+    },
+    {
+      "species": "maidenhair-fern",
+      "color": "white",
+      "meaning": "신명",
+      "meaningEn": ""
+    },
+    {
+      "species": "cherry-tree",
+      "color": "white",
+      "meaning": "정신미",
+      "meaningEn": ""
+    },
+    {
+      "species": "polemonium",
+      "color": "white",
+      "meaning": "와 주세요",
+      "meaningEn": ""
+    },
+    {
+      "species": "peach-blossom",
+      "color": "white",
+      "meaning": "사랑의 노예",
+      "meaningEn": ""
+    },
+    {
+      "species": "pyrethrum",
+      "color": "white",
+      "meaning": "경쟁심",
+      "meaningEn": ""
+    },
+    {
+      "species": "morning-glory",
+      "color": "white",
+      "meaning": "넘치는 기쁨",
+      "meaningEn": ""
+    },
+    {
+      "species": "fen-orchid",
+      "color": "white",
+      "meaning": "훌륭함",
+      "meaningEn": ""
+    },
+    {
+      "species": "iris",
+      "color": "white",
+      "meaning": "멋진 결혼",
+      "meaningEn": ""
+    },
+    {
+      "species": "larkspur",
+      "color": "white",
+      "meaning": "청명",
+      "meaningEn": ""
+    },
+    {
+      "species": "pear",
+      "color": "white",
+      "meaning": "온화한 애정",
+      "meaningEn": ""
+    },
+    {
+      "species": "aster",
+      "color": "white",
+      "meaning": "믿음직한 사랑",
+      "meaningEn": ""
+    },
+    {
+      "species": "balloon-flower",
+      "color": "white",
+      "meaning": "상냥하고 따뜻함",
+      "meaningEn": ""
+    },
+    {
+      "species": "geranium",
+      "color": "white",
+      "meaning": "결심",
+      "meaningEn": ""
+    },
+    {
+      "species": "fritillaria",
+      "color": "white",
+      "meaning": "위엄",
+      "meaningEn": ""
+    },
+    {
+      "species": "bittercress",
+      "color": "white",
+      "meaning": "불타는 애정",
+      "meaningEn": ""
+    },
+    {
+      "species": "waterlily",
+      "color": "white",
+      "meaning": "청순한 마음",
+      "meaningEn": ""
+    },
+    {
+      "species": "snow-primrose",
+      "color": "white",
+      "meaning": "비할 바 없는 아름다움",
+      "meaningEn": ""
+    },
+    {
+      "species": "camellia",
+      "color": "white",
+      "meaning": "매력",
+      "meaningEn": ""
+    },
+    {
+      "species": "laburnum",
+      "color": "white",
+      "meaning": "슬픈 아름다움",
+      "meaningEn": ""
+    },
+    {
+      "species": "dandelion",
+      "color": "white",
+      "meaning": "신탁",
+      "meaningEn": ""
+    },
+    {
+      "species": "strawberry",
+      "color": "white",
+      "meaning": "존중과 애정",
+      "meaningEn": ""
+    },
+    {
+      "species": "lily-of-the-valley",
+      "color": "white",
+      "meaning": "섬세함",
+      "meaningEn": ""
+    },
+    {
+      "species": "stock",
+      "color": "white",
+      "meaning": "영원한 아름다움",
+      "meaningEn": ""
+    },
+    {
+      "species": "strawberry-leaf",
+      "color": "white",
+      "meaning": "사랑과 존경",
+      "meaningEn": ""
+    },
+    {
+      "species": "double-cherry",
+      "color": "white",
+      "meaning": "정숙, 단아함",
+      "meaningEn": ""
+    },
+    {
+      "species": "iris-ensata",
+      "color": "white",
+      "meaning": "우아한 마음",
+      "meaningEn": ""
+    },
+    {
+      "species": "apple",
+      "color": "white",
+      "meaning": "유혹",
+      "meaningEn": ""
+    },
+    {
+      "species": "lilac",
+      "color": "white",
+      "meaning": "사랑의 싹",
+      "meaningEn": ""
+    },
+    {
+      "species": "hawthorn",
+      "color": "white",
+      "meaning": "유일한 사랑",
+      "meaningEn": ""
+    },
+    {
+      "species": "columbine",
+      "color": "white",
+      "meaning": "승리의 맹세",
+      "meaningEn": ""
+    },
+    {
+      "species": "spirea",
+      "color": "white",
+      "meaning": "선언",
+      "meaningEn": ""
+    },
+    {
+      "species": "oxalis",
+      "color": "white",
+      "meaning": "빛나는 마음",
+      "meaningEn": ""
+    },
+    {
+      "species": "delphinium",
+      "color": "white",
+      "meaning": "자유",
+      "meaningEn": ""
+    },
+    {
+      "species": "fuchsia",
+      "color": "white",
+      "meaning": "열렬한 마음",
+      "meaningEn": ""
+    },
+    {
+      "species": "grass-sprout",
+      "color": "white",
+      "meaning": "첫사랑의 추억",
+      "meaningEn": ""
+    },
+    {
+      "species": "heliotrope",
+      "color": "white",
+      "meaning": "사랑이여 영원하라",
+      "meaningEn": ""
+    },
+    {
+      "species": "pansy",
+      "color": "white",
+      "meaning": "사랑이여 영원하라",
+      "meaningEn": ""
+    },
+    {
+      "species": "olive",
+      "color": "white",
+      "meaning": "평화",
+      "meaningEn": ""
+    },
+    {
+      "species": "clover",
+      "color": "white",
+      "meaning": "쾌활",
+      "meaningEn": ""
+    },
+    {
+      "species": "lilac",
+      "color": "purple",
+      "meaning": "사랑의 싹",
+      "meaningEn": ""
+    },
+    {
+      "species": "scilla",
+      "color": "white",
+      "meaning": "강한 자제력",
+      "meaningEn": ""
+    },
+    {
+      "species": "columbine",
+      "color": "red",
+      "meaning": "솔직",
+      "meaningEn": ""
+    },
+    {
+      "species": "flax",
+      "color": "white",
+      "meaning": "감사",
+      "meaningEn": ""
+    },
+    {
+      "species": "marigold",
+      "color": "white",
+      "meaning": "가엾은 애정",
+      "meaningEn": ""
+    },
+    {
+      "species": "kf002",
+      "color": "yellow",
+      "meaning": "가엾은 애정",
+      "meaningEn": ""
+    },
+    {
+      "species": "schmidtiana",
+      "color": "white",
+      "meaning": "사모하는 마음",
+      "meaningEn": ""
+    },
+    {
+      "species": "jasmine",
+      "color": "white",
+      "meaning": "사랑스러움",
+      "meaningEn": ""
+    },
+    {
+      "species": "sweet-william",
+      "color": "white",
+      "meaning": "의협심",
+      "meaningEn": ""
+    },
+    {
+      "species": "mignonette",
+      "color": "white",
+      "meaning": "매력",
+      "meaningEn": ""
+    },
+    {
+      "species": "foxglove",
+      "color": "white",
+      "meaning": "열애",
+      "meaningEn": ""
+    },
+    {
+      "species": "pimpernel",
+      "color": "white",
+      "meaning": "추상",
+      "meaningEn": ""
+    },
+    {
+      "species": "tuberose",
+      "color": "white",
+      "meaning": "위험한 쾌락",
+      "meaningEn": ""
+    },
+    {
+      "species": "thyme",
+      "color": "white",
+      "meaning": "용기",
+      "meaningEn": ""
+    },
+    {
+      "species": "veronica",
+      "color": "white",
+      "meaning": "달성",
+      "meaningEn": ""
+    },
+    {
+      "species": "evening-primrose",
+      "color": "white",
+      "meaning": "기다림",
+      "meaningEn": ""
+    },
+    {
+      "species": "viburnum",
+      "color": "white",
+      "meaning": "사랑은 죽음보다 강하다",
+      "meaningEn": ""
+    },
+    {
+      "species": "hollyhock",
+      "color": "white",
+      "meaning": "열렬한 연애",
+      "meaningEn": ""
+    },
+    {
+      "species": "verbena",
+      "color": "white",
+      "meaning": "가족의 화합",
+      "meaningEn": ""
+    },
+    {
+      "species": "passionflower",
+      "color": "white",
+      "meaning": "성스러운 사랑",
+      "meaningEn": ""
+    },
+    {
+      "species": "honeysuckle",
+      "color": "white",
+      "meaning": "사랑의 인연",
+      "meaningEn": ""
+    },
+    {
+      "species": "aster-wild",
+      "color": "white",
+      "meaning": "그리움",
+      "meaningEn": ""
+    },
+    {
+      "species": "snapdragon",
+      "color": "white",
+      "meaning": "수다쟁이",
+      "meaningEn": ""
+    },
+    {
+      "species": "poppy",
+      "color": "white",
+      "meaning": "망각",
+      "meaningEn": ""
+    },
+    {
+      "species": "purple-magnolia",
+      "color": "white",
+      "meaning": "자연애",
+      "meaningEn": ""
+    },
+    {
+      "species": "currant",
+      "color": "white",
+      "meaning": "예상",
+      "meaningEn": ""
+    },
+    {
+      "species": "mullein",
+      "color": "white",
+      "meaning": "자유",
+      "meaningEn": ""
+    },
+    {
+      "species": "ivy-geranium",
+      "color": "white",
+      "meaning": "진실한 애정",
+      "meaningEn": ""
+    },
+    {
+      "species": "bellflower",
+      "color": "white",
+      "meaning": "충실",
+      "meaningEn": ""
+    },
+    {
+      "species": "asphodel",
+      "color": "white",
+      "meaning": "나는 당신의 것",
+      "meaningEn": ""
+    },
+    {
+      "species": "solanum",
+      "color": "white",
+      "meaning": "참을 수 없어",
+      "meaningEn": ""
+    },
+    {
+      "species": "weed-flower",
+      "color": "white",
+      "meaning": "자연스러움",
+      "meaningEn": ""
+    },
+    {
+      "species": "phlox",
+      "color": "white",
+      "meaning": "온화",
+      "meaningEn": ""
+    },
+    {
+      "species": "moss-rose",
+      "color": "white",
+      "meaning": "가련함",
+      "meaningEn": ""
+    },
+    {
+      "species": "aconite",
+      "color": "white",
+      "meaning": "아름답게 빛나다",
+      "meaningEn": ""
+    },
+    {
+      "species": "eggplant",
+      "color": "white",
+      "meaning": "진실한 애정",
+      "meaningEn": ""
+    },
+    {
+      "species": "dianthus",
+      "color": "white",
+      "meaning": "순결한 사랑",
+      "meaningEn": ""
+    },
+    {
+      "species": "trillium",
+      "color": "white",
+      "meaning": "그윽한 마음",
+      "meaningEn": ""
+    },
+    {
+      "species": "elder",
+      "color": "white",
+      "meaning": "열심",
+      "meaningEn": ""
+    },
+    {
+      "species": "wormwood",
+      "color": "white",
+      "meaning": "평화",
+      "meaningEn": ""
+    },
+    {
+      "species": "cactus",
+      "color": "white",
+      "meaning": "불타는 마음",
+      "meaningEn": ""
+    },
+    {
+      "species": "linden",
+      "color": "white",
+      "meaning": "부부애",
+      "meaningEn": ""
+    },
+    {
+      "species": "pumpkin",
+      "color": "white",
+      "meaning": "광대함",
+      "meaningEn": ""
+    },
+    {
+      "species": "hibiscus-trionum",
+      "color": "white",
+      "meaning": "애절함",
+      "meaningEn": ""
+    },
+    {
+      "species": "corn",
+      "color": "white",
+      "meaning": "재보",
+      "meaningEn": ""
+    },
+    {
+      "species": "erica",
+      "color": "white",
+      "meaning": "고독",
+      "meaningEn": ""
+    },
+    {
+      "species": "trumpet-creeper",
+      "color": "white",
+      "meaning": "명예",
+      "meaningEn": ""
+    },
+    {
+      "species": "pomegranate",
+      "color": "white",
+      "meaning": "원숙한 아름다움",
+      "meaningEn": ""
+    },
+    {
+      "species": "azalea",
+      "color": "white",
+      "meaning": "사랑의 즐거움",
+      "meaningEn": ""
+    },
+    {
+      "species": "cistus",
+      "color": "white",
+      "meaning": "인기",
+      "meaningEn": ""
+    },
+    {
+      "species": "oleander",
+      "color": "white",
+      "meaning": "위험",
+      "meaningEn": ""
+    },
+    {
+      "species": "goldenrod",
+      "color": "white",
+      "meaning": "경계",
+      "meaningEn": ""
+    },
+    {
+      "species": "germander",
+      "color": "white",
+      "meaning": "경애",
+      "meaningEn": ""
+    },
+    {
+      "species": "tamarind",
+      "color": "white",
+      "meaning": "사치",
+      "meaningEn": ""
+    },
+    {
+      "species": "tulip-tree",
+      "color": "white",
+      "meaning": "전원의 행복",
+      "meaningEn": ""
+    },
+    {
+      "species": "rose-campion",
+      "color": "white",
+      "meaning": "성실",
+      "meaningEn": ""
+    },
+    {
+      "species": "agrimony",
+      "color": "white",
+      "meaning": "감사",
+      "meaningEn": ""
+    },
+    {
+      "species": "calendula",
+      "color": "white",
+      "meaning": "이별의 슬픔",
+      "meaningEn": ""
+    },
+    {
+      "species": "anthurium",
+      "color": "white",
+      "meaning": "번뇌",
+      "meaningEn": ""
+    },
+    {
+      "species": "hypoxis",
+      "color": "white",
+      "meaning": "빛을 찾다",
+      "meaningEn": ""
+    },
+    {
+      "species": "osmunda",
+      "color": "white",
+      "meaning": "몽상",
+      "meaningEn": ""
+    },
+    {
+      "species": "eryngium",
+      "color": "white",
+      "meaning": "비밀스러운 애정",
+      "meaningEn": ""
+    },
+    {
+      "species": "flowering-tobacco",
+      "color": "white",
+      "meaning": "그대 있어 외롭지 않네",
+      "meaningEn": ""
+    },
+    {
+      "species": "tiger-flower",
+      "color": "white",
+      "meaning": "나를 사랑해주세요",
+      "meaningEn": ""
+    },
+    {
+      "species": "mexican-ivy",
+      "color": "white",
+      "meaning": "아름다운 인연",
+      "meaningEn": ""
+    },
+    {
+      "species": "marguerite",
+      "color": "white",
+      "meaning": "진실한 사랑",
+      "meaningEn": ""
+    },
+    {
+      "species": "geum",
+      "color": "white",
+      "meaning": "만족한 사랑",
+      "meaningEn": ""
+    },
+    {
+      "species": "nasturtium",
+      "color": "white",
+      "meaning": "애국심",
+      "meaningEn": ""
+    },
+    {
+      "species": "orange",
+      "color": "white",
+      "meaning": "순결",
+      "meaningEn": ""
+    },
+    {
+      "species": "mustard",
+      "color": "white",
+      "meaning": "무관심",
+      "meaningEn": ""
+    },
+    {
+      "species": "aster-koraiensis",
+      "color": "white",
+      "meaning": "추억",
+      "meaningEn": ""
+    },
+    {
+      "species": "aloe",
+      "color": "white",
+      "meaning": "건강",
+      "meaningEn": ""
+    },
+    {
+      "species": "clematis",
+      "color": "white",
+      "meaning": "마음의 아름다움",
+      "meaningEn": ""
+    },
+    {
+      "species": "willow",
+      "color": "white",
+      "meaning": "솔직",
+      "meaningEn": ""
+    },
+    {
+      "species": "quince-marmelo",
+      "color": "white",
+      "meaning": "유혹",
+      "meaningEn": ""
+    },
+    {
+      "species": "dahlia",
+      "color": "white",
+      "meaning": "화려함",
+      "meaningEn": ""
+    },
+    {
+      "species": "gentian",
+      "color": "white",
+      "meaning": "슬픈 그대가 좋아",
+      "meaningEn": ""
+    },
+    {
+      "species": "thistle",
+      "color": "white",
+      "meaning": "독립",
+      "meaningEn": ""
+    },
+    {
+      "species": "sedge",
+      "color": "white",
+      "meaning": "자중",
+      "meaningEn": ""
+    },
+    {
+      "species": "rosemary",
+      "color": "white",
+      "meaning": "나를 생각해요",
+      "meaningEn": ""
+    },
+    {
+      "species": "quaking-grass",
+      "color": "white",
+      "meaning": "흥분",
+      "meaningEn": ""
+    },
+    {
+      "species": "yew",
+      "color": "white",
+      "meaning": "고상함",
+      "meaningEn": ""
+    },
+    {
+      "species": "wild-oat",
+      "color": "white",
+      "meaning": "음악을 좋아함",
+      "meaningEn": ""
+    },
+    {
+      "species": "tansy",
+      "color": "white",
+      "meaning": "평화",
+      "meaningEn": ""
+    },
+    {
+      "species": "ambrosia",
+      "color": "white",
+      "meaning": "행복한 연애",
+      "meaningEn": ""
+    },
+    {
+      "species": "saxifraga",
+      "color": "white",
+      "meaning": "절실한 사랑",
+      "meaningEn": ""
+    },
+    {
+      "species": "fern-plant",
+      "color": "white",
+      "meaning": "신뢰",
+      "meaningEn": ""
+    },
+    {
+      "species": "reed",
+      "color": "white",
+      "meaning": "깊은 애정",
+      "meaningEn": ""
+    },
+    {
+      "species": "camellia",
+      "color": "red",
+      "meaning": "고결한 이성",
+      "meaningEn": ""
+    },
+    {
+      "species": "fig-marigold",
+      "color": "white",
+      "meaning": "애국심",
+      "meaningEn": ""
+    },
+    {
+      "species": "cotton",
+      "color": "white",
+      "meaning": "명석함",
+      "meaningEn": ""
+    },
+    {
+      "species": "alder",
+      "color": "white",
+      "meaning": "장엄",
+      "meaningEn": ""
+    },
+    {
+      "species": "hoya",
+      "color": "white",
+      "meaning": "동감",
+      "meaningEn": ""
+    },
+    {
+      "species": "sage",
+      "color": "white",
+      "meaning": "가정의 덕",
+      "meaningEn": ""
+    },
+    {
+      "species": "snowflake",
+      "color": "white",
+      "meaning": "아름다움",
+      "meaningEn": ""
+    },
+    {
+      "species": "pineapple",
+      "color": "white",
+      "meaning": "완전무결",
+      "meaningEn": ""
+    },
+    {
+      "species": "zinnia",
+      "color": "white",
+      "meaning": "행복",
+      "meaningEn": ""
+    },
+    {
+      "species": "platanus",
+      "color": "white",
+      "meaning": "천재",
+      "meaningEn": ""
+    },
+    {
+      "species": "mistletoe",
+      "color": "white",
+      "meaning": "강한 인내",
+      "meaningEn": ""
+    },
+    {
+      "species": "holly",
+      "color": "white",
+      "meaning": "선견지명",
+      "meaningEn": ""
+    },
+    {
+      "species": "christmas-rose",
+      "color": "white",
+      "meaning": "추억",
+      "meaningEn": ""
+    },
+    {
+      "species": "plum-blossom",
+      "color": "white",
+      "meaning": "맑은 마음",
+      "meaningEn": ""
+    },
+    {
+      "species": "winter-cherry",
+      "color": "white",
+      "meaning": "자연미",
+      "meaningEn": ""
+    },
+    {
+      "species": "wintersweet",
+      "color": "white",
+      "meaning": "자애",
+      "meaningEn": ""
+    },
+    {
+      "species": "chamaecyparis",
+      "color": "white",
+      "meaning": "불멸",
+      "meaningEn": ""
+    },
+    {
+      "species": "petunia",
+      "color": "white",
+      "meaning": "만족",
+      "meaningEn": ""
+    },
+    {
+      "species": "amaranth",
+      "color": "white",
+      "meaning": "불멸의 사랑",
+      "meaningEn": ""
+    },
+    {
+      "species": "mum",
+      "color": "red",
+      "meaning": "사랑",
+      "meaningEn": ""
+    },
+    {
+      "species": "maple",
+      "color": "white",
+      "meaning": "자제",
+      "meaningEn": ""
+    },
+    {
+      "species": "hop",
+      "color": "white",
+      "meaning": "순진무구",
+      "meaningEn": ""
+    },
+    {
+      "species": "palm",
+      "color": "white",
+      "meaning": "승리",
+      "meaningEn": ""
+    },
+    {
+      "species": "hazel",
+      "color": "white",
+      "meaning": "화해",
+      "meaningEn": ""
+    },
+    {
+      "species": "fir",
+      "color": "white",
+      "meaning": "고상함",
+      "meaningEn": ""
+    },
+    {
+      "species": "parsley",
+      "color": "white",
+      "meaning": "승리",
+      "meaningEn": ""
+    },
+    {
+      "species": "fennel",
+      "color": "white",
+      "meaning": "극찬",
+      "meaningEn": ""
+    },
+    {
+      "species": "melon",
+      "color": "white",
+      "meaning": "포식",
+      "meaningEn": ""
+    },
+    {
+      "species": "lythrum",
+      "color": "white",
+      "meaning": "사랑의 슬픔",
+      "meaningEn": ""
+    },
+    {
+      "species": "bilberry",
+      "color": "white",
+      "meaning": "반항심",
+      "meaningEn": ""
+    },
+    {
+      "species": "basil",
+      "color": "white",
+      "meaning": "좋은 희망",
+      "meaningEn": ""
+    },
+    {
+      "species": "grape",
+      "color": "white",
+      "meaning": "신뢰",
+      "meaningEn": ""
+    },
+    {
+      "species": "cranberry",
+      "color": "white",
+      "meaning": "마음의 고통을 위로하다",
+      "meaningEn": ""
+    },
+    {
+      "species": "balsam",
+      "color": "red",
+      "meaning": "날 건드리지 마세요",
+      "meaningEn": ""
+    },
+    {
+      "species": "indian-hemp",
+      "color": "white",
+      "meaning": "운명",
+      "meaningEn": ""
+    },
+    {
+      "species": "arrowhead",
+      "color": "white",
+      "meaning": "신뢰",
+      "meaningEn": ""
+    },
+    {
+      "species": "datura",
+      "color": "white",
+      "meaning": "경애",
+      "meaningEn": ""
+    },
+    {
+      "species": "crab-apple",
+      "color": "white",
+      "meaning": "이끄시는 대로",
+      "meaningEn": ""
+    },
+    {
+      "species": "lobelia",
+      "color": "white",
+      "meaning": "악의",
+      "meaningEn": ""
+    },
+    {
+      "species": "medlar",
+      "color": "white",
+      "meaning": "유일한 사랑",
+      "meaningEn": ""
+    },
+    {
+      "species": "lupinus",
+      "color": "white",
+      "meaning": "모성애",
+      "meaningEn": ""
+    },
+    {
+      "species": "bryonia",
+      "color": "white",
+      "meaning": "거절",
+      "meaningEn": ""
+    },
+    {
+      "species": "harts-tongue",
+      "color": "white",
+      "meaning": "진실의 위안",
+      "meaningEn": ""
+    },
+    {
+      "species": "eupatorium",
+      "color": "white",
+      "meaning": "주저",
+      "meaningEn": ""
+    },
+    {
+      "species": "lychnis",
+      "color": "white",
+      "meaning": "기지",
+      "meaningEn": ""
+    },
+    {
+      "species": "myrrh",
+      "color": "white",
+      "meaning": "진실",
+      "meaningEn": ""
+    },
+    {
+      "species": "hibiscus-mutabilis",
+      "color": "white",
+      "meaning": "섬세한 아름다움",
+      "meaningEn": ""
+    },
+    {
+      "species": "lemon",
+      "color": "white",
+      "meaning": "진심으로 사모함",
+      "meaningEn": ""
+    },
+    {
+      "species": "lemon-verbena",
+      "color": "white",
+      "meaning": "인내",
+      "meaningEn": ""
+    },
+    {
+      "species": "crown-vetch",
+      "color": "white",
+      "meaning": "겸손",
+      "meaningEn": ""
+    },
+    {
+      "species": "butterbur",
+      "color": "white",
+      "meaning": "공평",
+      "meaningEn": ""
+    },
+    {
+      "species": "hill-lily",
+      "color": "white",
+      "meaning": "장엄",
+      "meaningEn": ""
+    },
+    {
+      "species": "bugloss",
+      "color": "white",
+      "meaning": "진실",
+      "meaningEn": ""
+    },
+    {
+      "species": "berberis",
+      "color": "white",
+      "meaning": "까다로움",
+      "meaningEn": ""
+    },
+    {
+      "species": "rhus",
+      "color": "white",
+      "meaning": "현명",
+      "meaningEn": ""
+    },
+    {
+      "species": "yarrow",
+      "color": "white",
+      "meaning": "지도",
+      "meaningEn": ""
+    },
+    {
+      "species": "sumac",
+      "color": "white",
+      "meaning": "신앙",
+      "meaningEn": ""
+    },
+    {
+      "species": "baccharis",
+      "color": "white",
+      "meaning": "개척",
+      "meaningEn": ""
+    },
+    {
+      "species": "dry-grass",
+      "color": "white",
+      "meaning": "새봄을 기다림",
+      "meaningEn": ""
+    }
+  ]
+}

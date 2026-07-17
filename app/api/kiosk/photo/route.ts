@@ -2,17 +2,16 @@ import { NextRequest, NextResponse } from "next/server"
 import { put } from "@vercel/blob"
 import { nanoid } from "nanoid"
 import { supabaseAdmin } from "@/lib/supabase"
-import type { Ohaeng } from "@/lib/saju"
 import { KIOSK_PHOTO_TTL_HOURS } from "@/lib/kiosk/constants"
-
-const VALID_OHAENG: Ohaeng[] = ["목", "화", "토", "금", "수"]
 
 export async function POST(req: NextRequest) {
   const form = await req.formData()
   const file = form.get("file")
-  const ohaeng = form.get("ohaeng")
+  // 포토부스 개편으로 오행 대신 꽃 이름을 받는다 (예: "핑크 백합").
+  // DB 컬럼명은 아직 ohaeng — 과거 사주 시절 이름이라 KioskPhoto.flower로 리네임 마이그레이션 예정.
+  const flower = form.get("flower")
 
-  if (!(file instanceof Blob) || typeof ohaeng !== "string" || !VALID_OHAENG.includes(ohaeng as Ohaeng)) {
+  if (!(file instanceof Blob) || typeof flower !== "string" || !flower.trim() || flower.length > 30) {
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 })
   }
 
@@ -28,7 +27,7 @@ export async function POST(req: NextRequest) {
     // Supabase 클라이언트로 직접 insert할 때는 id를 직접 만들어 넣어야 한다.
     const { data, error } = await supabaseAdmin
       .from("KioskPhoto")
-      .insert({ id: nanoid(), ohaeng, imageUrl: blob.url, expiresAt })
+      .insert({ id: nanoid(), ohaeng: flower.trim(), imageUrl: blob.url, expiresAt })
       .select("id")
       .single()
 

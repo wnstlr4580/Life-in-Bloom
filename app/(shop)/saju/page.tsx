@@ -59,7 +59,7 @@ interface SavedProfile {
 
 interface KioskPhoto {
   id: string
-  ohaeng: Ohaeng
+  ohaeng: string // 포토부스 개편 후 꽃 이름이 담김 (컬럼 리네임 예정)
   imageUrl: string
 }
 
@@ -178,12 +178,12 @@ function SajuPageContent() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={kioskPhoto.imageUrl}
-            alt="오행 포토부스에서 찍은 네컷"
+            alt="인생내꽃 포토부스에서 찍은 네컷"
             className="w-16 h-16 rounded-xl object-cover shrink-0"
           />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-stone-700">오행 포토부스에서 찍은 네컷</p>
-            <p className="text-xs text-stone-400">{kioskPhoto.ohaeng} 기운 배경으로 합성됐어요</p>
+            <p className="text-sm font-semibold text-stone-700">인생내꽃 포토부스에서 찍은 네컷</p>
+            <p className="text-xs text-stone-400">{kioskPhoto.ohaeng} 배경으로 합성됐어요</p>
           </div>
           <a
             href={kioskPhoto.imageUrl}

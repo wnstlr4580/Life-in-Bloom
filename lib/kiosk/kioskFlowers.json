@@ -1,0 +1,5367 @@
+{
+  "_comment": "포토부스 전용 꽃 테이블 — 4가지 모드(생일꽃/오늘의꽃/이달의꽃/구매한꽃)가 공용으로 사용. birthDates=탄생화 날짜(생일꽃·비어있으면 미지정), monthFlower=이달의 꽃(영국식, 보유 품종 대체 초안·검수 필요), todayPool=오늘의꽃 로테이션 후보, martFlower=플라워마트 판매꽃(바코드 모드 대상). 꽃말은 flowerMeanings.json에서 species+color로 조회. 365종 확장 시 이 배열에 행만 추가하면 됨. | active=false 행은 탄생화 초안(이미지·꽃말 검수 후 활성화). source: pdf=순천만국가정원, osl=osulgil, news=더뉴스메디칼, kb=통용 꽃말 초안(검수 필수). source 추가: jna=jheynetwork(10~11월), jd=jedonk(9월 하순).",
+  "flowers": [
+    {
+      "id": "rose-red",
+      "species": "rose",
+      "color": "red",
+      "name": "빨간 장미",
+      "engFlower": "red roses",
+      "birthDates": [
+        "06-01",
+        "06-04",
+        "07-21",
+        "07-23"
+      ],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/rose-red.jpg",
+      "frame": "/kiosk-frames/rose-red.jpg",
+      "active": true
+    },
+    {
+      "id": "rose-pink",
+      "species": "rose",
+      "color": "pink",
+      "name": "핑크 장미",
+      "engFlower": "pink roses",
+      "birthDates": [
+        "02-25",
+        "06-19",
+        "07-15",
+        "10-27"
+      ],
+      "monthFlower": 6,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/rose-pink.jpg",
+      "frame": "/kiosk-frames/rose-pink.jpg",
+      "active": true
+    },
+    {
+      "id": "rose-white",
+      "species": "rose",
+      "color": "white",
+      "name": "흰 장미",
+      "engFlower": "white roses",
+      "birthDates": [
+        "07-17"
+      ],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/rose-white.jpg",
+      "frame": "/kiosk-frames/rose-white.jpg",
+      "active": true
+    },
+    {
+      "id": "rose-yellow",
+      "species": "rose",
+      "color": "yellow",
+      "name": "노란 장미",
+      "engFlower": "yellow roses",
+      "birthDates": [],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/rose-yellow.jpg",
+      "frame": "/kiosk-frames/rose-yellow.jpg",
+      "active": true
+    },
+    {
+      "id": "tulip-pink",
+      "species": "tulip",
+      "color": "pink",
+      "name": "핑크 튤립",
+      "engFlower": "pink tulips",
+      "birthDates": [
+        "01-07",
+        "03-20",
+        "04-16"
+      ],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/tulip-pink.jpg",
+      "frame": "/kiosk-frames/tulip-pink.jpg",
+      "active": true
+    },
+    {
+      "id": "tulip-white",
+      "species": "tulip",
+      "color": "white",
+      "name": "흰 튤립",
+      "engFlower": "white tulips",
+      "birthDates": [],
+      "monthFlower": 12,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/tulip-white.jpg",
+      "frame": "/kiosk-frames/tulip-white.jpg",
+      "active": true
+    },
+    {
+      "id": "tulip-purple",
+      "species": "tulip",
+      "color": "purple",
+      "name": "보라 튤립",
+      "engFlower": "purple tulips",
+      "birthDates": [],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/tulip-purple.jpg",
+      "frame": "/kiosk-frames/tulip-purple.jpg",
+      "active": true
+    },
+    {
+      "id": "tulip-orange",
+      "species": "tulip",
+      "color": "orange",
+      "name": "주황 튤립",
+      "engFlower": "orange tulips",
+      "birthDates": [],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/tulip-orange.jpg",
+      "frame": "/kiosk-frames/tulip-orange.jpg",
+      "active": true
+    },
+    {
+      "id": "tulip-yellow",
+      "species": "tulip",
+      "color": "yellow",
+      "name": "노란 튤립",
+      "engFlower": "yellow tulips",
+      "birthDates": [
+        "05-17"
+      ],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/tulip-yellow.jpg",
+      "frame": "/kiosk-frames/tulip-yellow.jpg",
+      "active": true
+    },
+    {
+      "id": "lily-white",
+      "species": "lily",
+      "color": "white",
+      "name": "흰 백합",
+      "engFlower": "white oriental lilies",
+      "birthDates": [],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/lily-white.jpg",
+      "frame": "/kiosk-frames/lily-white.jpg",
+      "active": true
+    },
+    {
+      "id": "lily-pink",
+      "species": "lily",
+      "color": "pink",
+      "name": "핑크 백합",
+      "engFlower": "pink oriental lilies",
+      "birthDates": [],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/lily-pink.jpg",
+      "frame": "/kiosk-frames/lily-pink.jpg",
+      "active": true
+    },
+    {
+      "id": "hydrangea-blue",
+      "species": "hydrangea",
+      "color": "blue",
+      "name": "파란 수국",
+      "engFlower": "blue hydrangea bushes",
+      "birthDates": [],
+      "monthFlower": 7,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/hydrangea-blue.jpg",
+      "frame": "/kiosk-frames/hydrangea-blue.jpg",
+      "active": true
+    },
+    {
+      "id": "hydrangea-pink",
+      "species": "hydrangea",
+      "color": "pink",
+      "name": "핑크 수국",
+      "engFlower": "pink hydrangea bushes",
+      "birthDates": [],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/hydrangea-pink.jpg",
+      "frame": "/kiosk-frames/hydrangea-pink.jpg",
+      "active": true
+    },
+    {
+      "id": "carnation-pink",
+      "species": "carnation",
+      "color": "pink",
+      "name": "핑크 카네이션",
+      "engFlower": "pink carnations",
+      "birthDates": [
+        "06-15"
+      ],
+      "monthFlower": 1,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/carnation-pink.jpg",
+      "frame": "/kiosk-frames/carnation-pink.jpg",
+      "active": true
+    },
+    {
+      "id": "carnation-red",
+      "species": "carnation",
+      "color": "red",
+      "name": "빨간 카네이션",
+      "engFlower": "red carnations",
+      "birthDates": [],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/carnation-red.jpg",
+      "frame": "/kiosk-frames/carnation-red.jpg",
+      "active": true
+    },
+    {
+      "id": "carnation-purple",
+      "species": "carnation",
+      "color": "purple",
+      "name": "보라 카네이션",
+      "engFlower": "purple carnations",
+      "birthDates": [],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/carnation-purple.jpg",
+      "frame": "/kiosk-frames/carnation-purple.jpg",
+      "active": true
+    },
+    {
+      "id": "carnation-white",
+      "species": "carnation",
+      "color": "white",
+      "name": "흰 카네이션",
+      "engFlower": "white carnations",
+      "birthDates": [],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/carnation-white.jpg",
+      "frame": "/kiosk-frames/carnation-white.jpg",
+      "active": true
+    },
+    {
+      "id": "peony-pink",
+      "species": "peony",
+      "color": "pink",
+      "name": "핑크 작약",
+      "engFlower": "pink peonies",
+      "birthDates": [],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/peony-pink.jpg",
+      "frame": "/kiosk-frames/peony-pink.jpg",
+      "active": true
+    },
+    {
+      "id": "peony-red",
+      "species": "peony",
+      "color": "red",
+      "name": "빨간 작약",
+      "engFlower": "red peonies",
+      "birthDates": [],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/peony-red.jpg",
+      "frame": "/kiosk-frames/peony-red.jpg",
+      "active": true
+    },
+    {
+      "id": "peony-purple",
+      "species": "peony",
+      "color": "purple",
+      "name": "보라 작약",
+      "engFlower": "purple peonies",
+      "birthDates": [],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/peony-purple.jpg",
+      "frame": "/kiosk-frames/peony-purple.jpg",
+      "active": true
+    },
+    {
+      "id": "peony-white",
+      "species": "peony",
+      "color": "white",
+      "name": "흰 작약",
+      "engFlower": "white peonies",
+      "birthDates": [],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/peony-white.jpg",
+      "frame": "/kiosk-frames/peony-white.jpg",
+      "active": true
+    },
+    {
+      "id": "peony-orange",
+      "species": "peony",
+      "color": "orange",
+      "name": "주황 작약",
+      "engFlower": "orange peonies",
+      "birthDates": [],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/peony-orange.jpg",
+      "frame": "/kiosk-frames/peony-orange.jpg",
+      "active": true
+    },
+    {
+      "id": "gerbera-orange",
+      "species": "gerbera",
+      "color": "orange",
+      "name": "주황 거베라",
+      "engFlower": "orange gerbera daisies",
+      "birthDates": [],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/gerbera-orange.jpg",
+      "frame": "/kiosk-frames/gerbera-orange.jpg",
+      "active": true
+    },
+    {
+      "id": "gerbera-pink",
+      "species": "gerbera",
+      "color": "pink",
+      "name": "핑크 거베라",
+      "engFlower": "pink gerbera daisies",
+      "birthDates": [],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/gerbera-pink.jpg",
+      "frame": "/kiosk-frames/gerbera-pink.jpg",
+      "active": true
+    },
+    {
+      "id": "gerbera-red",
+      "species": "gerbera",
+      "color": "red",
+      "name": "빨간 거베라",
+      "engFlower": "red gerbera daisies",
+      "birthDates": [],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/gerbera-red.jpg",
+      "frame": "/kiosk-frames/gerbera-red.jpg",
+      "active": true
+    },
+    {
+      "id": "gerbera-yellow",
+      "species": "gerbera",
+      "color": "yellow",
+      "name": "노란 거베라",
+      "engFlower": "yellow gerbera daisies",
+      "birthDates": [],
+      "monthFlower": 10,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/gerbera-yellow.jpg",
+      "frame": "/kiosk-frames/gerbera-yellow.jpg",
+      "active": true
+    },
+    {
+      "id": "anemone-blue",
+      "species": "anemone",
+      "color": "blue",
+      "name": "파란 아네모네",
+      "engFlower": "blue anemones",
+      "birthDates": [],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/anemone-blue.jpg",
+      "frame": "/kiosk-frames/anemone-blue.jpg",
+      "active": true
+    },
+    {
+      "id": "anemone-pink",
+      "species": "anemone",
+      "color": "pink",
+      "name": "핑크 아네모네",
+      "engFlower": "pink anemones",
+      "birthDates": [
+        "04-02"
+      ],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/anemone-pink.jpg",
+      "frame": "/kiosk-frames/anemone-pink.jpg",
+      "active": true
+    },
+    {
+      "id": "anemone-purple",
+      "species": "anemone",
+      "color": "purple",
+      "name": "보라 아네모네",
+      "engFlower": "purple anemones",
+      "birthDates": [],
+      "monthFlower": 9,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/anemone-purple.jpg",
+      "frame": "/kiosk-frames/anemone-purple.jpg",
+      "active": true
+    },
+    {
+      "id": "anemone-red",
+      "species": "anemone",
+      "color": "red",
+      "name": "빨간 아네모네",
+      "engFlower": "red anemones",
+      "birthDates": [
+        "04-04"
+      ],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/anemone-red.jpg",
+      "frame": "/kiosk-frames/anemone-red.jpg",
+      "active": true
+    },
+    {
+      "id": "mum-white",
+      "species": "mum",
+      "color": "white",
+      "name": "흰 국화",
+      "engFlower": "white chrysanthemums",
+      "birthDates": [
+        "10-14"
+      ],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/mum-white.jpg",
+      "frame": "/kiosk-frames/mum-white.jpg",
+      "active": true
+    },
+    {
+      "id": "mum-pink",
+      "species": "mum",
+      "color": "pink",
+      "name": "핑크 국화",
+      "engFlower": "pink chrysanthemums",
+      "birthDates": [
+        "12-13"
+      ],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/mum-pink.jpg",
+      "frame": "/kiosk-frames/mum-pink.jpg",
+      "active": true
+    },
+    {
+      "id": "mum-yellow",
+      "species": "mum",
+      "color": "yellow",
+      "name": "노란 국화",
+      "engFlower": "yellow chrysanthemums",
+      "birthDates": [
+        "12-09"
+      ],
+      "monthFlower": 11,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/mum-yellow.jpg",
+      "frame": "/kiosk-frames/mum-yellow.jpg",
+      "active": true
+    },
+    {
+      "id": "sweetpea-pink",
+      "species": "sweetpea",
+      "color": "pink",
+      "name": "핑크 스위트피",
+      "engFlower": "pink sweet peas",
+      "birthDates": [
+        "06-09"
+      ],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/sweetpea-pink.jpg",
+      "frame": "/kiosk-frames/sweetpea-pink.jpg",
+      "active": true
+    },
+    {
+      "id": "sweetpea-white",
+      "species": "sweetpea",
+      "color": "white",
+      "name": "흰 스위트피",
+      "engFlower": "white sweet peas",
+      "birthDates": [],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/sweetpea-white.jpg",
+      "frame": "/kiosk-frames/sweetpea-white.jpg",
+      "active": true
+    },
+    {
+      "id": "babysbreath-white",
+      "species": "babysbreath",
+      "color": "white",
+      "name": "흰 안개꽃",
+      "engFlower": "white baby's breath",
+      "birthDates": [],
+      "monthFlower": 5,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/babysbreath-white.jpg",
+      "frame": "/kiosk-frames/babysbreath-white.jpg",
+      "active": true
+    },
+    {
+      "id": "babysbreath-pink",
+      "species": "babysbreath",
+      "color": "pink",
+      "name": "핑크 안개꽃",
+      "engFlower": "pink baby's breath",
+      "birthDates": [],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/babysbreath-pink.jpg",
+      "frame": "/kiosk-frames/babysbreath-pink.jpg",
+      "active": true
+    },
+    {
+      "id": "babysbreath-purple",
+      "species": "babysbreath",
+      "color": "purple",
+      "name": "보라 안개꽃",
+      "engFlower": "purple baby's breath",
+      "birthDates": [],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/babysbreath-purple.jpg",
+      "frame": "/kiosk-frames/babysbreath-purple.jpg",
+      "active": true
+    },
+    {
+      "id": "calla-pink",
+      "species": "calla",
+      "color": "pink",
+      "name": "핑크 칼라",
+      "engFlower": "pink calla lilies",
+      "birthDates": [],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/calla-pink.jpg",
+      "frame": "/kiosk-frames/calla-pink.jpg",
+      "active": true
+    },
+    {
+      "id": "calla-red",
+      "species": "calla",
+      "color": "red",
+      "name": "빨간 칼라",
+      "engFlower": "red calla lilies",
+      "birthDates": [
+        "10-31"
+      ],
+      "monthFlower": 8,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/calla-red.jpg",
+      "frame": "/kiosk-frames/calla-red.jpg",
+      "active": true
+    },
+    {
+      "id": "calla-white",
+      "species": "calla",
+      "color": "white",
+      "name": "흰 칼라",
+      "engFlower": "white calla lilies",
+      "birthDates": [],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/calla-white.jpg",
+      "frame": "/kiosk-frames/calla-white.jpg",
+      "active": true
+    },
+    {
+      "id": "sunflower",
+      "species": "sunflower",
+      "color": "yellow",
+      "name": "해바라기",
+      "engFlower": "yellow sunflowers",
+      "birthDates": [
+        "07-06",
+        "08-15"
+      ],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/sunflower.jpg",
+      "frame": "/kiosk-frames/sunflower.jpg",
+      "active": true
+    },
+    {
+      "id": "lavender",
+      "species": "lavender",
+      "color": "purple",
+      "name": "라벤더",
+      "engFlower": "purple lavender",
+      "birthDates": [
+        "07-05",
+        "12-03"
+      ],
+      "monthFlower": 2,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/lavender.jpg",
+      "frame": "/kiosk-frames/lavender.jpg",
+      "active": true
+    },
+    {
+      "id": "daisy",
+      "species": "daisy",
+      "color": "white",
+      "name": "데이지",
+      "engFlower": "white daisies",
+      "birthDates": [
+        "03-06",
+        "05-27"
+      ],
+      "monthFlower": 4,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/daisy.jpg",
+      "frame": "/kiosk-frames/daisy.jpg",
+      "active": true
+    },
+    {
+      "id": "freesia",
+      "species": "freesia",
+      "color": "yellow",
+      "name": "프리지아",
+      "engFlower": "yellow freesia",
+      "birthDates": [
+        "08-20"
+      ],
+      "monthFlower": 3,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/freesia.jpg",
+      "frame": "/kiosk-frames/freesia.jpg",
+      "active": true
+    },
+    {
+      "id": "chamomile",
+      "species": "chamomile",
+      "color": "white",
+      "name": "카모마일",
+      "engFlower": "white chamomile",
+      "birthDates": [
+        "02-14"
+      ],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/chamomile.jpg",
+      "frame": "/kiosk-frames/chamomile.jpg",
+      "active": true
+    },
+    {
+      "id": "eucalyptus",
+      "species": "eucalyptus",
+      "color": "green",
+      "name": "유칼립투스",
+      "engFlower": "green eucalyptus",
+      "birthDates": [],
+      "monthFlower": null,
+      "todayPool": true,
+      "martFlower": true,
+      "background": "/kiosk-backgrounds/eucalyptus.jpg",
+      "frame": "/kiosk-frames/eucalyptus.jpg",
+      "active": true
+    },
+    {
+      "id": "snowdrop",
+      "species": "snowdrop",
+      "color": "white",
+      "name": "스노드롭",
+      "engFlower": "snowdrop flowers",
+      "birthDates": [
+        "01-01"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/snowdrop.jpg",
+      "frame": "/kiosk-frames/snowdrop.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "narcissus-yellow",
+      "species": "narcissus",
+      "color": "yellow",
+      "name": "노랑수선화",
+      "engFlower": "white narcissus",
+      "birthDates": [
+        "01-02"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/narcissus-yellow.jpg",
+      "frame": "/kiosk-frames/narcissus-yellow.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "crocus",
+      "species": "crocus",
+      "color": "white",
+      "name": "사프란",
+      "engFlower": "crocus flowers",
+      "birthDates": [
+        "01-03",
+        "01-24",
+        "01-31",
+        "09-21"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/crocus.jpg",
+      "frame": "/kiosk-frames/crocus.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "hyacinth",
+      "species": "hyacinth",
+      "color": "white",
+      "name": "히아신스",
+      "engFlower": "hyacinth flowers",
+      "birthDates": [
+        "01-04"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/hyacinth.jpg",
+      "frame": "/kiosk-frames/hyacinth.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "hepatica",
+      "species": "hepatica",
+      "color": "white",
+      "name": "노루귀",
+      "engFlower": "hepatica flowers",
+      "birthDates": [
+        "01-05"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/hepatica.jpg",
+      "frame": "/kiosk-frames/hepatica.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "violet-white",
+      "species": "violet",
+      "color": "white",
+      "name": "흰제비꽃",
+      "engFlower": "violet flowers",
+      "birthDates": [
+        "01-06"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/violet-white.jpg",
+      "frame": "/kiosk-frames/violet-white.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "violet-purple",
+      "species": "violet",
+      "color": "purple",
+      "name": "보라제비꽃",
+      "engFlower": "violet flowers",
+      "birthDates": [
+        "01-08"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/violet-purple.jpg",
+      "frame": "/kiosk-frames/violet-purple.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "violet-yellow",
+      "species": "violet",
+      "color": "yellow",
+      "name": "노랑제비꽃",
+      "engFlower": "violet flowers",
+      "birthDates": [
+        "01-09"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/violet-yellow.jpg",
+      "frame": "/kiosk-frames/violet-yellow.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "boxtree",
+      "species": "boxtree",
+      "color": "white",
+      "name": "회양목",
+      "engFlower": "box tree",
+      "birthDates": [
+        "01-10"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/boxtree.jpg",
+      "frame": "/kiosk-frames/boxtree.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "arborvitae",
+      "species": "arborvitae",
+      "color": "white",
+      "name": "측백나무",
+      "engFlower": "arborvitae tree",
+      "birthDates": [
+        "01-11"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/arborvitae.jpg",
+      "frame": "/kiosk-frames/arborvitae.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "alyssum",
+      "species": "alyssum",
+      "color": "white",
+      "name": "알리섬",
+      "engFlower": "sweet alyssum flowers",
+      "birthDates": [
+        "01-12"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/alyssum.jpg",
+      "frame": "/kiosk-frames/alyssum.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "narcissus",
+      "species": "narcissus",
+      "color": "white",
+      "name": "수선화",
+      "engFlower": "white narcissus",
+      "birthDates": [
+        "01-13",
+        "03-01"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/narcissus.jpg",
+      "frame": "/kiosk-frames/narcissus.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "cyclamen",
+      "species": "cyclamen",
+      "color": "white",
+      "name": "시클라멘",
+      "engFlower": "cyclamen flowers",
+      "birthDates": [
+        "01-14"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/cyclamen.jpg",
+      "frame": "/kiosk-frames/cyclamen.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "thorn",
+      "species": "thorn",
+      "color": "white",
+      "name": "가시나무",
+      "engFlower": "thorn branches",
+      "birthDates": [
+        "01-15"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/thorn.jpg",
+      "frame": "/kiosk-frames/thorn.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "hyacinth-yellow",
+      "species": "hyacinth",
+      "color": "yellow",
+      "name": "노랑히아신스",
+      "engFlower": "hyacinth flowers",
+      "birthDates": [
+        "01-16"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/hyacinth-yellow.jpg",
+      "frame": "/kiosk-frames/hyacinth-yellow.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "rumex",
+      "species": "rumex",
+      "color": "white",
+      "name": "수영",
+      "engFlower": "rumex plant",
+      "birthDates": [
+        "01-17",
+        "12-04",
+        "10-26"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/rumex.jpg",
+      "frame": "/kiosk-frames/rumex.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "indian-mallow",
+      "species": "indian-mallow",
+      "color": "white",
+      "name": "어저귀",
+      "engFlower": "indian mallow",
+      "birthDates": [
+        "01-18"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/indian-mallow.jpg",
+      "frame": "/kiosk-frames/indian-mallow.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "pine",
+      "species": "pine",
+      "color": "white",
+      "name": "소나무",
+      "engFlower": "pine tree",
+      "birthDates": [
+        "01-19",
+        "12-14",
+        "11-14"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/pine.jpg",
+      "frame": "/kiosk-frames/pine.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "buttercup",
+      "species": "buttercup",
+      "color": "white",
+      "name": "미나리아재비",
+      "engFlower": "buttercup flowers",
+      "birthDates": [
+        "01-20",
+        "02-18",
+        "03-02",
+        "05-02"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/buttercup.jpg",
+      "frame": "/kiosk-frames/buttercup.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "ivy",
+      "species": "ivy",
+      "color": "white",
+      "name": "담쟁이덩굴",
+      "engFlower": "ivy vines",
+      "birthDates": [
+        "01-21"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/ivy.jpg",
+      "frame": "/kiosk-frames/ivy.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "moss",
+      "species": "moss",
+      "color": "white",
+      "name": "이끼",
+      "engFlower": "green moss",
+      "birthDates": [
+        "01-22",
+        "01-29",
+        "08-10",
+        "12-02"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/moss.jpg",
+      "frame": "/kiosk-frames/moss.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "bulrush",
+      "species": "bulrush",
+      "color": "white",
+      "name": "부들",
+      "engFlower": "bulrush",
+      "birthDates": [
+        "01-23"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/bulrush.jpg",
+      "frame": "/kiosk-frames/bulrush.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "cerastium",
+      "species": "cerastium",
+      "color": "white",
+      "name": "점나도나물",
+      "engFlower": "cerastium flowers",
+      "birthDates": [
+        "01-25"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/cerastium.jpg",
+      "frame": "/kiosk-frames/cerastium.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "mimosa",
+      "species": "mimosa",
+      "color": "white",
+      "name": "미모사",
+      "engFlower": "mimosa flowers",
+      "birthDates": [
+        "01-26"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/mimosa.jpg",
+      "frame": "/kiosk-frames/mimosa.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "sorbus",
+      "species": "sorbus",
+      "color": "white",
+      "name": "마가목",
+      "engFlower": "mountain ash",
+      "birthDates": [
+        "01-27"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/sorbus.jpg",
+      "frame": "/kiosk-frames/sorbus.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "kf001-white",
+      "species": "kf001",
+      "color": "white",
+      "name": "검은포플라",
+      "engFlower": "포플라",
+      "birthDates": [
+        "01-28"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/kf001-white.jpg",
+      "frame": "/kiosk-frames/kf001-white.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "marsh-marigold",
+      "species": "marsh-marigold",
+      "color": "white",
+      "name": "매쉬메리골드",
+      "engFlower": "marsh marigold flowers",
+      "birthDates": [
+        "01-30"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/marsh-marigold.jpg",
+      "frame": "/kiosk-frames/marsh-marigold.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "primrose",
+      "species": "primrose",
+      "color": "white",
+      "name": "앵초",
+      "engFlower": "primrose flowers",
+      "birthDates": [
+        "02-01",
+        "05-01"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/primrose.jpg",
+      "frame": "/kiosk-frames/primrose.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "quince",
+      "species": "quince",
+      "color": "white",
+      "name": "모과",
+      "engFlower": "quince blossoms",
+      "birthDates": [
+        "02-02"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/quince.jpg",
+      "frame": "/kiosk-frames/quince.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "cardamine",
+      "species": "cardamine",
+      "color": "white",
+      "name": "황새냉이",
+      "engFlower": "cardamine flowers",
+      "birthDates": [
+        "02-03",
+        "03-07"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/cardamine.jpg",
+      "frame": "/kiosk-frames/cardamine.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "primrose-red",
+      "species": "primrose",
+      "color": "red",
+      "name": "빨간앵초",
+      "engFlower": "primrose flowers",
+      "birthDates": [
+        "02-04"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/primrose-red.jpg",
+      "frame": "/kiosk-frames/primrose-red.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "fern",
+      "species": "fern",
+      "color": "white",
+      "name": "고사리",
+      "engFlower": "green ferns",
+      "birthDates": [
+        "02-05"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/fern.jpg",
+      "frame": "/kiosk-frames/fern.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "horseleek",
+      "species": "horseleek",
+      "color": "white",
+      "name": "바위솔",
+      "engFlower": "rock pine",
+      "birthDates": [
+        "02-06"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/horseleek.jpg",
+      "frame": "/kiosk-frames/horseleek.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "forget-me-not",
+      "species": "forget-me-not",
+      "color": "white",
+      "name": "물망초",
+      "engFlower": "forget-me-not flowers",
+      "birthDates": [
+        "02-07",
+        "05-15"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/forget-me-not.jpg",
+      "frame": "/kiosk-frames/forget-me-not.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "saxifrage",
+      "species": "saxifrage",
+      "color": "white",
+      "name": "범의귀",
+      "engFlower": "saxifrage flowers",
+      "birthDates": [
+        "02-08",
+        "11-19"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/saxifrage.jpg",
+      "frame": "/kiosk-frames/saxifrage.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "myrtle",
+      "species": "myrtle",
+      "color": "white",
+      "name": "은매화",
+      "engFlower": "myrtle flowers",
+      "birthDates": [
+        "02-09"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/myrtle.jpg",
+      "frame": "/kiosk-frames/myrtle.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "daphne",
+      "species": "daphne",
+      "color": "white",
+      "name": "서향",
+      "engFlower": "winter daphne flowers",
+      "birthDates": [
+        "02-10",
+        "12-15"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/daphne.jpg",
+      "frame": "/kiosk-frames/daphne.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "balm",
+      "species": "balm",
+      "color": "white",
+      "name": "멜리사",
+      "engFlower": "lemon balm",
+      "birthDates": [
+        "02-11"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/balm.jpg",
+      "frame": "/kiosk-frames/balm.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "justicia",
+      "species": "justicia",
+      "color": "white",
+      "name": "쥐꼬리망초",
+      "engFlower": "justicia flowers",
+      "birthDates": [
+        "02-12"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/justicia.jpg",
+      "frame": "/kiosk-frames/justicia.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "canary-grass",
+      "species": "canary-grass",
+      "color": "white",
+      "name": "갈풀",
+      "engFlower": "canary grass",
+      "birthDates": [
+        "02-13"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/canary-grass.jpg",
+      "frame": "/kiosk-frames/canary-grass.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "cedar",
+      "species": "cedar",
+      "color": "white",
+      "name": "삼나무",
+      "engFlower": "cedar tree",
+      "birthDates": [
+        "02-15",
+        "09-30"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/cedar.jpg",
+      "frame": "/kiosk-frames/cedar.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "laurel",
+      "species": "laurel",
+      "color": "white",
+      "name": "월계수",
+      "engFlower": "laurel tree",
+      "birthDates": [
+        "02-16"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/laurel.jpg",
+      "frame": "/kiosk-frames/laurel.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "wildflower",
+      "species": "wildflower",
+      "color": "white",
+      "name": "야생화",
+      "engFlower": "wildflowers",
+      "birthDates": [
+        "02-17"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/wildflower.jpg",
+      "frame": "/kiosk-frames/wildflower.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "oak",
+      "species": "oak",
+      "color": "white",
+      "name": "떡갈나무",
+      "engFlower": "oak tree",
+      "birthDates": [
+        "02-19",
+        "09-27"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/oak.jpg",
+      "frame": "/kiosk-frames/oak.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "kalmia",
+      "species": "kalmia",
+      "color": "white",
+      "name": "칼미아",
+      "engFlower": "kalmia flowers",
+      "birthDates": [
+        "02-20"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/kalmia.jpg",
+      "frame": "/kiosk-frames/kalmia.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "nemophila",
+      "species": "nemophila",
+      "color": "white",
+      "name": "네모필라",
+      "engFlower": "nemophila flowers",
+      "birthDates": [
+        "02-21"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/nemophila.jpg",
+      "frame": "/kiosk-frames/nemophila.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "hibiscus-syriacus",
+      "species": "hibiscus-syriacus",
+      "color": "white",
+      "name": "무궁화",
+      "engFlower": "rose of sharon flowers",
+      "birthDates": [
+        "02-22",
+        "10-28"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/hibiscus-syriacus.jpg",
+      "frame": "/kiosk-frames/hibiscus-syriacus.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "apricot",
+      "species": "apricot",
+      "color": "white",
+      "name": "살구꽃",
+      "engFlower": "apricot blossoms",
+      "birthDates": [
+        "02-23",
+        "10-02"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/apricot.jpg",
+      "frame": "/kiosk-frames/apricot.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "periwinkle",
+      "species": "periwinkle",
+      "color": "white",
+      "name": "빙카",
+      "engFlower": "periwinkle flowers",
+      "birthDates": [
+        "02-24",
+        "04-10"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/periwinkle.jpg",
+      "frame": "/kiosk-frames/periwinkle.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "adonis",
+      "species": "adonis",
+      "color": "white",
+      "name": "아도니스",
+      "engFlower": "adonis flowers",
+      "birthDates": [
+        "02-26",
+        "04-06"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/adonis.jpg",
+      "frame": "/kiosk-frames/adonis.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "star-of-bethlehem",
+      "species": "star-of-bethlehem",
+      "color": "white",
+      "name": "아라비아의별",
+      "engFlower": "star of bethlehem flowers",
+      "birthDates": [
+        "02-27"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/star-of-bethlehem.jpg",
+      "frame": "/kiosk-frames/star-of-bethlehem.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "barley",
+      "species": "barley",
+      "color": "white",
+      "name": "보리",
+      "engFlower": "barley",
+      "birthDates": [
+        "02-28"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/barley.jpg",
+      "frame": "/kiosk-frames/barley.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "armeria",
+      "species": "armeria",
+      "color": "white",
+      "name": "아르메리아",
+      "engFlower": "armeria flowers",
+      "birthDates": [
+        "02-29"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/armeria.jpg",
+      "frame": "/kiosk-frames/armeria.jpg",
+      "active": false,
+      "source": "osl"
+    },
+    {
+      "id": "astragalus",
+      "species": "astragalus",
+      "color": "white",
+      "name": "자운영",
+      "engFlower": "chinese milk vetch flowers",
+      "birthDates": [
+        "03-03",
+        "04-18"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/astragalus.jpg",
+      "frame": "/kiosk-frames/astragalus.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "raspberry",
+      "species": "raspberry",
+      "color": "white",
+      "name": "나무딸기",
+      "engFlower": "raspberry blossoms",
+      "birthDates": [
+        "03-04"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/raspberry.jpg",
+      "frame": "/kiosk-frames/raspberry.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "cornflower",
+      "species": "cornflower",
+      "color": "white",
+      "name": "수레국화",
+      "engFlower": "blue cornflowers",
+      "birthDates": [
+        "03-05",
+        "08-02"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/cornflower.jpg",
+      "frame": "/kiosk-frames/cornflower.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "chestnut",
+      "species": "chestnut",
+      "color": "white",
+      "name": "밤꽃",
+      "engFlower": "chestnut blossoms",
+      "birthDates": [
+        "03-08"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/chestnut.jpg",
+      "frame": "/kiosk-frames/chestnut.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "larch",
+      "species": "larch",
+      "color": "white",
+      "name": "낙엽송",
+      "engFlower": "larch tree",
+      "birthDates": [
+        "03-09"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/larch.jpg",
+      "frame": "/kiosk-frames/larch.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "elm",
+      "species": "elm",
+      "color": "white",
+      "name": "느릅나무",
+      "engFlower": "elm tree",
+      "birthDates": [
+        "03-10",
+        "09-05"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/elm.jpg",
+      "frame": "/kiosk-frames/elm.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "ixeris",
+      "species": "ixeris",
+      "color": "white",
+      "name": "씀바귀",
+      "engFlower": "ixeris flowers",
+      "birthDates": [
+        "03-11"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/ixeris.jpg",
+      "frame": "/kiosk-frames/ixeris.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "weeping-willow",
+      "species": "weeping-willow",
+      "color": "white",
+      "name": "수양버들",
+      "engFlower": "weeping willow",
+      "birthDates": [
+        "03-12",
+        "04-21"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/weeping-willow.jpg",
+      "frame": "/kiosk-frames/weeping-willow.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "hosta",
+      "species": "hosta",
+      "color": "white",
+      "name": "산옥잠화",
+      "engFlower": "hosta flowers",
+      "birthDates": [
+        "03-13"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/hosta.jpg",
+      "frame": "/kiosk-frames/hosta.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "almond",
+      "species": "almond",
+      "color": "white",
+      "name": "아몬드",
+      "engFlower": "almond blossoms",
+      "birthDates": [
+        "03-14",
+        "04-01"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/almond.jpg",
+      "frame": "/kiosk-frames/almond.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "carrot",
+      "species": "carrot",
+      "color": "white",
+      "name": "당근",
+      "engFlower": "wild carrot flowers",
+      "birthDates": [
+        "03-15"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/carrot.jpg",
+      "frame": "/kiosk-frames/carrot.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "mint",
+      "species": "mint",
+      "color": "white",
+      "name": "박하",
+      "engFlower": "mint flowers",
+      "birthDates": [
+        "03-16",
+        "05-28",
+        "12-21"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/mint.jpg",
+      "frame": "/kiosk-frames/mint.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "bean-blossom",
+      "species": "bean-blossom",
+      "color": "white",
+      "name": "콩꽃",
+      "engFlower": "bean blossoms",
+      "birthDates": [
+        "03-17"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/bean-blossom.jpg",
+      "frame": "/kiosk-frames/bean-blossom.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "asparagus",
+      "species": "asparagus",
+      "color": "white",
+      "name": "아스파라거스",
+      "engFlower": "asparagus ferns",
+      "birthDates": [
+        "03-18"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/asparagus.jpg",
+      "frame": "/kiosk-frames/asparagus.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "gardenia",
+      "species": "gardenia",
+      "color": "white",
+      "name": "치자나무",
+      "engFlower": "gardenia flowers",
+      "birthDates": [
+        "03-19"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/gardenia.jpg",
+      "frame": "/kiosk-frames/gardenia.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "cherry-blossom",
+      "species": "cherry-blossom",
+      "color": "white",
+      "name": "벚꽃",
+      "engFlower": "cherry blossoms",
+      "birthDates": [
+        "03-21"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/cherry-blossom.jpg",
+      "frame": "/kiosk-frames/cherry-blossom.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "mallow",
+      "species": "mallow",
+      "color": "white",
+      "name": "당아욱",
+      "engFlower": "mallow flowers",
+      "birthDates": [
+        "03-22"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/mallow.jpg",
+      "frame": "/kiosk-frames/mallow.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "gladiolus",
+      "species": "gladiolus",
+      "color": "white",
+      "name": "글라디올러스",
+      "engFlower": "gladiolus flowers",
+      "birthDates": [
+        "03-23"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/gladiolus.jpg",
+      "frame": "/kiosk-frames/gladiolus.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "california-poppy",
+      "species": "california-poppy",
+      "color": "white",
+      "name": "캘리포니아포피",
+      "engFlower": "california poppy flowers",
+      "birthDates": [
+        "03-24"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/california-poppy.jpg",
+      "frame": "/kiosk-frames/california-poppy.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "vine",
+      "species": "vine",
+      "color": "white",
+      "name": "덩굴성식물",
+      "engFlower": "green vines",
+      "birthDates": [
+        "03-25"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/vine.jpg",
+      "frame": "/kiosk-frames/vine.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "primrose-white",
+      "species": "primrose",
+      "color": "white",
+      "name": "흰앵초",
+      "engFlower": "primrose flowers",
+      "birthDates": [
+        "03-26",
+        "05-18"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/primrose-white.jpg",
+      "frame": "/kiosk-frames/primrose-white.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "calceolaria",
+      "species": "calceolaria",
+      "color": "white",
+      "name": "칼세올라리아",
+      "engFlower": "calceolaria flowers",
+      "birthDates": [
+        "03-27"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/calceolaria.jpg",
+      "frame": "/kiosk-frames/calceolaria.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "acacia",
+      "species": "acacia",
+      "color": "white",
+      "name": "꽃아카시아",
+      "engFlower": "acacia blossoms",
+      "birthDates": [
+        "03-28"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/acacia.jpg",
+      "frame": "/kiosk-frames/acacia.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "burdock",
+      "species": "burdock",
+      "color": "white",
+      "name": "우엉",
+      "engFlower": "burdock",
+      "birthDates": [
+        "03-29"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/burdock.jpg",
+      "frame": "/kiosk-frames/burdock.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "broom",
+      "species": "broom",
+      "color": "white",
+      "name": "금작화",
+      "engFlower": "yellow broom flowers",
+      "birthDates": [
+        "03-30",
+        "04-08"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/broom.jpg",
+      "frame": "/kiosk-frames/broom.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "nigella",
+      "species": "nigella",
+      "color": "white",
+      "name": "흑종초",
+      "engFlower": "nigella flowers",
+      "birthDates": [
+        "03-31"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/nigella.jpg",
+      "frame": "/kiosk-frames/nigella.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "daffodil",
+      "species": "daffodil",
+      "color": "white",
+      "name": "나팔수선화",
+      "engFlower": "yellow daffodils",
+      "birthDates": [
+        "04-03"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/daffodil.jpg",
+      "frame": "/kiosk-frames/daffodil.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "fig",
+      "species": "fig",
+      "color": "white",
+      "name": "무화과",
+      "engFlower": "fig tree",
+      "birthDates": [
+        "04-05"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/fig.jpg",
+      "frame": "/kiosk-frames/fig.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "maidenhair-fern",
+      "species": "maidenhair-fern",
+      "color": "white",
+      "name": "공작고사리",
+      "engFlower": "maidenhair fern",
+      "birthDates": [
+        "04-07"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/maidenhair-fern.jpg",
+      "frame": "/kiosk-frames/maidenhair-fern.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "cherry-tree",
+      "species": "cherry-tree",
+      "color": "white",
+      "name": "벚나무",
+      "engFlower": "cherry blossoms",
+      "birthDates": [
+        "04-09"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/cherry-tree.jpg",
+      "frame": "/kiosk-frames/cherry-tree.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "polemonium",
+      "species": "polemonium",
+      "color": "white",
+      "name": "꽃고비",
+      "engFlower": "polemonium flowers",
+      "birthDates": [
+        "04-11"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/polemonium.jpg",
+      "frame": "/kiosk-frames/polemonium.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "peach-blossom",
+      "species": "peach-blossom",
+      "color": "white",
+      "name": "복숭아꽃",
+      "engFlower": "peach blossoms",
+      "birthDates": [
+        "04-12"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/peach-blossom.jpg",
+      "frame": "/kiosk-frames/peach-blossom.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "pyrethrum",
+      "species": "pyrethrum",
+      "color": "white",
+      "name": "페르시아국화",
+      "engFlower": "pyrethrum daisies",
+      "birthDates": [
+        "04-13"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/pyrethrum.jpg",
+      "frame": "/kiosk-frames/pyrethrum.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "morning-glory-white",
+      "species": "morning-glory",
+      "color": "white",
+      "name": "흰나팔꽃",
+      "engFlower": "morning glory flowers",
+      "birthDates": [
+        "04-14"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/morning-glory-white.jpg",
+      "frame": "/kiosk-frames/morning-glory-white.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "fen-orchid",
+      "species": "fen-orchid",
+      "color": "white",
+      "name": "펜오키드",
+      "engFlower": "fen orchid",
+      "birthDates": [
+        "04-15"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/fen-orchid.jpg",
+      "frame": "/kiosk-frames/fen-orchid.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "iris",
+      "species": "iris",
+      "color": "white",
+      "name": "아이리스",
+      "engFlower": "iris flowers",
+      "birthDates": [
+        "04-17",
+        "05-19"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/iris.jpg",
+      "frame": "/kiosk-frames/iris.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "larkspur",
+      "species": "larkspur",
+      "color": "white",
+      "name": "참제비고깔",
+      "engFlower": "larkspur flowers",
+      "birthDates": [
+        "04-19"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/larkspur.jpg",
+      "frame": "/kiosk-frames/larkspur.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "pear",
+      "species": "pear",
+      "color": "white",
+      "name": "배나무",
+      "engFlower": "pear blossoms",
+      "birthDates": [
+        "04-20"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/pear.jpg",
+      "frame": "/kiosk-frames/pear.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "aster",
+      "species": "aster",
+      "color": "white",
+      "name": "과꽃",
+      "engFlower": "aster flowers",
+      "birthDates": [
+        "04-22",
+        "09-10",
+        "11-28"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/aster.jpg",
+      "frame": "/kiosk-frames/aster.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "balloon-flower",
+      "species": "balloon-flower",
+      "color": "white",
+      "name": "도라지",
+      "engFlower": "balloon flowers",
+      "birthDates": [
+        "04-23"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/balloon-flower.jpg",
+      "frame": "/kiosk-frames/balloon-flower.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "geranium",
+      "species": "geranium",
+      "color": "white",
+      "name": "제라늄",
+      "engFlower": "geranium flowers",
+      "birthDates": [
+        "04-24",
+        "06-28",
+        "06-29",
+        "07-27",
+        "08-11"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/geranium.jpg",
+      "frame": "/kiosk-frames/geranium.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "fritillaria",
+      "species": "fritillaria",
+      "color": "white",
+      "name": "중국패모",
+      "engFlower": "fritillaria flowers",
+      "birthDates": [
+        "04-25",
+        "06-11"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/fritillaria.jpg",
+      "frame": "/kiosk-frames/fritillaria.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "bittercress",
+      "species": "bittercress",
+      "color": "white",
+      "name": "논냉이",
+      "engFlower": "bittercress flowers",
+      "birthDates": [
+        "04-26"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/bittercress.jpg",
+      "frame": "/kiosk-frames/bittercress.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "waterlily",
+      "species": "waterlily",
+      "color": "white",
+      "name": "수련",
+      "engFlower": "water lilies",
+      "birthDates": [
+        "04-27",
+        "05-08"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/waterlily.jpg",
+      "frame": "/kiosk-frames/waterlily.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "snow-primrose",
+      "species": "snow-primrose",
+      "color": "white",
+      "name": "설앵초",
+      "engFlower": "alpine primrose flowers",
+      "birthDates": [
+        "04-28"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/snow-primrose.jpg",
+      "frame": "/kiosk-frames/snow-primrose.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "camellia",
+      "species": "camellia",
+      "color": "white",
+      "name": "동백",
+      "engFlower": "camellia flowers",
+      "birthDates": [
+        "04-29"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/camellia.jpg",
+      "frame": "/kiosk-frames/camellia.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "laburnum",
+      "species": "laburnum",
+      "color": "white",
+      "name": "금사슬나무",
+      "engFlower": "golden chain tree",
+      "birthDates": [
+        "04-30"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/laburnum.jpg",
+      "frame": "/kiosk-frames/laburnum.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "dandelion",
+      "species": "dandelion",
+      "color": "white",
+      "name": "민들레",
+      "engFlower": "dandelions",
+      "birthDates": [
+        "05-03"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/dandelion.jpg",
+      "frame": "/kiosk-frames/dandelion.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "strawberry",
+      "species": "strawberry",
+      "color": "white",
+      "name": "딸기",
+      "engFlower": "strawberry blossoms",
+      "birthDates": [
+        "05-04"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/strawberry.jpg",
+      "frame": "/kiosk-frames/strawberry.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "lily-of-the-valley",
+      "species": "lily-of-the-valley",
+      "color": "white",
+      "name": "은방울꽃",
+      "engFlower": "lily of the valley flowers",
+      "birthDates": [
+        "05-05"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/lily-of-the-valley.jpg",
+      "frame": "/kiosk-frames/lily-of-the-valley.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "stock",
+      "species": "stock",
+      "color": "white",
+      "name": "비단향꽃무",
+      "engFlower": "stock flowers",
+      "birthDates": [
+        "05-06",
+        "07-16"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/stock.jpg",
+      "frame": "/kiosk-frames/stock.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "strawberry-leaf",
+      "species": "strawberry-leaf",
+      "color": "white",
+      "name": "딸기잎",
+      "engFlower": "strawberry leaves",
+      "birthDates": [
+        "05-07"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/strawberry-leaf.jpg",
+      "frame": "/kiosk-frames/strawberry-leaf.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "double-cherry",
+      "species": "double-cherry",
+      "color": "white",
+      "name": "겹벚꽃",
+      "engFlower": "double cherry blossoms",
+      "birthDates": [
+        "05-09"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/double-cherry.jpg",
+      "frame": "/kiosk-frames/double-cherry.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "iris-ensata",
+      "species": "iris-ensata",
+      "color": "white",
+      "name": "꽃창포",
+      "engFlower": "japanese iris flowers",
+      "birthDates": [
+        "05-10"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/iris-ensata.jpg",
+      "frame": "/kiosk-frames/iris-ensata.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "apple",
+      "species": "apple",
+      "color": "white",
+      "name": "사과",
+      "engFlower": "apple blossoms",
+      "birthDates": [
+        "05-11",
+        "09-29"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/apple.jpg",
+      "frame": "/kiosk-frames/apple.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "lilac",
+      "species": "lilac",
+      "color": "white",
+      "name": "라일락",
+      "engFlower": "lilac flowers",
+      "birthDates": [
+        "05-12",
+        "06-26"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/lilac.jpg",
+      "frame": "/kiosk-frames/lilac.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "hawthorn",
+      "species": "hawthorn",
+      "color": "white",
+      "name": "산사나무",
+      "engFlower": "hawthorn blossoms",
+      "birthDates": [
+        "05-13"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/hawthorn.jpg",
+      "frame": "/kiosk-frames/hawthorn.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "columbine",
+      "species": "columbine",
+      "color": "white",
+      "name": "매발톱꽃",
+      "engFlower": "columbine flowers",
+      "birthDates": [
+        "05-14"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/columbine.jpg",
+      "frame": "/kiosk-frames/columbine.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "spirea",
+      "species": "spirea",
+      "color": "white",
+      "name": "조팝나무",
+      "engFlower": "spirea flowers",
+      "birthDates": [
+        "05-16",
+        "08-22",
+        "10-13"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/spirea.jpg",
+      "frame": "/kiosk-frames/spirea.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "oxalis",
+      "species": "oxalis",
+      "color": "white",
+      "name": "괭이밥",
+      "engFlower": "oxalis flowers",
+      "birthDates": [
+        "05-20"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/oxalis.jpg",
+      "frame": "/kiosk-frames/oxalis.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "delphinium",
+      "species": "delphinium",
+      "color": "white",
+      "name": "제비고깔",
+      "engFlower": "delphinium flowers",
+      "birthDates": [
+        "05-21"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/delphinium.jpg",
+      "frame": "/kiosk-frames/delphinium.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "fuchsia",
+      "species": "fuchsia",
+      "color": "white",
+      "name": "귀고리꽃",
+      "engFlower": "fuchsia flowers",
+      "birthDates": [
+        "05-22"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/fuchsia.jpg",
+      "frame": "/kiosk-frames/fuchsia.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "grass-sprout",
+      "species": "grass-sprout",
+      "color": "white",
+      "name": "풀의싹",
+      "engFlower": "fresh grass sprouts",
+      "birthDates": [
+        "05-23"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/grass-sprout.jpg",
+      "frame": "/kiosk-frames/grass-sprout.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "heliotrope",
+      "species": "heliotrope",
+      "color": "white",
+      "name": "헬리오트로프",
+      "engFlower": "heliotrope flowers",
+      "birthDates": [
+        "05-24"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/heliotrope.jpg",
+      "frame": "/kiosk-frames/heliotrope.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "pansy",
+      "species": "pansy",
+      "color": "white",
+      "name": "삼색제비꽃",
+      "engFlower": "pansy flowers",
+      "birthDates": [
+        "05-25"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/pansy.jpg",
+      "frame": "/kiosk-frames/pansy.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "olive",
+      "species": "olive",
+      "color": "white",
+      "name": "올리브나무",
+      "engFlower": "olive branches",
+      "birthDates": [
+        "05-26"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/olive.jpg",
+      "frame": "/kiosk-frames/olive.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "clover",
+      "species": "clover",
+      "color": "white",
+      "name": "토끼풀",
+      "engFlower": "clover flowers",
+      "birthDates": [
+        "05-29",
+        "06-17",
+        "08-31"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/clover.jpg",
+      "frame": "/kiosk-frames/clover.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "lilac-purple",
+      "species": "lilac",
+      "color": "purple",
+      "name": "보라라일락",
+      "engFlower": "lilac flowers",
+      "birthDates": [
+        "05-30"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/lilac-purple.jpg",
+      "frame": "/kiosk-frames/lilac-purple.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "scilla",
+      "species": "scilla",
+      "color": "white",
+      "name": "무릇",
+      "engFlower": "scilla flowers",
+      "birthDates": [
+        "05-31"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/scilla.jpg",
+      "frame": "/kiosk-frames/scilla.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "columbine-red",
+      "species": "columbine",
+      "color": "red",
+      "name": "빨간매발톱꽃",
+      "engFlower": "columbine flowers",
+      "birthDates": [
+        "06-02"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/columbine-red.jpg",
+      "frame": "/kiosk-frames/columbine-red.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "flax",
+      "species": "flax",
+      "color": "white",
+      "name": "아마",
+      "engFlower": "flax flowers",
+      "birthDates": [
+        "06-03"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/flax.jpg",
+      "frame": "/kiosk-frames/flax.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "marigold",
+      "species": "marigold",
+      "color": "white",
+      "name": "메리골드",
+      "engFlower": "marigold flowers",
+      "birthDates": [
+        "06-05",
+        "11-07"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/marigold.jpg",
+      "frame": "/kiosk-frames/marigold.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "kf002-yellow",
+      "species": "kf002",
+      "color": "yellow",
+      "name": "노랑붓꽃",
+      "engFlower": "붓꽃",
+      "birthDates": [
+        "06-06"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/kf002-yellow.jpg",
+      "frame": "/kiosk-frames/kf002-yellow.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "schmidtiana",
+      "species": "schmidtiana",
+      "color": "white",
+      "name": "슈미트티아나",
+      "engFlower": "artemisia schmidtiana",
+      "birthDates": [
+        "06-07"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/schmidtiana.jpg",
+      "frame": "/kiosk-frames/schmidtiana.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "jasmine",
+      "species": "jasmine",
+      "color": "white",
+      "name": "자스민",
+      "engFlower": "jasmine flowers",
+      "birthDates": [
+        "06-08"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/jasmine.jpg",
+      "frame": "/kiosk-frames/jasmine.jpg",
+      "active": false,
+      "source": "pdf"
+    },
+    {
+      "id": "sweet-william",
+      "species": "sweet-william",
+      "color": "white",
+      "name": "수염패랭이꽃",
+      "engFlower": "sweet william flowers",
+      "birthDates": [
+        "06-10"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/sweet-william.jpg",
+      "frame": "/kiosk-frames/sweet-william.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "mignonette",
+      "species": "mignonette",
+      "color": "white",
+      "name": "목서초",
+      "engFlower": "mignonette flowers",
+      "birthDates": [
+        "06-12"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/mignonette.jpg",
+      "frame": "/kiosk-frames/mignonette.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "foxglove",
+      "species": "foxglove",
+      "color": "white",
+      "name": "디기탈리스",
+      "engFlower": "foxglove flowers",
+      "birthDates": [
+        "06-13"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/foxglove.jpg",
+      "frame": "/kiosk-frames/foxglove.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "pimpernel",
+      "species": "pimpernel",
+      "color": "white",
+      "name": "뚜껑별꽃",
+      "engFlower": "pimpernel flowers",
+      "birthDates": [
+        "06-14"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/pimpernel.jpg",
+      "frame": "/kiosk-frames/pimpernel.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "tuberose",
+      "species": "tuberose",
+      "color": "white",
+      "name": "월하향",
+      "engFlower": "tuberose flowers",
+      "birthDates": [
+        "06-16"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/tuberose.jpg",
+      "frame": "/kiosk-frames/tuberose.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "thyme",
+      "species": "thyme",
+      "color": "white",
+      "name": "백리향",
+      "engFlower": "thyme flowers",
+      "birthDates": [
+        "06-18"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/thyme.jpg",
+      "frame": "/kiosk-frames/thyme.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "veronica",
+      "species": "veronica",
+      "color": "white",
+      "name": "꼬리풀",
+      "engFlower": "veronica flowers",
+      "birthDates": [
+        "06-20"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/veronica.jpg",
+      "frame": "/kiosk-frames/veronica.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "evening-primrose",
+      "species": "evening-primrose",
+      "color": "white",
+      "name": "달맞이꽃",
+      "engFlower": "evening primrose flowers",
+      "birthDates": [
+        "06-21"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/evening-primrose.jpg",
+      "frame": "/kiosk-frames/evening-primrose.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "viburnum",
+      "species": "viburnum",
+      "color": "white",
+      "name": "가막살나무",
+      "engFlower": "viburnum flowers",
+      "birthDates": [
+        "06-22",
+        "11-24"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/viburnum.jpg",
+      "frame": "/kiosk-frames/viburnum.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "hollyhock",
+      "species": "hollyhock",
+      "color": "white",
+      "name": "접시꽃",
+      "engFlower": "hollyhock flowers",
+      "birthDates": [
+        "06-23",
+        "08-18"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/hollyhock.jpg",
+      "frame": "/kiosk-frames/hollyhock.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "verbena",
+      "species": "verbena",
+      "color": "white",
+      "name": "버베나",
+      "engFlower": "verbena flowers",
+      "birthDates": [
+        "06-24"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/verbena.jpg",
+      "frame": "/kiosk-frames/verbena.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "morning-glory",
+      "species": "morning-glory",
+      "color": "white",
+      "name": "나팔꽃",
+      "engFlower": "morning glory flowers",
+      "birthDates": [
+        "06-25"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/morning-glory.jpg",
+      "frame": "/kiosk-frames/morning-glory.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "passionflower",
+      "species": "passionflower",
+      "color": "white",
+      "name": "시계꽃",
+      "engFlower": "passion flowers",
+      "birthDates": [
+        "06-27"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/passionflower.jpg",
+      "frame": "/kiosk-frames/passionflower.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "honeysuckle",
+      "species": "honeysuckle",
+      "color": "white",
+      "name": "인동덩굴",
+      "engFlower": "honeysuckle flowers",
+      "birthDates": [
+        "06-30"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/honeysuckle.jpg",
+      "frame": "/kiosk-frames/honeysuckle.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "aster-wild",
+      "species": "aster-wild",
+      "color": "white",
+      "name": "쑥부쟁이",
+      "engFlower": "wild aster flowers",
+      "birthDates": [
+        "07-01"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/aster-wild.jpg",
+      "frame": "/kiosk-frames/aster-wild.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "snapdragon",
+      "species": "snapdragon",
+      "color": "white",
+      "name": "금어초",
+      "engFlower": "snapdragon flowers",
+      "birthDates": [
+        "07-02"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/snapdragon.jpg",
+      "frame": "/kiosk-frames/snapdragon.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "poppy-white",
+      "species": "poppy",
+      "color": "white",
+      "name": "흰양귀비",
+      "engFlower": "poppy flowers",
+      "birthDates": [
+        "07-03"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/poppy-white.jpg",
+      "frame": "/kiosk-frames/poppy-white.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "purple-magnolia",
+      "species": "purple-magnolia",
+      "color": "white",
+      "name": "자목련",
+      "engFlower": "purple magnolia flowers",
+      "birthDates": [
+        "07-04"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/purple-magnolia.jpg",
+      "frame": "/kiosk-frames/purple-magnolia.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "currant",
+      "species": "currant",
+      "color": "white",
+      "name": "까치밥나무",
+      "engFlower": "currant blossoms",
+      "birthDates": [
+        "07-07"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/currant.jpg",
+      "frame": "/kiosk-frames/currant.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "mullein",
+      "species": "mullein",
+      "color": "white",
+      "name": "열엽모간",
+      "engFlower": "mullein flowers",
+      "birthDates": [
+        "07-08"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/mullein.jpg",
+      "frame": "/kiosk-frames/mullein.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "ivy-geranium",
+      "species": "ivy-geranium",
+      "color": "white",
+      "name": "아이비제라늄",
+      "engFlower": "ivy geranium flowers",
+      "birthDates": [
+        "07-09"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/ivy-geranium.jpg",
+      "frame": "/kiosk-frames/ivy-geranium.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "bellflower",
+      "species": "bellflower",
+      "color": "white",
+      "name": "초롱꽃",
+      "engFlower": "bellflowers",
+      "birthDates": [
+        "07-10",
+        "11-21"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/bellflower.jpg",
+      "frame": "/kiosk-frames/bellflower.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "asphodel",
+      "species": "asphodel",
+      "color": "white",
+      "name": "아스포델",
+      "engFlower": "asphodel flowers",
+      "birthDates": [
+        "07-11"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/asphodel.jpg",
+      "frame": "/kiosk-frames/asphodel.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "solanum",
+      "species": "solanum",
+      "color": "white",
+      "name": "배풍동",
+      "engFlower": "solanum flowers",
+      "birthDates": [
+        "07-12"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/solanum.jpg",
+      "frame": "/kiosk-frames/solanum.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "weed-flower",
+      "species": "weed-flower",
+      "color": "white",
+      "name": "잡초꽃",
+      "engFlower": "meadow weed flowers",
+      "birthDates": [
+        "07-13"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/weed-flower.jpg",
+      "frame": "/kiosk-frames/weed-flower.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "phlox",
+      "species": "phlox",
+      "color": "white",
+      "name": "플록스",
+      "engFlower": "phlox flowers",
+      "birthDates": [
+        "07-14"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/phlox.jpg",
+      "frame": "/kiosk-frames/phlox.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "moss-rose",
+      "species": "moss-rose",
+      "color": "white",
+      "name": "채송화",
+      "engFlower": "moss rose flowers",
+      "birthDates": [
+        "07-18",
+        "10-16"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/moss-rose.jpg",
+      "frame": "/kiosk-frames/moss-rose.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "aconite",
+      "species": "aconite",
+      "color": "white",
+      "name": "백부자",
+      "engFlower": "aconite flowers",
+      "birthDates": [
+        "07-19"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/aconite.jpg",
+      "frame": "/kiosk-frames/aconite.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "eggplant",
+      "species": "eggplant",
+      "color": "white",
+      "name": "가지",
+      "engFlower": "eggplant blossoms",
+      "birthDates": [
+        "07-20"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/eggplant.jpg",
+      "frame": "/kiosk-frames/eggplant.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "dianthus",
+      "species": "dianthus",
+      "color": "white",
+      "name": "패랭이꽃",
+      "engFlower": "dianthus flowers",
+      "birthDates": [
+        "07-22",
+        "07-28"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/dianthus.jpg",
+      "frame": "/kiosk-frames/dianthus.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "trillium",
+      "species": "trillium",
+      "color": "white",
+      "name": "연령초",
+      "engFlower": "trillium flowers",
+      "birthDates": [
+        "07-24"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/trillium.jpg",
+      "frame": "/kiosk-frames/trillium.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "elder",
+      "species": "elder",
+      "color": "white",
+      "name": "말오줌나무",
+      "engFlower": "elder blossoms",
+      "birthDates": [
+        "07-25"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/elder.jpg",
+      "frame": "/kiosk-frames/elder.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "wormwood",
+      "species": "wormwood",
+      "color": "white",
+      "name": "향쑥",
+      "engFlower": "wormwood",
+      "birthDates": [
+        "07-26"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/wormwood.jpg",
+      "frame": "/kiosk-frames/wormwood.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "cactus",
+      "species": "cactus",
+      "color": "white",
+      "name": "선인장",
+      "engFlower": "cactus flowers",
+      "birthDates": [
+        "07-29"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/cactus.jpg",
+      "frame": "/kiosk-frames/cactus.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "linden",
+      "species": "linden",
+      "color": "white",
+      "name": "보리수",
+      "engFlower": "linden tree",
+      "birthDates": [
+        "07-30",
+        "08-23"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/linden.jpg",
+      "frame": "/kiosk-frames/linden.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "pumpkin",
+      "species": "pumpkin",
+      "color": "white",
+      "name": "호박",
+      "engFlower": "pumpkin blossoms",
+      "birthDates": [
+        "07-31"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/pumpkin.jpg",
+      "frame": "/kiosk-frames/pumpkin.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "poppy",
+      "species": "poppy",
+      "color": "white",
+      "name": "양귀비꽃",
+      "engFlower": "poppy flowers",
+      "birthDates": [
+        "08-01"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/poppy.jpg",
+      "frame": "/kiosk-frames/poppy.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "hibiscus-trionum",
+      "species": "hibiscus-trionum",
+      "color": "white",
+      "name": "수박풀",
+      "engFlower": "flower of an hour",
+      "birthDates": [
+        "08-03"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/hibiscus-trionum.jpg",
+      "frame": "/kiosk-frames/hibiscus-trionum.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "corn",
+      "species": "corn",
+      "color": "white",
+      "name": "옥수수",
+      "engFlower": "corn",
+      "birthDates": [
+        "08-04"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/corn.jpg",
+      "frame": "/kiosk-frames/corn.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "erica",
+      "species": "erica",
+      "color": "white",
+      "name": "에리카",
+      "engFlower": "erica heath flowers",
+      "birthDates": [
+        "08-05",
+        "09-17"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/erica.jpg",
+      "frame": "/kiosk-frames/erica.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "trumpet-creeper",
+      "species": "trumpet-creeper",
+      "color": "white",
+      "name": "능소화",
+      "engFlower": "trumpet creeper flowers",
+      "birthDates": [
+        "08-06"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/trumpet-creeper.jpg",
+      "frame": "/kiosk-frames/trumpet-creeper.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "pomegranate",
+      "species": "pomegranate",
+      "color": "white",
+      "name": "석류",
+      "engFlower": "pomegranate blossoms",
+      "birthDates": [
+        "08-07",
+        "12-28"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/pomegranate.jpg",
+      "frame": "/kiosk-frames/pomegranate.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "azalea",
+      "species": "azalea",
+      "color": "white",
+      "name": "진달래",
+      "engFlower": "azalea flowers",
+      "birthDates": [
+        "08-08"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/azalea.jpg",
+      "frame": "/kiosk-frames/azalea.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "cistus",
+      "species": "cistus",
+      "color": "white",
+      "name": "시스투스",
+      "engFlower": "cistus flowers",
+      "birthDates": [
+        "08-09"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/cistus.jpg",
+      "frame": "/kiosk-frames/cistus.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "oleander",
+      "species": "oleander",
+      "color": "white",
+      "name": "협죽도",
+      "engFlower": "oleander flowers",
+      "birthDates": [
+        "08-12"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/oleander.jpg",
+      "frame": "/kiosk-frames/oleander.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "goldenrod",
+      "species": "goldenrod",
+      "color": "white",
+      "name": "골든로드",
+      "engFlower": "goldenrod flowers",
+      "birthDates": [
+        "08-13"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/goldenrod.jpg",
+      "frame": "/kiosk-frames/goldenrod.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "germander",
+      "species": "germander",
+      "color": "white",
+      "name": "저먼더",
+      "engFlower": "germander flowers",
+      "birthDates": [
+        "08-14",
+        "08-30"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/germander.jpg",
+      "frame": "/kiosk-frames/germander.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "tamarind",
+      "species": "tamarind",
+      "color": "white",
+      "name": "타마린드",
+      "engFlower": "tamarind tree",
+      "birthDates": [
+        "08-16"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/tamarind.jpg",
+      "frame": "/kiosk-frames/tamarind.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "tulip-tree",
+      "species": "tulip-tree",
+      "color": "white",
+      "name": "튤립나무",
+      "engFlower": "tulip tree flowers",
+      "birthDates": [
+        "08-17"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/tulip-tree.jpg",
+      "frame": "/kiosk-frames/tulip-tree.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "rose-campion",
+      "species": "rose-campion",
+      "color": "white",
+      "name": "로사캠피언",
+      "engFlower": "rose campion flowers",
+      "birthDates": [
+        "08-19"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/rose-campion.jpg",
+      "frame": "/kiosk-frames/rose-campion.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "agrimony",
+      "species": "agrimony",
+      "color": "white",
+      "name": "짚신나물",
+      "engFlower": "agrimony flowers",
+      "birthDates": [
+        "08-21"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/agrimony.jpg",
+      "frame": "/kiosk-frames/agrimony.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "calendula",
+      "species": "calendula",
+      "color": "white",
+      "name": "금잔화",
+      "engFlower": "calendula flowers",
+      "birthDates": [
+        "08-24"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/calendula.jpg",
+      "frame": "/kiosk-frames/calendula.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "anthurium",
+      "species": "anthurium",
+      "color": "white",
+      "name": "안스리움",
+      "engFlower": "anthurium flowers",
+      "birthDates": [
+        "08-25"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/anthurium.jpg",
+      "frame": "/kiosk-frames/anthurium.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "hypoxis",
+      "species": "hypoxis",
+      "color": "white",
+      "name": "하이포시스",
+      "engFlower": "hypoxis flowers",
+      "birthDates": [
+        "08-26"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/hypoxis.jpg",
+      "frame": "/kiosk-frames/hypoxis.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "osmunda",
+      "species": "osmunda",
+      "color": "white",
+      "name": "고비",
+      "engFlower": "osmunda fern",
+      "birthDates": [
+        "08-27"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/osmunda.jpg",
+      "frame": "/kiosk-frames/osmunda.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "eryngium",
+      "species": "eryngium",
+      "color": "white",
+      "name": "에린지움",
+      "engFlower": "eryngium flowers",
+      "birthDates": [
+        "08-28"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/eryngium.jpg",
+      "frame": "/kiosk-frames/eryngium.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "flowering-tobacco",
+      "species": "flowering-tobacco",
+      "color": "white",
+      "name": "꽃담배",
+      "engFlower": "flowering tobacco",
+      "birthDates": [
+        "08-29"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/flowering-tobacco.jpg",
+      "frame": "/kiosk-frames/flowering-tobacco.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "tiger-flower",
+      "species": "tiger-flower",
+      "color": "white",
+      "name": "호랑이꽃",
+      "engFlower": "tiger flowers",
+      "birthDates": [
+        "09-01"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/tiger-flower.jpg",
+      "frame": "/kiosk-frames/tiger-flower.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "mexican-ivy",
+      "species": "mexican-ivy",
+      "color": "white",
+      "name": "멕시칸아이비",
+      "engFlower": "mexican ivy",
+      "birthDates": [
+        "09-02"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/mexican-ivy.jpg",
+      "frame": "/kiosk-frames/mexican-ivy.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "marguerite",
+      "species": "marguerite",
+      "color": "white",
+      "name": "마거리트",
+      "engFlower": "marguerite daisies",
+      "birthDates": [
+        "09-03"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/marguerite.jpg",
+      "frame": "/kiosk-frames/marguerite.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "geum",
+      "species": "geum",
+      "color": "white",
+      "name": "뱀무",
+      "engFlower": "geum flowers",
+      "birthDates": [
+        "09-04"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/geum.jpg",
+      "frame": "/kiosk-frames/geum.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "nasturtium",
+      "species": "nasturtium",
+      "color": "white",
+      "name": "한련",
+      "engFlower": "nasturtium flowers",
+      "birthDates": [
+        "09-06"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/nasturtium.jpg",
+      "frame": "/kiosk-frames/nasturtium.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "orange",
+      "species": "orange",
+      "color": "white",
+      "name": "오렌지",
+      "engFlower": "orange blossoms",
+      "birthDates": [
+        "09-07",
+        "09-24"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/orange.jpg",
+      "frame": "/kiosk-frames/orange.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "mustard",
+      "species": "mustard",
+      "color": "white",
+      "name": "갓",
+      "engFlower": "mustard flowers",
+      "birthDates": [
+        "09-08"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/mustard.jpg",
+      "frame": "/kiosk-frames/mustard.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "aster-koraiensis",
+      "species": "aster-koraiensis",
+      "color": "white",
+      "name": "갓개매취",
+      "engFlower": "korean aster flowers",
+      "birthDates": [
+        "09-09"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/aster-koraiensis.jpg",
+      "frame": "/kiosk-frames/aster-koraiensis.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "aloe",
+      "species": "aloe",
+      "color": "white",
+      "name": "알로에",
+      "engFlower": "aloe flowers",
+      "birthDates": [
+        "09-11"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/aloe.jpg",
+      "frame": "/kiosk-frames/aloe.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "clematis",
+      "species": "clematis",
+      "color": "white",
+      "name": "클레마티스",
+      "engFlower": "clematis flowers",
+      "birthDates": [
+        "09-12"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/clematis.jpg",
+      "frame": "/kiosk-frames/clematis.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "willow",
+      "species": "willow",
+      "color": "white",
+      "name": "버드나무",
+      "engFlower": "willow tree",
+      "birthDates": [
+        "09-13"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/willow.jpg",
+      "frame": "/kiosk-frames/willow.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "quince-marmelo",
+      "species": "quince-marmelo",
+      "color": "white",
+      "name": "마르멜로",
+      "engFlower": "quince fruit tree",
+      "birthDates": [
+        "09-14"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/quince-marmelo.jpg",
+      "frame": "/kiosk-frames/quince-marmelo.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "dahlia",
+      "species": "dahlia",
+      "color": "white",
+      "name": "다알리아",
+      "engFlower": "dahlia flowers",
+      "birthDates": [
+        "09-15"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/dahlia.jpg",
+      "frame": "/kiosk-frames/dahlia.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "gentian",
+      "species": "gentian",
+      "color": "white",
+      "name": "용담",
+      "engFlower": "gentian flowers",
+      "birthDates": [
+        "09-16"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/gentian.jpg",
+      "frame": "/kiosk-frames/gentian.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "thistle",
+      "species": "thistle",
+      "color": "white",
+      "name": "엉겅퀴",
+      "engFlower": "thistle flowers",
+      "birthDates": [
+        "09-18",
+        "10-21"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/thistle.jpg",
+      "frame": "/kiosk-frames/thistle.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "sedge",
+      "species": "sedge",
+      "color": "white",
+      "name": "사초",
+      "engFlower": "sedge grass",
+      "birthDates": [
+        "09-19"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/sedge.jpg",
+      "frame": "/kiosk-frames/sedge.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "rosemary",
+      "species": "rosemary",
+      "color": "white",
+      "name": "로즈메리",
+      "engFlower": "rosemary flowers",
+      "birthDates": [
+        "09-20"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/rosemary.jpg",
+      "frame": "/kiosk-frames/rosemary.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "quaking-grass",
+      "species": "quaking-grass",
+      "color": "white",
+      "name": "퀘이킹그라스",
+      "engFlower": "quaking grass",
+      "birthDates": [
+        "09-22"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/quaking-grass.jpg",
+      "frame": "/kiosk-frames/quaking-grass.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "yew",
+      "species": "yew",
+      "color": "white",
+      "name": "주목",
+      "engFlower": "yew tree",
+      "birthDates": [
+        "09-23"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/yew.jpg",
+      "frame": "/kiosk-frames/yew.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "wild-oat",
+      "species": "wild-oat",
+      "color": "white",
+      "name": "메귀리",
+      "engFlower": "wild oats",
+      "birthDates": [
+        "09-25"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/wild-oat.jpg",
+      "frame": "/kiosk-frames/wild-oat.jpg",
+      "active": false,
+      "source": "kb"
+    },
+    {
+      "id": "tansy",
+      "species": "tansy",
+      "color": "white",
+      "name": "쑥국화",
+      "engFlower": "tansy flowers",
+      "birthDates": [
+        "12-01"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/tansy.jpg",
+      "frame": "/kiosk-frames/tansy.jpg",
+      "active": false,
+      "source": "news"
+    },
+    {
+      "id": "ambrosia",
+      "species": "ambrosia",
+      "color": "white",
+      "name": "앰브로시아",
+      "engFlower": "ambrosia",
+      "birthDates": [
+        "12-05"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/ambrosia.jpg",
+      "frame": "/kiosk-frames/ambrosia.jpg",
+      "active": false,
+      "source": "news"
+    },
+    {
+      "id": "saxifraga",
+      "species": "saxifraga",
+      "color": "white",
+      "name": "바위취",
+      "engFlower": "saxifraga flowers",
+      "birthDates": [
+        "12-06"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/saxifraga.jpg",
+      "frame": "/kiosk-frames/saxifraga.jpg",
+      "active": false,
+      "source": "news"
+    },
+    {
+      "id": "fern-plant",
+      "species": "fern-plant",
+      "color": "white",
+      "name": "양치식물",
+      "engFlower": "green ferns",
+      "birthDates": [
+        "12-07",
+        "11-23"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/fern-plant.jpg",
+      "frame": "/kiosk-frames/fern-plant.jpg",
+      "active": false,
+      "source": "news"
+    },
+    {
+      "id": "reed",
+      "species": "reed",
+      "color": "white",
+      "name": "갈대",
+      "engFlower": "reeds",
+      "birthDates": [
+        "12-08"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/reed.jpg",
+      "frame": "/kiosk-frames/reed.jpg",
+      "active": false,
+      "source": "news"
+    },
+    {
+      "id": "camellia-red",
+      "species": "camellia",
+      "color": "red",
+      "name": "빨간동백",
+      "engFlower": "camellia flowers",
+      "birthDates": [
+        "12-10"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/camellia-red.jpg",
+      "frame": "/kiosk-frames/camellia-red.jpg",
+      "active": false,
+      "source": "news"
+    },
+    {
+      "id": "fig-marigold",
+      "species": "fig-marigold",
+      "color": "white",
+      "name": "단양쑥부쟁이",
+      "engFlower": "fig marigold flowers",
+      "birthDates": [
+        "12-11",
+        "11-05"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/fig-marigold.jpg",
+      "frame": "/kiosk-frames/fig-marigold.jpg",
+      "active": false,
+      "source": "news"
+    },
+    {
+      "id": "cotton",
+      "species": "cotton",
+      "color": "white",
+      "name": "목화",
+      "engFlower": "cotton plant",
+      "birthDates": [
+        "12-12"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/cotton.jpg",
+      "frame": "/kiosk-frames/cotton.jpg",
+      "active": false,
+      "source": "news"
+    },
+    {
+      "id": "alder",
+      "species": "alder",
+      "color": "white",
+      "name": "오리나무",
+      "engFlower": "alder tree",
+      "birthDates": [
+        "12-16"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/alder.jpg",
+      "frame": "/kiosk-frames/alder.jpg",
+      "active": false,
+      "source": "news"
+    },
+    {
+      "id": "hoya",
+      "species": "hoya",
+      "color": "white",
+      "name": "벚꽃난",
+      "engFlower": "hoya flowers",
+      "birthDates": [
+        "12-17"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/hoya.jpg",
+      "frame": "/kiosk-frames/hoya.jpg",
+      "active": false,
+      "source": "news"
+    },
+    {
+      "id": "sage",
+      "species": "sage",
+      "color": "white",
+      "name": "세이지",
+      "engFlower": "sage flowers",
+      "birthDates": [
+        "12-18"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/sage.jpg",
+      "frame": "/kiosk-frames/sage.jpg",
+      "active": false,
+      "source": "news"
+    },
+    {
+      "id": "snowflake",
+      "species": "snowflake",
+      "color": "white",
+      "name": "스노플레이크",
+      "engFlower": "snowflake flowers",
+      "birthDates": [
+        "12-19"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/snowflake.jpg",
+      "frame": "/kiosk-frames/snowflake.jpg",
+      "active": false,
+      "source": "news"
+    },
+    {
+      "id": "pineapple",
+      "species": "pineapple",
+      "color": "white",
+      "name": "파인애플",
+      "engFlower": "pineapple plant",
+      "birthDates": [
+        "12-20"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/pineapple.jpg",
+      "frame": "/kiosk-frames/pineapple.jpg",
+      "active": false,
+      "source": "news"
+    },
+    {
+      "id": "zinnia",
+      "species": "zinnia",
+      "color": "white",
+      "name": "백일홍",
+      "engFlower": "zinnia flowers",
+      "birthDates": [
+        "12-22"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/zinnia.jpg",
+      "frame": "/kiosk-frames/zinnia.jpg",
+      "active": false,
+      "source": "news"
+    },
+    {
+      "id": "platanus",
+      "species": "platanus",
+      "color": "white",
+      "name": "플라타너스",
+      "engFlower": "plane tree",
+      "birthDates": [
+        "12-23"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/platanus.jpg",
+      "frame": "/kiosk-frames/platanus.jpg",
+      "active": false,
+      "source": "news"
+    },
+    {
+      "id": "mistletoe",
+      "species": "mistletoe",
+      "color": "white",
+      "name": "겨우살이",
+      "engFlower": "mistletoe",
+      "birthDates": [
+        "12-24"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/mistletoe.jpg",
+      "frame": "/kiosk-frames/mistletoe.jpg",
+      "active": false,
+      "source": "news"
+    },
+    {
+      "id": "holly",
+      "species": "holly",
+      "color": "white",
+      "name": "서양호랑가시나무",
+      "engFlower": "holly with red berries",
+      "birthDates": [
+        "12-25"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/holly.jpg",
+      "frame": "/kiosk-frames/holly.jpg",
+      "active": false,
+      "source": "news"
+    },
+    {
+      "id": "christmas-rose",
+      "species": "christmas-rose",
+      "color": "white",
+      "name": "크리스마스로즈",
+      "engFlower": "christmas rose flowers",
+      "birthDates": [
+        "12-26",
+        "11-16"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/christmas-rose.jpg",
+      "frame": "/kiosk-frames/christmas-rose.jpg",
+      "active": false,
+      "source": "news"
+    },
+    {
+      "id": "plum-blossom",
+      "species": "plum-blossom",
+      "color": "white",
+      "name": "매화",
+      "engFlower": "plum blossoms",
+      "birthDates": [
+        "12-27",
+        "10-24"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/plum-blossom.jpg",
+      "frame": "/kiosk-frames/plum-blossom.jpg",
+      "active": false,
+      "source": "news"
+    },
+    {
+      "id": "winter-cherry",
+      "species": "winter-cherry",
+      "color": "white",
+      "name": "꽈리",
+      "engFlower": "winter cherry",
+      "birthDates": [
+        "12-29"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/winter-cherry.jpg",
+      "frame": "/kiosk-frames/winter-cherry.jpg",
+      "active": false,
+      "source": "news"
+    },
+    {
+      "id": "wintersweet",
+      "species": "wintersweet",
+      "color": "white",
+      "name": "납매",
+      "engFlower": "wintersweet flowers",
+      "birthDates": [
+        "12-30"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/wintersweet.jpg",
+      "frame": "/kiosk-frames/wintersweet.jpg",
+      "active": false,
+      "source": "news"
+    },
+    {
+      "id": "chamaecyparis",
+      "species": "chamaecyparis",
+      "color": "white",
+      "name": "노송나무",
+      "engFlower": "chamaecyparis tree",
+      "birthDates": [
+        "12-31"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/chamaecyparis.jpg",
+      "frame": "/kiosk-frames/chamaecyparis.jpg",
+      "active": false,
+      "source": "news"
+    },
+    {
+      "id": "petunia",
+      "species": "petunia",
+      "color": "white",
+      "name": "페튜니아",
+      "engFlower": "petunia flowers",
+      "birthDates": [
+        "09-26"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/petunia.jpg",
+      "frame": "/kiosk-frames/petunia.jpg",
+      "active": false,
+      "source": "jd"
+    },
+    {
+      "id": "amaranth",
+      "species": "amaranth",
+      "color": "white",
+      "name": "아마란스",
+      "engFlower": "amaranth flowers",
+      "birthDates": [
+        "09-28"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/amaranth.jpg",
+      "frame": "/kiosk-frames/amaranth.jpg",
+      "active": false,
+      "source": "jd"
+    },
+    {
+      "id": "mum-red",
+      "species": "mum",
+      "color": "red",
+      "name": "빨강국화",
+      "engFlower": "chrysanthemums",
+      "birthDates": [
+        "10-01"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/mum-red.jpg",
+      "frame": "/kiosk-frames/mum-red.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "maple",
+      "species": "maple",
+      "color": "white",
+      "name": "단풍나무",
+      "engFlower": "maple tree",
+      "birthDates": [
+        "10-03",
+        "10-25"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/maple.jpg",
+      "frame": "/kiosk-frames/maple.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "hop",
+      "species": "hop",
+      "color": "white",
+      "name": "홉",
+      "engFlower": "hop vines",
+      "birthDates": [
+        "10-04"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/hop.jpg",
+      "frame": "/kiosk-frames/hop.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "palm",
+      "species": "palm",
+      "color": "white",
+      "name": "종려나무",
+      "engFlower": "windmill palm",
+      "birthDates": [
+        "10-05"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/palm.jpg",
+      "frame": "/kiosk-frames/palm.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "hazel",
+      "species": "hazel",
+      "color": "white",
+      "name": "개암나무",
+      "engFlower": "hazel tree",
+      "birthDates": [
+        "10-06"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/hazel.jpg",
+      "frame": "/kiosk-frames/hazel.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "fir",
+      "species": "fir",
+      "color": "white",
+      "name": "전나무",
+      "engFlower": "fir tree",
+      "birthDates": [
+        "10-07"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/fir.jpg",
+      "frame": "/kiosk-frames/fir.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "parsley",
+      "species": "parsley",
+      "color": "white",
+      "name": "파슬리",
+      "engFlower": "parsley",
+      "birthDates": [
+        "10-08"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/parsley.jpg",
+      "frame": "/kiosk-frames/parsley.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "fennel",
+      "species": "fennel",
+      "color": "white",
+      "name": "회향",
+      "engFlower": "fennel flowers",
+      "birthDates": [
+        "10-09"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/fennel.jpg",
+      "frame": "/kiosk-frames/fennel.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "melon",
+      "species": "melon",
+      "color": "white",
+      "name": "멜론",
+      "engFlower": "melon blossoms",
+      "birthDates": [
+        "10-10"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/melon.jpg",
+      "frame": "/kiosk-frames/melon.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "lythrum",
+      "species": "lythrum",
+      "color": "white",
+      "name": "부처꽃",
+      "engFlower": "lythrum flowers",
+      "birthDates": [
+        "10-11"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/lythrum.jpg",
+      "frame": "/kiosk-frames/lythrum.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "bilberry",
+      "species": "bilberry",
+      "color": "white",
+      "name": "월귤",
+      "engFlower": "bilberry",
+      "birthDates": [
+        "10-12"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/bilberry.jpg",
+      "frame": "/kiosk-frames/bilberry.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "basil",
+      "species": "basil",
+      "color": "white",
+      "name": "스위트바질",
+      "engFlower": "sweet basil",
+      "birthDates": [
+        "10-15"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/basil.jpg",
+      "frame": "/kiosk-frames/basil.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "grape",
+      "species": "grape",
+      "color": "white",
+      "name": "포도",
+      "engFlower": "grape vines",
+      "birthDates": [
+        "10-17"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/grape.jpg",
+      "frame": "/kiosk-frames/grape.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "cranberry",
+      "species": "cranberry",
+      "color": "white",
+      "name": "넌출월귤",
+      "engFlower": "cranberry",
+      "birthDates": [
+        "10-18"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/cranberry.jpg",
+      "frame": "/kiosk-frames/cranberry.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "balsam-red",
+      "species": "balsam",
+      "color": "red",
+      "name": "빨강봉선화",
+      "engFlower": "balsam flowers",
+      "birthDates": [
+        "10-19"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/balsam-red.jpg",
+      "frame": "/kiosk-frames/balsam-red.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "indian-hemp",
+      "species": "indian-hemp",
+      "color": "white",
+      "name": "마",
+      "engFlower": "indian hemp",
+      "birthDates": [
+        "10-20"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/indian-hemp.jpg",
+      "frame": "/kiosk-frames/indian-hemp.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "arrowhead",
+      "species": "arrowhead",
+      "color": "white",
+      "name": "벗풀",
+      "engFlower": "arrowhead flowers",
+      "birthDates": [
+        "10-22"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/arrowhead.jpg",
+      "frame": "/kiosk-frames/arrowhead.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "datura-white",
+      "species": "datura",
+      "color": "white",
+      "name": "흰독말풀",
+      "engFlower": "datura flowers",
+      "birthDates": [
+        "10-23"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/datura-white.jpg",
+      "frame": "/kiosk-frames/datura-white.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "crab-apple",
+      "species": "crab-apple",
+      "color": "white",
+      "name": "해당화",
+      "engFlower": "crab apple blossoms",
+      "birthDates": [
+        "10-29"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/crab-apple.jpg",
+      "frame": "/kiosk-frames/crab-apple.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "lobelia",
+      "species": "lobelia",
+      "color": "white",
+      "name": "로벨리아",
+      "engFlower": "lobelia flowers",
+      "birthDates": [
+        "10-30"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/lobelia.jpg",
+      "frame": "/kiosk-frames/lobelia.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "medlar",
+      "species": "medlar",
+      "color": "white",
+      "name": "서양모과",
+      "engFlower": "medlar blossoms",
+      "birthDates": [
+        "11-01"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/medlar.jpg",
+      "frame": "/kiosk-frames/medlar.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "lupinus",
+      "species": "lupinus",
+      "color": "white",
+      "name": "루피너스",
+      "engFlower": "lupine flowers",
+      "birthDates": [
+        "11-02"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/lupinus.jpg",
+      "frame": "/kiosk-frames/lupinus.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "bryonia",
+      "species": "bryonia",
+      "color": "white",
+      "name": "브리오니아",
+      "engFlower": "bryonia vines",
+      "birthDates": [
+        "11-03"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/bryonia.jpg",
+      "frame": "/kiosk-frames/bryonia.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "harts-tongue",
+      "species": "harts-tongue",
+      "color": "white",
+      "name": "골고사리",
+      "engFlower": "hart's tongue fern",
+      "birthDates": [
+        "11-04"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/harts-tongue.jpg",
+      "frame": "/kiosk-frames/harts-tongue.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "eupatorium",
+      "species": "eupatorium",
+      "color": "white",
+      "name": "등골나물",
+      "engFlower": "eupatorium flowers",
+      "birthDates": [
+        "11-06"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/eupatorium.jpg",
+      "frame": "/kiosk-frames/eupatorium.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "lychnis",
+      "species": "lychnis",
+      "color": "white",
+      "name": "가는동자꽃",
+      "engFlower": "lychnis flowers",
+      "birthDates": [
+        "11-08"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/lychnis.jpg",
+      "frame": "/kiosk-frames/lychnis.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "myrrh",
+      "species": "myrrh",
+      "color": "white",
+      "name": "몰약꽃",
+      "engFlower": "myrrh blossoms",
+      "birthDates": [
+        "11-09"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/myrrh.jpg",
+      "frame": "/kiosk-frames/myrrh.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "hibiscus-mutabilis",
+      "species": "hibiscus-mutabilis",
+      "color": "white",
+      "name": "부용",
+      "engFlower": "confederate rose flowers",
+      "birthDates": [
+        "11-10"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/hibiscus-mutabilis.jpg",
+      "frame": "/kiosk-frames/hibiscus-mutabilis.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "camellia-white",
+      "species": "camellia",
+      "color": "white",
+      "name": "흰동백",
+      "engFlower": "camellia flowers",
+      "birthDates": [
+        "11-11"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/camellia-white.jpg",
+      "frame": "/kiosk-frames/camellia-white.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "lemon",
+      "species": "lemon",
+      "color": "white",
+      "name": "레몬",
+      "engFlower": "lemon blossoms",
+      "birthDates": [
+        "11-12"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/lemon.jpg",
+      "frame": "/kiosk-frames/lemon.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "lemon-verbena",
+      "species": "lemon-verbena",
+      "color": "white",
+      "name": "레몬버베나",
+      "engFlower": "lemon verbena",
+      "birthDates": [
+        "11-13"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/lemon-verbena.jpg",
+      "frame": "/kiosk-frames/lemon-verbena.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "crown-vetch",
+      "species": "crown-vetch",
+      "color": "white",
+      "name": "황금싸리",
+      "engFlower": "crown vetch flowers",
+      "birthDates": [
+        "11-15"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/crown-vetch.jpg",
+      "frame": "/kiosk-frames/crown-vetch.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "butterbur",
+      "species": "butterbur",
+      "color": "white",
+      "name": "머위",
+      "engFlower": "butterbur flowers",
+      "birthDates": [
+        "11-17"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/butterbur.jpg",
+      "frame": "/kiosk-frames/butterbur.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "hill-lily",
+      "species": "hill-lily",
+      "color": "white",
+      "name": "산나리",
+      "engFlower": "wild hill lilies",
+      "birthDates": [
+        "11-18"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/hill-lily.jpg",
+      "frame": "/kiosk-frames/hill-lily.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "bugloss",
+      "species": "bugloss",
+      "color": "white",
+      "name": "뷰글라스",
+      "engFlower": "bugloss flowers",
+      "birthDates": [
+        "11-20"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/bugloss.jpg",
+      "frame": "/kiosk-frames/bugloss.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "berberis",
+      "species": "berberis",
+      "color": "white",
+      "name": "매자나무",
+      "engFlower": "barberry",
+      "birthDates": [
+        "11-22"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/berberis.jpg",
+      "frame": "/kiosk-frames/berberis.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "rhus",
+      "species": "rhus",
+      "color": "white",
+      "name": "개옻나무",
+      "engFlower": "sumac tree",
+      "birthDates": [
+        "11-25"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/rhus.jpg",
+      "frame": "/kiosk-frames/rhus.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "yarrow",
+      "species": "yarrow",
+      "color": "white",
+      "name": "서양톱풀",
+      "engFlower": "yarrow flowers",
+      "birthDates": [
+        "11-26"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/yarrow.jpg",
+      "frame": "/kiosk-frames/yarrow.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "sumac",
+      "species": "sumac",
+      "color": "white",
+      "name": "붉나무",
+      "engFlower": "sumac tree",
+      "birthDates": [
+        "11-27"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/sumac.jpg",
+      "frame": "/kiosk-frames/sumac.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "baccharis",
+      "species": "baccharis",
+      "color": "white",
+      "name": "바카리스",
+      "engFlower": "baccharis",
+      "birthDates": [
+        "11-29"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/baccharis.jpg",
+      "frame": "/kiosk-frames/baccharis.jpg",
+      "active": false,
+      "source": "jna"
+    },
+    {
+      "id": "dry-grass",
+      "species": "dry-grass",
+      "color": "white",
+      "name": "낙엽마른풀",
+      "engFlower": "dry winter grasses",
+      "birthDates": [
+        "11-30"
+      ],
+      "monthFlower": null,
+      "todayPool": false,
+      "martFlower": false,
+      "background": "/kiosk-backgrounds/dry-grass.jpg",
+      "frame": "/kiosk-frames/dry-grass.jpg",
+      "active": false,
+      "source": "jna"
+    }
+  ]
+}
