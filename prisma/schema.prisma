@@ -15,7 +15,8 @@ model User {
   name         String?
   image        String?
   password     String? // 이메일/비밀번호 회원가입 시 bcrypt 해시 저장 (소셜 로그인 계정은 null)
-  isAdmin      Boolean   @default(false)
+  isAdmin      Boolean   @default(false) // role 전환 기간 호환용 — 마이그레이션 완료 후 제거
+  role         UserRole  @default(CUSTOMER)
   points       Int       @default(0) // 꽃다발 후기 조합 판매 적립 포인트
   sajuName     String? // 사주 분석 시 입력한 이름 (계정 이름과 다를 수 있음)
   gender       String?
@@ -33,6 +34,14 @@ model User {
   wishlist      WishlistItem[]
   reviews       Review[]
   subscriptions Subscription[]
+  seller        Seller?
+  sellerReviews SellerReview[] @relation("SellerReviewer")
+}
+
+enum UserRole {
+  CUSTOMER
+  SELLER
+  ADMIN
 }
 
 model Account {
@@ -59,14 +68,129 @@ model Product {
   ohaengTags    String[]
   seasonTags    String[]
   colorTags     String[]
+  useTags       String[] @default([])
+  deliveryDays  String[] @default([])
+  deliveryStartTime String?
+  deliveryEndTime String?
+  displayStartAt DateTime?
+  displayEndAt   DateTime?
+  saleStatus     String   @default("ON_SALE")
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
+  sellerId      String?
+  purchaseType  String   @default("INTERNAL")
+  externalUrl   String?
+  partnerName   String?
+  partnerBadge  String?
 
   cartItems  CartItem[]
   orderItems OrderItem[]
   wishlist   WishlistItem[]
   reviews    Review[]
   customBase CustomBase?
+  seller     Seller? @relation(fields: [sellerId], references: [id])
+
+  @@index([sellerId, isActive])
+}
+
+// ─── 판매처 ───────────────────────────────────────────
+
+model Seller {
+  id                    String       @id @default(cuid())
+  userId                String       @unique
+  status                SellerStatus @default(PENDING)
+  legalBusinessName     String
+  businessNumber        String       @unique
+  representativeName    String
+  businessType          String
+  businessCategory      String
+  mailOrderNumber       String?
+  marketName            String
+  sellerType            SellerType
+  managerName           String
+  managerPhone          String
+  publicPhone           String?
+  introduction          String?
+  logoUrl               String?
+  businessLicensePath   String
+  postalCode            String
+  roadAddress           String
+  detailAddress         String
+  latitude              Decimal?     @db.Decimal(10, 7)
+  longitude             Decimal?     @db.Decimal(10, 7)
+  businessHours         Json?
+  settlementBank        String
+  settlementAccount     String
+  settlementHolder      String
+  sellsFinishedProducts Boolean      @default(true)
+  offersCustomBouquet   Boolean      @default(false)
+  offersDiyFlowers      Boolean      @default(false)
+  isOpen                Boolean      @default(true)
+  termsVersion          String
+  termsAgreedAt         DateTime
+  submittedAt           DateTime     @default(now())
+  approvedAt            DateTime?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviews  SellerReview[]
+  stocks   SellerStock[]
+  products Product[]
+
+  @@index([status, isOpen])
+}
+
+model SellerReview {
+  id         String        @id @default(cuid())
+  sellerId   String
+  reviewerId String?
+  fromStatus SellerStatus?
+  toStatus   SellerStatus
+  reason     String?
+  snapshot   Json
+  createdAt  DateTime      @default(now())
+
+  seller   Seller @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  reviewer User?  @relation("SellerReviewer", fields: [reviewerId], references: [id])
+
+  @@index([sellerId, createdAt])
+}
+
+model SellerStock {
+  id         String   @id @default(cuid())
+  sellerId   String
+  flowerCode String
+  flowerName String
+  flowerMeaning String?
+  color      String?
+  grade      String?
+  unit       String   @default("STEM")
+  quantity   Int
+  unitPrice  Int
+  barcode    String?
+  isActive   Boolean  @default(true)
+  updatedAt  DateTime @updatedAt
+
+  seller Seller @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@unique([sellerId, flowerCode, color, grade])
+  @@index([flowerCode, isActive])
+}
+
+enum SellerStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum SellerType {
+  FLOWER_SHOP
+  FARM
+  WHOLESALE
+  OTHER
 }
 
 // ─── 장바구니 ────────────────────────────────────────

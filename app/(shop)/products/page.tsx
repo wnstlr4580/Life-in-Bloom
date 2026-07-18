@@ -41,6 +41,7 @@ interface Product {
   flowerMeaning: string | null
   category: string
   stock: number
+  seller?: { marketName: string } | { marketName: string }[] | null
 }
 
 function ProductsContent() {

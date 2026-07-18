@@ -1,86 +1,36 @@
-"use client"
-
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { signIn } from "next-auth/react"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { ChevronRight, ShoppingBag, Store } from "lucide-react"
 
-export default function SignupPage() {
-  const router = useRouter()
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [passwordConfirm, setPasswordConfirm] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-
-    if (password !== passwordConfirm) { setError("비밀번호가 일치하지 않아요"); return }
-    if (password.length < 8) { setError("비밀번호는 8자 이상이어야 해요"); return }
-
-    setLoading(true)
-    try {
-      const res = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      })
-      const d = await res.json()
-      if (!res.ok) throw new Error(d.error ?? "회원가입에 실패했어요")
-
-      const signInRes = await signIn("credentials", { email, password, redirect: false })
-      if (signInRes?.error) throw new Error("가입은 됐지만 로그인에 실패했어요. 로그인 페이지에서 다시 시도해주세요")
-
-      router.push("/mypage")
-      router.refresh()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "회원가입에 실패했어요")
-    } finally {
-      setLoading(false)
-    }
-  }
-
+export default function SignupTypePage() {
   return (
-    <div className="max-w-sm mx-auto px-6 py-16">
-      <div className="text-center mb-8">
-        <p className="text-3xl mb-2">🌸</p>
-        <h1 className="text-2xl font-bold text-stone-800">이메일로 회원가입</h1>
+    <div className="max-w-3xl mx-auto px-6 py-16">
+      <div className="text-center mb-10">
+        <p className="text-4xl mb-3">🌸</p>
+        <h1 className="text-2xl font-bold text-stone-800">어떤 계정으로 시작할까요?</h1>
+        <p className="text-sm text-stone-500 mt-2">계정 유형에 따라 이용할 수 있는 기능이 달라요.</p>
       </div>
-
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-stone-100 p-6 space-y-4">
-        <div className="space-y-1.5">
-          <Label className="text-xs text-stone-500">닉네임 * (2~12자, 중복 불가)</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={12} placeholder="닉네임" className="rounded-xl border-stone-200" />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs text-stone-500">이메일 *</Label>
-          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="rounded-xl border-stone-200" />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs text-stone-500">비밀번호 * (8자 이상)</Label>
-          <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="rounded-xl border-stone-200" />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs text-stone-500">비밀번호 확인 *</Label>
-          <Input type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} placeholder="••••••••" className="rounded-xl border-stone-200" />
-        </div>
-
-        {error && <p className="text-sm text-red-500 text-center">{error}</p>}
-
-        <Button type="submit" disabled={loading} className="w-full h-11 bg-rose-400 hover:bg-rose-500 text-white font-semibold">
-          {loading ? "가입 중..." : "회원가입"}
-        </Button>
-
-        <p className="text-xs text-center text-stone-400">
-          이미 계정이 있으신가요? <Link href="/login" className="text-rose-500 font-medium">로그인</Link>
-        </p>
-      </form>
+      <div className="grid md:grid-cols-2 gap-5">
+        <Link href="/signup/customer" className="group bg-white rounded-3xl border border-stone-100 p-7 hover:border-rose-200 hover:shadow-lg hover:shadow-rose-50 transition-all">
+          <div className="w-12 h-12 rounded-2xl bg-rose-50 flex items-center justify-center mb-5">
+            <ShoppingBag className="text-rose-400" size={23} />
+          </div>
+          <h2 className="text-lg font-bold text-stone-800 flex items-center justify-between">
+            일반 사용자 회원가입 <ChevronRight size={18} className="text-stone-300 group-hover:text-rose-400" />
+          </h2>
+          <p className="text-sm text-stone-500 mt-2 leading-6">꽃을 구매하고 오행 추천, 리뷰, 포인트 서비스를 이용해요.</p>
+          <p className="text-xs text-rose-400 mt-4">이메일 · 카카오 · 구글</p>
+        </Link>
+        <Link href="/signup/seller" className="group bg-white rounded-3xl border border-stone-100 p-7 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-50 transition-all">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center mb-5">
+            <Store className="text-emerald-500" size={23} />
+          </div>
+          <h2 className="text-lg font-bold text-stone-800 flex items-center justify-between">
+            판매자 회원가입 <ChevronRight size={18} className="text-stone-300 group-hover:text-emerald-500" />
+          </h2>
+          <p className="text-sm text-stone-500 mt-2 leading-6">판매처와 사업자 정보를 등록하고 상품·꽃 재고를 관리해요.</p>
+          <p className="text-xs text-emerald-600 mt-4">사업자 정보 제출 후 관리자 승인 필요</p>
+        </Link>
+      </div>
     </div>
   )
 }

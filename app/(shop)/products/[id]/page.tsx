@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useParams } from "next/navigation"
 import { useSession } from "next-auth/react"
-import { ShoppingBag, ArrowLeft, Heart, Star } from "lucide-react"
+import { ShoppingBag, ArrowLeft, Heart, Star, BadgeCheck, ExternalLink, Store } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useCartStore } from "@/store/cartStore"
 import { ProductGuide } from "@/components/shop/ProductGuide"
@@ -19,6 +19,9 @@ interface Product {
   images: string[]; flowerMeaning: string | null; ohaengTags: string[]
   colorTags: string[]; seasonTags: string[]; category: string
   useTags?: string[] | null
+  saleStatus?: string
+  purchaseType?: string; externalUrl?: string | null; partnerName?: string | null; partnerBadge?: string | null
+  seller?: { marketName: string; introduction: string | null; publicPhone: string | null } | { marketName: string; introduction: string | null; publicPhone: string | null }[] | null
   reviews?: Review[]
 }
 
@@ -127,6 +130,10 @@ export default function ProductDetailPage() {
       </div>
     )
   }
+  const seller = Array.isArray(product.seller) ? product.seller[0] : product.seller
+  const external = product.purchaseType === "EXTERNAL" && Boolean(product.externalUrl)
+  const marketName = external ? product.partnerName : seller?.marketName
+  const unavailable = product.stock === 0 || Boolean(product.saleStatus && product.saleStatus !== "ON_SALE")
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10">
@@ -167,6 +174,11 @@ export default function ProductDetailPage() {
               ))}
             </div>
             <h1 className="text-3xl font-bold text-stone-800">{product.name}</h1>
+            {marketName && <div className={`mt-4 flex items-center gap-3 rounded-2xl border p-3 ${external ? "border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50" : "border-emerald-100 bg-emerald-50/70"}`}>
+              <span className={`flex h-10 w-10 items-center justify-center rounded-full ${external ? "bg-gradient-to-br from-amber-300 to-yellow-600 text-white shadow" : "bg-white text-emerald-700"}`}>{external ? <BadgeCheck size={20} /> : <Store size={19} />}</span>
+              <div className="flex-1"><p className={`text-xs font-bold ${external ? "text-amber-700" : "text-emerald-700"}`}>{external ? (product.partnerBadge || "공식 제휴 판매처") : "이 상품을 준비하는 꽃집"}</p><p className="mt-0.5 font-semibold text-stone-800">{marketName}</p></div>
+              {external && <ExternalLink size={17} className="text-amber-600" />}
+            </div>}
             {product.flowerMeaning && (
               <p className="text-stone-400 mt-2 text-sm">꽃말 — {product.flowerMeaning}</p>
             )}
@@ -189,35 +201,35 @@ export default function ProductDetailPage() {
 
           <div className="border-t border-stone-100 pt-6 space-y-4">
             {/* 수량 선택 */}
-            <div className="flex items-center gap-4">
+            {!external && <div className="flex items-center gap-4">
               <span className="text-sm font-medium text-stone-700 w-12">수량</span>
               <div className="flex items-center gap-3 bg-stone-50 rounded-xl px-4 py-2.5">
                 <button onClick={() => setQuantity((q) => Math.max(1, q - 1))} className="w-6 h-6 flex items-center justify-center text-stone-500 hover:text-rose-500 font-medium">−</button>
                 <span className="w-8 text-center font-semibold">{quantity}</span>
-                <button onClick={() => setQuantity((q) => Math.min(product.stock, q + 1))} className="w-6 h-6 flex items-center justify-center text-stone-500 hover:text-rose-500 font-medium">+</button>
+                <button disabled={unavailable} onClick={() => setQuantity((q) => Math.min(product.stock, q + 1))} className="w-6 h-6 flex items-center justify-center text-stone-500 hover:text-rose-500 font-medium">+</button>
               </div>
               <span className="text-sm text-stone-400">재고 {product.stock}개</span>
-            </div>
+            </div>}
 
             {/* 합계 */}
-            <div className="flex items-center justify-between py-3 px-4 bg-rose-50 rounded-xl">
+            {!external && <div className="flex items-center justify-between py-3 px-4 bg-rose-50 rounded-xl">
               <span className="text-sm text-stone-600">합계</span>
               <span className="text-xl font-bold text-rose-500">{(product.price * quantity).toLocaleString()}원</span>
-            </div>
+            </div>}
 
             {/* 버튼 */}
             <div className="flex gap-3">
-              <Button
+              {external ? <a href={product.externalUrl!} target="_blank" rel="noopener noreferrer" className="flex h-12 flex-1 items-center justify-center gap-2 rounded-md bg-gradient-to-r from-amber-500 to-yellow-600 text-base font-semibold text-white hover:from-amber-600 hover:to-yellow-700"><ExternalLink size={18} />케이플라워에서 구매하기</a> : <Button
                 onClick={handleAddToCart}
-                disabled={product.stock === 0}
+                disabled={unavailable}
                 className="flex-1 h-12 bg-rose-400 hover:bg-rose-500 text-white font-semibold text-base gap-2 disabled:opacity-50"
               >
                 <ShoppingBag size={18} />
-                {added ? "담겼어요! 🌸" : product.stock === 0 ? "품절" : "장바구니 담기"}
-              </Button>
-              <Button variant="outline" size="icon" className="h-12 w-12 border-stone-200 shrink-0">
+                {added ? "담겼어요! 🌸" : product.stock === 0 ? "품절" : product.saleStatus === "PAUSED" ? "판매 중지된 상품" : product.saleStatus === "HIDDEN" ? "판매 준비 중" : "장바구니 담기"}
+              </Button>}
+              {!external && <Button variant="outline" size="icon" className="h-12 w-12 border-stone-200 shrink-0">
                 <Heart size={18} className="text-stone-400" />
-              </Button>
+              </Button>}
             </div>
           </div>
         </div>

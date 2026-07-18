@@ -49,7 +49,7 @@ export default function HomePage() {
               { img: "https://images.unsplash.com/photo-1528190590778-23ac3ad37dff?w=400&h=400&fit=crop&q=80", title: "라벤더", tag: "수(水)" },
             ].map(({ img, title, tag }) => (
               <div key={title} className="rounded-2xl overflow-hidden relative aspect-square group">
-                <Image src={img} alt={title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                <Image src={img} alt={title} fill sizes="(max-width: 768px) 45vw, 176px" className="object-cover group-hover:scale-105 transition-transform duration-500" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                 <div className="absolute bottom-0 left-0 p-3">
                   <p className="text-sm font-semibold text-white">{title}</p>

@@ -139,4 +139,15 @@ BLOB_READ_WRITE_TOKEN # Vercel Blob
 
 ---
 
+## 6. 인생내꽃 피벗 — 핵심 설계 문서
+
+농협 사내 경진대회용 피벗(사주오행 기반 개인화 꽃 추천·판매 플랫폼) 관련 작업 시, 아래 두 문서가 최신 소스 오브 트루스다. 다른 곳에서 이 프로젝트 방향을 다시 설계하거나 추측하지 말고 먼저 이 문서들을 확인할 것.
+
+- `인생내꽃_서비스기획서.docx` — 중간·최종 발표 참고용 기획서. 평가자 대상이라 구현 상태(완료/신규개발 등) 언급 없이 기능 설명·기대효과만 담음. 문제정의, 포지셔닝, 케이플라워·올원뱅크와의 관계(경쟁이 아니라 화훼소비 촉진 파트너), 핵심플로우, 기능 1~8 상세.
+- `dev_wbs_checklist.md` — 실제 개발 체크리스트. 담당자·완료일·세부 작업 항목, GitHub에 올려 체크박스로 진행상황 공유.
+
+**두 문서는 기능 번호·내용이 서로 맞춰져 있음.** 예: 완제품 판매(로컬농가·꽃집·케이플라워)는 하나의 상품 테이블 + 판매처 구분 컬럼으로 관리(별도 KflowerProduct 모델 아님), 나만의 꽃다발 "주문하기"와 "직접 만든다면?"은 메뉴는 별도지만 같은 카테고리. 한 문서를 고치면 나머지 문서도 같이 갱신해서 번호·내용 불일치가 생기지 않게 할 것.
+
+---
+
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.

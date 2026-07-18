@@ -5,6 +5,8 @@ declare module "next-auth" {
     user: {
       id: string
       isAdmin: boolean
+      role: "CUSTOMER" | "SELLER" | "ADMIN"
+      sellerStatus: "PENDING" | "UNDER_REVIEW" | "APPROVED" | "REJECTED" | "SUSPENDED" | null
     } & DefaultSession["user"]
   }
 }
@@ -13,5 +15,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     id?: string
     isAdmin?: boolean
+    role?: "CUSTOMER" | "SELLER" | "ADMIN"
+    sellerStatus?: "PENDING" | "UNDER_REVIEW" | "APPROVED" | "REJECTED" | "SUSPENDED" | null
   }
 }

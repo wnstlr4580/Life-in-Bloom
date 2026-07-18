@@ -34,6 +34,7 @@ export function FlowerRecommendList({ title, products }: Props) {
                   src={product.images[0]}
                   alt={product.name}
                   fill
+                  sizes="(max-width: 640px) 45vw, 240px"
                   className="object-cover group-hover:scale-105 transition-transform duration-300"
                 />
               ) : (
