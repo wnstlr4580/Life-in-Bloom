@@ -9,8 +9,8 @@ const MENUS = [
   { href: "/seller", label: "판매자 홈", icon: Store },
   { href: "/seller/products", label: "완제품 상품 관리", icon: Package },
   { href: "/seller/stocks", label: "개별 꽃 재고", icon: Boxes, pending: true },
-  { href: "/seller/orders", label: "주문·배송 관리", icon: ClipboardList, pending: true },
-  { href: "/seller/settlements", label: "정산 관리", icon: BarChart3, pending: true },
+  { href: "/seller/orders", label: "주문·배송 관리", icon: ClipboardList },
+  { href: "/seller/settlements", label: "정산 관리", icon: BarChart3 },
   { href: "/seller/settings", label: "판매처 설정", icon: Settings },
 ]
 

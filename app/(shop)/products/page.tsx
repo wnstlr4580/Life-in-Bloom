@@ -7,6 +7,8 @@ import { ProductCard } from "@/components/shop/ProductCard"
 const CATEGORIES = [
   { value: "", label: "전체" },
   { value: "bouquet", label: "꽃다발" },
+  { value: "basket", label: "꽃바구니" },
+  { value: "orchid", label: "난" },
   { value: "plant", label: "화분" },
   { value: "wreath", label: "화환" },
   { value: "dried", label: "드라이플라워" },

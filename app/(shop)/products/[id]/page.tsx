@@ -26,7 +26,7 @@ interface Product {
 }
 
 const OHAENG_EMOJI: Record<string, string> = { 목: "🌿", 화: "🔥", 토: "🌾", 금: "✨", 수: "💧" }
-const CATEGORY_LABEL: Record<string, string> = { bouquet: "꽃다발", plant: "화분", wreath: "화환", dried: "드라이플라워" }
+const CATEGORY_LABEL: Record<string, string> = { bouquet: "꽃다발", basket: "꽃바구니", orchid: "난", plant: "화분", wreath: "화환", dried: "드라이플라워" }
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()

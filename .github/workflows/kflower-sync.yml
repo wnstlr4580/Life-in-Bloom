@@ -1,0 +1,28 @@
+name: Kflower catalog sync
+
+on:
+  schedule:
+    # 매일 오전 6시(KST). 케이플라워의 야간 점검 시간과 쇼핑 피크를 피한다.
+    - cron: "0 21 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: kflower-catalog-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Sync authorized Kflower catalog
+        run: npm run sync:kflower
+        env:
+          DATABASE_URL: ${{ secrets.KFLOWER_DATABASE_URL }}
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
