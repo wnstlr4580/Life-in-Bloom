@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "sync:kflower": "node scripts/scrape-kflower-products.mjs",
+    "seed:flower-road-stock": "node scripts/seed-flower-road-stock.mjs",
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
@@ -46,6 +47,8 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@emnapi/core": "1.11.2",
+    "@emnapi/runtime": "1.11.2",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
