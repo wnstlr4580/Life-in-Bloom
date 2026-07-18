@@ -17,6 +17,8 @@ const NAV: NavItem[] = [
     children: [
       { href: "/products", label: "전체 상품" },
       { href: "/products?category=bouquet", label: "꽃다발" },
+      { href: "/products?category=basket", label: "꽃바구니" },
+      { href: "/products?category=orchid", label: "난" },
       { href: "/products?category=plant", label: "화분" },
       { href: "/products?category=wreath", label: "화환" },
       { href: "/products?category=dried", label: "드라이플라워" },

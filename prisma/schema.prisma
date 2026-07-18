@@ -137,6 +137,7 @@ model Seller {
   reviews  SellerReview[]
   stocks   SellerStock[]
   products Product[]
+  orderItems OrderItem[]
 
   @@index([status, isOpen])
 }
@@ -240,14 +241,31 @@ enum OrderStatus {
 }
 
 model OrderItem {
-  id        String @id @default(cuid())
-  orderId   String
-  productId String
-  quantity  Int
-  price     Int
+  id                String   @id @default(cuid())
+  orderId           String
+  productId         String
+  sellerId          String?
+  quantity          Int
+  price             Int
+  itemType          String   @default("FINISHED")
+  fulfillmentStatus String   @default("PAID")
+  courier           String?
+  trackingNumber    String?
+  shippedAt         DateTime?
+  deliveredAt       DateTime?
+  commissionRate    Int      @default(10)
+  commissionFee     Int      @default(0)
+  settlementAmount  Int      @default(0)
+  settlementStatus  String   @default("WAITING")
+  settlementDueAt   DateTime?
+  settledAt         DateTime?
 
   order   Order   @relation(fields: [orderId], references: [id])
   product Product @relation(fields: [productId], references: [id])
+  seller  Seller? @relation(fields: [sellerId], references: [id])
+
+  @@index([sellerId, fulfillmentStatus])
+  @@index([sellerId, settlementStatus])
 }
 
 // ─── 위시리스트 ──────────────────────────────────────

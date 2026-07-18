@@ -73,16 +73,30 @@ export async function POST(req: Request) {
     )
   }
 
+  const productIds = (items as OrderItemInput[]).map((item) => item.productId)
+  const { data: orderProducts } = await supabaseAdmin
+    .from("Product")
+    .select("id, sellerId, category")
+    .in("id", productIds)
+  const productMap = new Map((orderProducts ?? []).map((product) => [product.id, product]))
+  const COMMISSION_RATE = 10
+
   const { error: itemsError } = await supabaseAdmin
     .from("OrderItem")
     .insert(
-      (items as OrderItemInput[]).map((item) => ({
-        id: nanoid(),
-        orderId,
-        productId: item.productId,
-        quantity: item.quantity,
-        price: item.price,
-      }))
+      (items as OrderItemInput[]).map((item) => {
+        const product = productMap.get(item.productId)
+        const gross = item.price * item.quantity
+        const commissionFee = Math.round(gross * COMMISSION_RATE / 100)
+        return {
+          id: nanoid(), orderId, productId: item.productId, sellerId: product?.sellerId ?? null,
+          quantity: item.quantity, price: item.price,
+          itemType: product?.category === "custom" ? "CUSTOM_BOUQUET" : ["single-flower", "diy"].includes(product?.category ?? "") ? "DIY_FLOWER" : "FINISHED",
+          fulfillmentStatus: paymentId ? "PAID" : "PENDING",
+          commissionRate: COMMISSION_RATE, commissionFee, settlementAmount: gross - commissionFee,
+          settlementStatus: "WAITING",
+        }
+      })
     )
 
   if (itemsError) {

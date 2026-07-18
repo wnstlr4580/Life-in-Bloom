@@ -21,6 +21,8 @@ interface Props {
 
 const CATEGORY_LABEL: Record<string, string> = {
   bouquet: "꽃다발",
+  basket: "꽃바구니",
+  orchid: "난",
   plant: "화분",
   wreath: "화환",
   dried: "드라이",
