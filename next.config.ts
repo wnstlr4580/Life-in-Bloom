@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "image.pollinations.ai",
       },
+      {
+        protocol: "https",
+        hostname: "www.e-kflower.com",
+        pathname: "/**",
+      },
     ],
   },
 }

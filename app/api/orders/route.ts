@@ -46,6 +46,13 @@ export async function POST(req: Request) {
   // 커스텀 꽃다발은 클라이언트에서 생성한 임시 ID라 Product 테이블에 없음 — 먼저 upsert
   const customItems = (items as OrderItemInput[]).filter((i) => i.productId.startsWith("custom_"))
   if (customItems.length > 0) {
+    const { data: customSeller } = await supabaseAdmin
+      .from("Seller").select("id").eq("status", "APPROVED").eq("isOpen", true).eq("offersCustomBouquet", true)
+      .order("approvedAt", { ascending: true }).limit(1).maybeSingle()
+    if (!customSeller) {
+      await supabaseAdmin.from("Order").delete().eq("id", orderId)
+      return NextResponse.json({ error: "현재 나만의 꽃다발 주문을 받을 수 있는 판매처가 없어요" }, { status: 409 })
+    }
     await supabaseAdmin.from("Product").upsert(
       customItems.map((i) => ({
         id: i.productId,
@@ -60,6 +67,7 @@ export async function POST(req: Request) {
         seasonTags: [],
         colorTags: [],
         isActive: false,
+        sellerId: customSeller.id,
       })),
       { onConflict: "id" }
     )

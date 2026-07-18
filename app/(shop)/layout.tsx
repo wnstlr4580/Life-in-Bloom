@@ -5,7 +5,7 @@ import { useState, useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { useCartStore } from "@/store/cartStore"
 import { useSession, signIn, signOut } from "next-auth/react"
-import { ShoppingCart, Flower2, User, LogIn, Search, Shield } from "lucide-react"
+import { ShoppingCart, Flower2, User, LogIn, Search, Shield, Store } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface NavChild { href: string; label: string }
@@ -144,7 +144,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
               </Button>
             </Link>
 
-            {session?.user?.isAdmin && (
+            {(session?.user?.role === "ADMIN" || session?.user?.isAdmin === true) && (
               <Link href="/admin">
                 <Button variant="ghost" size="sm" className="gap-1.5 text-rose-500 hover:text-rose-600">
                   <Shield size={18} />
@@ -152,9 +152,16 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
                 </Button>
               </Link>
             )}
+            {session?.user?.role === "SELLER" && (
+              <Link href="/seller">
+                <Button variant="ghost" size="sm" className="gap-1.5 text-emerald-700 hover:text-emerald-800">
+                  <Store size={18} /><span className="text-sm hidden sm:inline">판매자센터</span>
+                </Button>
+              </Link>
+            )}
 
             {session?.user ? (
-              <Link href="/mypage">
+              <Link href={session.user.role === "SELLER" ? "/seller" : session.user.role === "ADMIN" ? "/admin" : "/mypage"}>
                 <Button variant="ghost" size="sm" className="gap-1.5 text-stone-600">
                   <User size={18} />
                   <span className="text-sm hidden sm:inline">

@@ -20,7 +20,7 @@ const providers: Provider[] = [
 
       const { data: user } = await supabaseAdmin
         .from("User")
-        .select("id, email, name, image, password")
+        .select("id, email, name, image, password, role")
         .eq("email", email.toLowerCase().trim())
         .maybeSingle()
 
@@ -28,7 +28,7 @@ const providers: Provider[] = [
       const valid = await bcrypt.compare(password, user.password)
       if (!valid) return null
 
-      return { id: user.id, email: user.email, name: user.name, image: user.image }
+      return { id: user.id, email: user.email, name: user.name, image: user.image, role: user.role }
     },
   }),
 ]
@@ -56,8 +56,17 @@ const nextAuth = NextAuth({
   trustHost: true,
   session: { strategy: "jwt" },
   callbacks: {
-    signIn: async ({ user }) => {
+    signIn: async ({ user, account }) => {
       if (!user.email || !supabaseAdmin) return true
+      if (account?.provider !== "credentials") {
+        const { data: existing } = await supabaseAdmin
+          .from("User")
+          .select("role")
+          .eq("email", user.email)
+          .maybeSingle()
+        // 판매자 계정은 이메일/비밀번호 로그인만 허용한다.
+        if (existing?.role === "SELLER") return false
+      }
       await supabaseAdmin.from("User").upsert(
         { id: user.id ?? user.email, email: user.email, name: user.name, image: user.image },
         { onConflict: "email", ignoreDuplicates: false }
@@ -70,22 +79,30 @@ const nextAuth = NextAuth({
         token.name = session.name as string
       }
       if (user) token.id = user.id
-      // 관리자 여부는 매번 DB에서 최신값을 읽는다
-      // (로그인 중에 관리자로 지정돼도 재로그인 없이 바로 반영되도록)
+      // 역할과 판매자 상태는 매번 DB에서 최신값을 읽는다.
       if (token.email) {
         const { data } = await supabaseAdmin
           .from("User")
-          .select("id, isAdmin")
+          .select("id, isAdmin, role, Seller(status)")
           .eq("email", token.email as string)
           .maybeSingle()
-        token.isAdmin = data?.isAdmin ?? false
+        const seller = Array.isArray(data?.Seller) ? data?.Seller[0] : data?.Seller
+        token.role = data?.role ?? (data?.isAdmin ? "ADMIN" : "CUSTOMER")
+        token.sellerStatus = seller?.status ?? null
+        token.isAdmin = token.role === "ADMIN"
         if (!token.id && data?.id) token.id = data.id
       }
       return token
     },
     session: ({ session, token }) => ({
       ...session,
-      user: { ...session.user, id: token.id as string, isAdmin: (token.isAdmin as boolean) ?? false },
+      user: {
+        ...session.user,
+        id: token.id as string,
+        role: (token.role as string) ?? "CUSTOMER",
+        sellerStatus: (token.sellerStatus as string | null) ?? null,
+        isAdmin: token.role === "ADMIN",
+      },
     }),
   },
 })

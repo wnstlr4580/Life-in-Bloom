@@ -204,7 +204,7 @@ export function OhaengBalance({ pillars, lackingProducts = [] }: Props) {
                         <div className="aspect-square relative overflow-hidden bg-stone-50">
                           {p.images[0] ? (
                             <Image
-                              src={p.images[0]} alt={p.name} fill
+                              src={p.images[0]} alt={p.name} fill sizes="(max-width: 640px) 30vw, 120px"
                               className="object-cover group-hover:scale-105 transition-transform duration-300"
                             />
                           ) : (

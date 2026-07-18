@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const callbackUrl = searchParams.get("callbackUrl") || "/mypage"
+  const callbackUrl = searchParams.get("callbackUrl") || "/account"
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")

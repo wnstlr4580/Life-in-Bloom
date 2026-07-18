@@ -14,8 +14,11 @@ export async function GET(req: NextRequest) {
 
   let query = supabaseAdmin
     .from("Product")
-    .select("id, name, price, images, flowerMeaning, category, stock, reviews:Review(rating)", { count: "exact" })
+    .select("id, name, price, images, flowerMeaning, category, stock, saleStatus, purchaseType, externalUrl, partnerName, partnerBadge, seller:Seller(marketName), reviews:Review(rating)", { count: "exact" })
     .eq("isActive", true)
+    .eq("saleStatus", "ON_SALE")
+    .or(`displayStartAt.is.null,displayStartAt.lte.${new Date().toISOString()}`)
+    .or(`displayEndAt.is.null,displayEndAt.gte.${new Date().toISOString()}`)
 
   if (sort === "price_asc") query = query.order("price", { ascending: true })
   else if (sort === "price_desc") query = query.order("price", { ascending: false })

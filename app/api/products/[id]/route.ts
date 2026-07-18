@@ -8,6 +8,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
     .from("Product")
     .select(`
       *,
+      seller:Seller(marketName, introduction, publicPhone),
       reviews:Review(
         id, rating, content, createdAt, userId,
         user:User(name, image)
