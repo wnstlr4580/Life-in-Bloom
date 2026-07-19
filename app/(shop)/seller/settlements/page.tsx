@@ -8,14 +8,17 @@ type Data = {
   account: { bank: string; account: string; holder: string }
   items: { id: string; orderId: string; quantity: number; price: number; itemType: string; commissionRate: number; commissionFee: number; settlementAmount: number; settlementStatus: string; settlementDueAt: string | null; product: { name: string } | { name: string }[]; order: { createdAt: string } | { createdAt: string }[] }[]
 }
+type ApiError = { error: string; status?: string }
 const TYPE: Record<string, string> = { FINISHED: "완제품", CUSTOM_BOUQUET: "나만의 꽃다발", DIY_FLOWER: "개별 꽃·DIY" }
 const STATUS: Record<string, string> = { WAITING: "구매확정 대기", READY: "정산 예정", PAID: "지급 완료", HOLD: "정산 보류" }
 const won = (value: number) => `${value.toLocaleString()}원`
 
 export default function SellerSettlementsPage() {
   const [data, setData] = useState<Data | null>(null)
+  const [apiError, setApiError] = useState<ApiError | null>(null)
   const [tab, setTab] = useState("")
-  useEffect(() => { fetch("/api/seller/settlements").then((response) => response.json()).then(setData) }, [])
+  useEffect(() => { fetch("/api/seller/settlements").then(async (response) => { const result = await response.json(); if (!response.ok) setApiError(result); else setData(result) }).catch(() => setApiError({ error: "정산 정보를 불러오지 못했어요" })) }, [])
+  if (apiError) return <div className="mx-auto max-w-xl px-6 py-24 text-center"><div className="rounded-2xl border border-amber-200 bg-amber-50 p-8"><CalendarClock className="mx-auto text-amber-600" /><h1 className="mt-4 text-xl font-bold">정산 관리는 승인 후 이용할 수 있어요</h1><p className="mt-2 text-sm leading-6 text-stone-600">{apiError.error}</p><a href="/seller" className="mt-6 inline-flex rounded-xl bg-stone-900 px-5 py-3 text-sm font-semibold text-white">판매자 홈으로</a></div></div>
   if (!data) return <div className="py-32 text-center text-stone-400">정산 내역을 불러오는 중...</div>
   const items = data.items.filter((item) => !tab || item.settlementStatus === tab)
   return <div className="max-w-6xl px-6 py-10">

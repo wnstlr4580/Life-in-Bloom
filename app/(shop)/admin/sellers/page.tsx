@@ -1,215 +1,76 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
-import Link from "next/link"
-import { useSession } from "next-auth/react"
-import { Button } from "@/components/ui/button"
+import { Fragment, useEffect, useState } from "react"
 
-type Seller = {
-  id: string; status: string; marketName: string; legalBusinessName: string
-  businessNumber: string; representativeName: string; managerName: string
-  managerPhone: string; sellerType: string; submittedAt: string
-  offersCustomBouquet: boolean; offersDiyFlowers: boolean
-  User: { email: string } | { email: string }[] | null
-}
-
-type SellerDetail = Seller & {
-  legalBusinessName: string; representativeName: string; businessType: string
-  businessCategory: string; mailOrderNumber: string | null; publicPhone: string | null
-  introduction: string | null; postalCode: string; roadAddress: string; detailAddress: string
-  settlementBank: string; settlementAccount: string; settlementHolder: string
-  businessLicenseUrl: string | null; sellsFinishedProducts: boolean
-  approvedAt: string | null
-}
-
-type Review = { id: string; fromStatus: string | null; toStatus: string; reason: string | null; snapshot?: { requestType?: string; requestedChanges?: Record<string, string> }; createdAt: string }
-
-const LABEL: Record<string, string> = { PENDING: "신청", UNDER_REVIEW: "검토중", APPROVED: "승인", REJECTED: "반려", SUSPENDED: "정지" }
+type Seller = { id: string; status: string; marketName: string; legalBusinessName: string; businessNumber: string; representativeName: string; managerName: string; managerPhone: string; publicPhone: string | null; roadAddress: string; sellerType: string; submittedAt: string; approvedAt: string | null; sellsFinishedProducts: boolean; offersCustomBouquet: boolean; offersDiyFlowers: boolean; User: { email: string } | { email: string }[] | null }
+type Detail = { seller: Record<string, unknown>; reviews: Array<{ id: string; fromStatus: string | null; toStatus: string; reason: string | null; createdAt: string; User?: { name: string | null; email: string } | null }> }
+const STATUS: Record<string, string> = { PENDING: "신청", UNDER_REVIEW: "검토 중", APPROVED: "운영 중", REJECTED: "반려", SUSPENDED: "사용 중지" }
+const REGIONS = ["ALL", "종로구", "중구", "용산구", "성동구", "광진구", "동대문구", "중랑구", "성북구", "강북구", "도봉구", "노원구", "은평구", "서대문구", "마포구", "양천구", "강서구", "구로구", "금천구", "영등포구", "동작구", "관악구", "서초구", "강남구", "송파구", "강동구"]
 
 export default function AdminSellersPage() {
-  const { data: session, status } = useSession()
   const [sellers, setSellers] = useState<Seller[]>([])
-  const [loading, setLoading] = useState(true)
-  const [forbidden, setForbidden] = useState(false)
-  const [reason, setReason] = useState<Record<string, string>>({})
-  const [saving, setSaving] = useState<string | null>(null)
+  const [filters, setFilters] = useState({ q: "", status: "ALL", region: "ALL", sellerType: "ALL", service: "ALL" })
   const [expanded, setExpanded] = useState<string | null>(null)
-  const [details, setDetails] = useState<Record<string, { seller: SellerDetail; reviews: Review[] }>>({})
-  const [detailLoading, setDetailLoading] = useState<string | null>(null)
-  const [actionMessage, setActionMessage] = useState<Record<string, string>>({})
-
-  const load = useCallback(async () => {
-    const response = await fetch("/api/admin/sellers")
-    if (response.status === 403) { setForbidden(true); setLoading(false); return }
-    const data = await response.json()
-    setSellers(data.sellers ?? [])
-    setLoading(false)
-  }, [])
-  useEffect(() => { if (session?.user) load(); else if (status !== "loading") setLoading(false) }, [load, session, status])
-
-  const review = async (sellerId: string, nextStatus: string) => {
-    setSaving(sellerId)
-    const response = await fetch("/api/admin/sellers", {
-      method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sellerId, status: nextStatus, reason: reason[sellerId] ?? "" }),
-    })
-    const data = await response.json()
-    if (response.ok) {
-      const message = nextStatus === "APPROVED" ? "판매처 승인이 완료됐습니다." : nextStatus === "REJECTED" ? "판매처 신청을 반려했습니다." : "검토 중 상태로 변경했습니다."
-      setSellers((current) => current.map((seller) => seller.id === sellerId ? { ...seller, status: nextStatus } : seller))
-      setActionMessage((current) => ({ ...current, [sellerId]: message }))
-      setDetails((current) => {
-        const next = { ...current }
-        delete next[sellerId]
-        return next
-      })
-      setExpanded(null)
-      await load()
-    } else alert(data.error ?? "처리에 실패했어요")
-    setSaving(null)
+  const [details, setDetails] = useState<Record<string, Detail>>({})
+  const [reason, setReason] = useState<Record<string, string>>({})
+  const [error, setError] = useState("")
+  const load = async () => {
+    const params = new URLSearchParams(filters)
+    const response = await fetch(`/api/admin/sellers?${params}`, { cache: "no-store" }); const data = await response.json()
+    if (!response.ok) return setError(data.error); setSellers(data.sellers ?? []); setError("")
   }
-
-  const openDetail = async (sellerId: string) => {
-    if (expanded === sellerId) { setExpanded(null); return }
-    setExpanded(sellerId)
-    if (details[sellerId]) return
-    setDetailLoading(sellerId)
-    const response = await fetch(`/api/admin/sellers/${sellerId}`)
-    const data = await response.json()
-    if (response.ok) setDetails((current) => ({ ...current, [sellerId]: data }))
-    else alert(data.error ?? "상세 정보를 불러오지 못했어요")
-    setDetailLoading(null)
+  useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const open = async (id: string) => {
+    if (expanded === id) return setExpanded(null)
+    setExpanded(id); if (details[id]) return
+    const response = await fetch(`/api/admin/sellers/${id}`); const data = await response.json()
+    if (response.ok) setDetails((current) => ({ ...current, [id]: data })); else alert(data.error)
   }
-
-  if (status === "loading" || loading) return <div className="py-32 text-center text-stone-400">판매처 신청을 불러오는 중...</div>
-  if (!session?.user) return <Notice text="관리자 로그인이 필요해요" />
-  if (forbidden) return <Notice text="관리자 권한이 없는 계정이에요" />
-
-  return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
-      <div className="flex items-end justify-between mb-8"><div><Link href="/admin" className="text-xs text-stone-400">← 관리자센터</Link><h1 className="text-2xl font-bold text-stone-800 mt-3">판매처 가입 심사</h1></div><span className="text-sm text-stone-400">{sellers.length}건</span></div>
-      <div className="space-y-4">
-        {sellers.length === 0 && <div className="bg-white border border-stone-100 rounded-2xl py-20 text-center text-stone-400">접수된 판매처 신청이 없어요.</div>}
-        {sellers.map((seller) => {
-          const user = Array.isArray(seller.User) ? seller.User[0] : seller.User
-          return (
-            <div key={seller.id} className="bg-white rounded-2xl border border-stone-100 p-6">
-              <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-5">
-                <div>
-                  <div className="flex items-center gap-2"><h2 className="font-bold text-stone-800">{seller.marketName}</h2><span className="text-xs rounded-full bg-stone-100 text-stone-600 px-2.5 py-1">{LABEL[seller.status] ?? seller.status}</span></div>
-                  <p className="text-sm text-stone-500 mt-2">{seller.legalBusinessName} · {seller.businessNumber} · 대표 {seller.representativeName}</p>
-                  <p className="text-xs text-stone-400 mt-1">담당 {seller.managerName} {seller.managerPhone} · {user?.email}</p>
-                  <p className="text-xs text-emerald-600 mt-3">{seller.offersCustomBouquet && "나만의 꽃다발 주문 참여"} {seller.offersDiyFlowers && " · 직접 만든다면? 참여"}</p>
-                </div>
-                <div className="lg:w-80 space-y-2">
-                  <Button type="button" variant="outline" onClick={() => openDetail(seller.id)} className="w-full h-9 border-stone-200">
-                    {expanded === seller.id ? "상세 접기" : "신청 상세 확인"}
-                  </Button>
-                  {seller.status === "APPROVED" ? (
-                    <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm font-semibold text-emerald-700">✓ 승인 완료된 판매처입니다</div>
-                  ) : (
-                    <>
-                      <input value={reason[seller.id] ?? ""} onChange={(e) => setReason((r) => ({ ...r, [seller.id]: e.target.value }))} placeholder="반려 사유" className="w-full h-9 rounded-xl border border-stone-200 px-3 text-sm" />
-                      <div className="flex flex-wrap gap-2">
-                        {seller.status !== "UNDER_REVIEW" && <Button size="sm" variant="outline" disabled={saving === seller.id} onClick={() => review(seller.id, "UNDER_REVIEW")}>검토 시작</Button>}
-                        <Button size="sm" disabled={saving === seller.id} onClick={() => review(seller.id, "APPROVED")} className="bg-emerald-600 hover:bg-emerald-700 text-white">{saving === seller.id ? "처리 중..." : "승인"}</Button>
-                        <Button size="sm" variant="outline" disabled={saving === seller.id} onClick={() => review(seller.id, "REJECTED")} className="text-red-500">반려</Button>
-                      </div>
-                    </>
-                  )}
-                  {actionMessage[seller.id] && <p className="text-xs font-semibold text-emerald-700">{actionMessage[seller.id]}</p>}
-                </div>
-              </div>
-              {expanded === seller.id && (
-                <div className="mt-6 pt-6 border-t border-stone-100">
-                  {detailLoading === seller.id || !details[seller.id] ? (
-                    <p className="py-8 text-center text-sm text-stone-400">신청 상세 정보를 불러오는 중...</p>
-                  ) : (
-                    <SellerDetailPanel detail={details[seller.id]} />
-                  )}
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
+  useEffect(() => {
+    const sellerId = new URLSearchParams(window.location.search).get("open")
+    if (sellerId) open(sellerId)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const changeStatus = async (id: string, status: string) => {
+    const response = await fetch("/api/admin/sellers", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sellerId: id, status, reason: reason[id] }) })
+    const data = await response.json(); if (!response.ok) return alert(data.error)
+    setDetails((current) => { const next = { ...current }; delete next[id]; return next }); setExpanded(null); load()
+  }
+  return <div className="p-6 sm:p-10">
+    <h1 className="text-2xl font-bold">판매처 관리</h1><p className="mt-2 text-sm text-stone-500">판매처명·연락처·대표자·지역·서비스 조건으로 검색하고 심사 및 운영 상태를 관리합니다.</p>
+    <form onSubmit={(e) => { e.preventDefault(); load() }} className="mt-6 rounded-2xl border bg-white p-4"><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+      <input value={filters.q} onChange={(e) => setFilters({ ...filters, q: e.target.value })} placeholder="판매처·전화·대표자·담당자·이메일" className="h-10 rounded-xl border px-3 text-sm xl:col-span-2" />
+      <Select value={filters.status} set={(status) => setFilters({ ...filters, status })} options={[["ALL", "모든 상태"], ...Object.entries(STATUS)]} />
+      <Select value={filters.region} set={(region) => setFilters({ ...filters, region })} options={REGIONS.map((r) => [r, r === "ALL" ? "모든 지역" : r])} />
+      <Select value={filters.sellerType} set={(sellerType) => setFilters({ ...filters, sellerType })} options={[["ALL", "모든 판매처 유형"], ["WHOLESALE", "공판장·도매"], ["RETAIL", "꽃집·소매"], ["FARM", "농가·생산자"]]} />
+      <Select value={filters.service} set={(service) => setFilters({ ...filters, service })} options={[["ALL", "모든 서비스"], ["FINISHED", "완제품"], ["CUSTOM", "주문 제작"], ["DIY", "DIY 재료"]]} />
+    </div><div className="mt-3 flex justify-end gap-2"><button type="button" onClick={() => setFilters({ q: "", status: "ALL", region: "ALL", sellerType: "ALL", service: "ALL" })} className="h-9 rounded-lg border px-4 text-xs">초기화</button><button className="h-9 rounded-lg bg-stone-900 px-5 text-xs text-white">검색</button></div></form>
+    {error && <p className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-600">{error}</p>}
+    <div className="mt-5 overflow-hidden rounded-2xl border bg-white"><table className="w-full table-fixed text-left text-sm [&_th:last-child]:pr-8 [&_td:last-child]:pr-8 [&_th:nth-child(3)]:hidden [&_td:nth-child(3)]:hidden [&_th:nth-child(4)]:hidden [&_td:nth-child(4)]:hidden [&_th:nth-child(7)]:hidden [&_td:nth-child(7)]:hidden"><thead className="bg-stone-50 text-xs text-stone-500"><tr><Th>판매처</Th><Th>대표·담당자</Th><Th>연락처</Th><Th>지역</Th><Th>서비스</Th><Th>상태</Th><Th>신청·승인일</Th><Th>상세·관리</Th></tr></thead><tbody className="divide-y">
+      {sellers.map((seller) => { const user = Array.isArray(seller.User) ? seller.User[0] : seller.User; return <Fragment key={seller.id}>
+        <tr className="align-top hover:bg-stone-50/60"><Td><strong>{seller.marketName}</strong><p className="mt-1 text-xs text-stone-400">{seller.legalBusinessName}</p><p className="mt-1 text-[11px] text-stone-400">{seller.businessNumber}</p></Td><Td>대표 {seller.representativeName}<p className="mt-1 text-xs text-stone-400">담당 {seller.managerName}</p></Td><Td>{seller.publicPhone || seller.managerPhone}<p className="mt-1 text-xs text-stone-400">{user?.email}</p></Td><Td><span className="block max-w-40 text-xs leading-5">{seller.roadAddress}</span></Td><Td><div className="flex max-w-40 flex-wrap gap-1">{seller.sellsFinishedProducts && <Tag>완제품</Tag>}{seller.offersCustomBouquet && <Tag>주문 제작</Tag>}{seller.offersDiyFlowers && <Tag>DIY</Tag>}</div></Td><Td><span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${seller.status === "APPROVED" ? "bg-emerald-100 text-emerald-700" : seller.status === "SUSPENDED" || seller.status === "REJECTED" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"}`}>{STATUS[seller.status]}</span></Td><Td><p className="text-xs">신청 {new Date(seller.submittedAt).toLocaleDateString("ko-KR")}</p><p className="mt-1 text-xs text-stone-400">{seller.approvedAt ? `승인 ${new Date(seller.approvedAt).toLocaleString("ko-KR")}` : "미승인"}</p></Td><Td><div className="w-52 space-y-2"><button onClick={() => open(seller.id)} className="h-8 w-full rounded-lg border text-xs font-semibold">신청 상세 확인</button>{seller.status === "APPROVED" && <><input value={reason[seller.id] ?? ""} onChange={(e) => setReason((r) => ({ ...r, [seller.id]: e.target.value }))} placeholder="중지 사유" className="h-8 w-full rounded-lg border px-2 text-xs" /><button onClick={() => changeStatus(seller.id, "SUSPENDED")} className="h-8 w-full rounded-lg border text-xs text-rose-600">판매처 사용 중지</button></>}{seller.status === "SUSPENDED" && <button onClick={() => changeStatus(seller.id, "APPROVED")} className="h-8 w-full rounded-lg border text-xs text-emerald-700">재활성화</button>}{["PENDING", "UNDER_REVIEW"].includes(seller.status) && <><input value={reason[seller.id] ?? ""} onChange={(e) => setReason((r) => ({ ...r, [seller.id]: e.target.value }))} placeholder="반려 시 사유 입력" className="h-8 w-full rounded-lg border px-2 text-xs" /><div className="flex gap-1"><button onClick={() => changeStatus(seller.id, "APPROVED")} className="h-8 flex-1 rounded-lg bg-emerald-600 text-xs text-white">승인</button><button onClick={() => changeStatus(seller.id, "REJECTED")} className="h-8 flex-1 rounded-lg border text-xs text-rose-600">반려</button></div></>}</div></Td></tr>
+      </Fragment> })}
+    </tbody></table>{sellers.length === 0 && <p className="p-16 text-center text-sm text-stone-400">조건에 맞는 판매처가 없습니다.</p>}</div>
+    {expanded && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onMouseDown={() => setExpanded(null)}><div onMouseDown={(e) => e.stopPropagation()} className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl bg-[#f8f8f6] shadow-2xl"><div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white px-7 py-5"><div><p className="text-xs font-semibold text-rose-500">SELLER APPLICATION</p><h2 className="mt-1 text-xl font-bold">{sellers.find((seller) => seller.id === expanded)?.marketName ?? "판매처 신청 상세"}</h2></div><button onClick={() => setExpanded(null)} className="rounded-xl border px-4 py-2 text-sm">닫기</button></div><div className="p-6"><SellerDetail detail={details[expanded]} /></div></div></div>}
+  </div>
 }
-
-function Notice({ text }: { text: string }) { return <div className="max-w-md mx-auto py-32 text-center text-stone-500">{text}</div> }
-
-function SellerDetailPanel({ detail }: { detail: { seller: SellerDetail; reviews: Review[] } }) {
+function SellerDetail({ detail }: { detail?: Detail }) {
+  if (!detail) return <p className="text-sm text-stone-400">상세 정보를 불러오는 중...</p>
   const seller = detail.seller
-  return (
-    <div className="space-y-5">
-      <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
-        <DetailSection title="사업자 정보">
-          <Row label="상호명" value={seller.legalBusinessName} />
-          <Row label="사업자번호" value={seller.businessNumber} />
-          <Row label="대표자" value={seller.representativeName} />
-          <Row label="업태 / 종목" value={`${seller.businessType} / ${seller.businessCategory}`} />
-          <Row label="통신판매업" value={seller.mailOrderNumber || "미입력"} />
-        </DetailSection>
-        <DetailSection title="담당자·판매처">
-          <Row label="마켓명" value={seller.marketName} />
-          <Row label="담당자" value={seller.managerName} />
-          <Row label="담당자 연락처" value={seller.managerPhone} />
-          <Row label="고객 문의" value={seller.publicPhone || "미입력"} />
-          <Row label="판매처 유형" value={seller.sellerType} />
-        </DetailSection>
-        <DetailSection title="영업 위치">
-          <Row label="우편번호" value={seller.postalCode} />
-          <Row label="주소" value={`${seller.roadAddress} ${seller.detailAddress}`} />
-          <Row label="소개" value={seller.introduction || "미입력"} />
-        </DetailSection>
-        <DetailSection title="정산 정보">
-          <Row label="은행" value={seller.settlementBank} />
-          <Row label="계좌번호" value={seller.settlementAccount} />
-          <Row label="예금주" value={seller.settlementHolder} />
-          {seller.businessLicenseUrl ? (
-            <a href={seller.businessLicenseUrl} target="_blank" rel="noreferrer" className="inline-flex mt-2 text-xs font-semibold text-blue-600 hover:underline">사업자등록증 열기 ↗</a>
-          ) : <p className="text-xs text-red-500 mt-2">사업자등록증을 열 수 없습니다.</p>}
-        </DetailSection>
-      </div>
-
-      <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-4">
-        <p className="text-xs font-bold text-emerald-800 mb-2">신청 서비스</p>
-        <div className="flex flex-wrap gap-2 text-xs">
-          <Service active={seller.sellsFinishedProducts} label="완제품 꽃 상품" />
-          <Service active={seller.offersCustomBouquet} label="나만의 꽃다발 주문하기" />
-          <Service active={seller.offersDiyFlowers} label="직접 만든다면?" />
-        </div>
-      </div>
-
-      <div>
-        <p className="text-xs font-bold text-stone-700 mb-2">심사 이력</p>
-        <div className="rounded-xl border border-stone-100 divide-y divide-stone-100">
-          {detail.reviews.map((review) => (
-            <div key={review.id} className="px-4 py-3 text-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1"><span className="text-stone-700">{review.fromStatus ? `${LABEL[review.fromStatus] ?? review.fromStatus} → ` : ""}{LABEL[review.toStatus] ?? review.toStatus}</span>
-              <span className="text-stone-400">{review.reason || "사유 없음"} · {new Date(review.createdAt).toLocaleString("ko-KR")}</span></div>
-              {review.snapshot?.requestType === "SELLER_CHANGE_REQUEST" && review.snapshot.requestedChanges && <div className="mt-3 rounded-lg bg-amber-50 p-3 text-amber-900">
-                <p className="font-bold mb-2">판매자가 요청한 중요정보 변경</p>
-                {Object.entries(review.snapshot.requestedChanges).map(([key, value]) => <p key={key}>{CHANGE_LABEL[key] ?? key}: {value}</p>)}
-              </div>}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
+  const sections = [
+    { title: "사업자 정보", fields: [["사업자 상호", seller.legalBusinessName], ["대표자", seller.representativeName], ["사업자등록번호", seller.businessNumber], ["통신판매업 신고번호", seller.mailOrderNumber], ["업태", seller.businessType], ["종목", seller.businessCategory]] },
+    { title: "판매처·담당자", fields: [["노출 상호명", seller.marketName], ["판매처 유형", seller.sellerType], ["담당자", seller.managerName], ["담당자 연락처", seller.managerPhone], ["고객 문의 전화", seller.publicPhone], ["로그인 이메일", Array.isArray(seller.User) ? (seller.User as Array<{email?: string}>)[0]?.email : (seller.User as {email?: string} | undefined)?.email]] },
+    { title: "사업장 주소", fields: [["우편번호", seller.postalCode], ["도로명주소", seller.roadAddress], ["상세주소", seller.detailAddress], ["위도·경도", `${seller.latitude ?? "-"}, ${seller.longitude ?? "-"}`]] },
+    { title: "정산 정보", fields: [["은행", seller.settlementBank], ["계좌번호", seller.settlementAccount], ["예금주", seller.settlementHolder]] },
+    { title: "서비스·동의", fields: [["완제품 판매", seller.sellsFinishedProducts ? "사용" : "미사용"], ["주문 제작", seller.offersCustomBouquet ? "사용" : "미사용"], ["DIY 꽃 판매", seller.offersDiyFlowers ? "사용" : "미사용"], ["약관 버전", seller.termsVersion], ["신청일", seller.submittedAt ? new Date(String(seller.submittedAt)).toLocaleString("ko-KR") : "-"], ["승인일", seller.approvedAt ? new Date(String(seller.approvedAt)).toLocaleString("ko-KR") : "-"]] },
+  ]
+  return <div className="space-y-5">
+    <div className="grid gap-5 lg:grid-cols-[1fr_320px]"><section className="overflow-hidden rounded-2xl border bg-white">{sections.map((section, index) => <div key={section.title} className={index ? "border-t p-6" : "p-6"}><h3 className="border-l-4 border-rose-400 pl-3 font-bold">{section.title}</h3><dl className="mt-5 grid gap-x-8 gap-y-5 sm:grid-cols-2">{section.fields.map(([label, value]) => <div key={String(label)}><dt className="text-xs text-stone-400">{String(label)}</dt><dd className="mt-1 min-h-6 break-words rounded-lg bg-stone-50 px-3 py-2 text-sm font-medium">{String(value || "-")}</dd></div>)}</dl></div>)}</section>
+      <div className="space-y-4"><section className="rounded-2xl border bg-white p-5"><h3 className="font-bold">사업자등록증</h3>{seller.businessLicenseUrl ? <><div className="mt-4 overflow-hidden rounded-xl border bg-stone-50"><iframe src={String(seller.businessLicenseUrl)} title="사업자등록증" className="h-80 w-full" /></div><a href={String(seller.businessLicenseUrl)} target="_blank" rel="noreferrer" className="mt-3 block rounded-xl bg-stone-900 px-4 py-3 text-center text-sm font-semibold text-white">새 창에서 원본 보기</a></> : <p className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-700">등록된 사업자등록증 파일이 없습니다.</p>}</section>
+      <section className="rounded-2xl border bg-white p-5"><h3 className="font-bold">심사 이력</h3><div className="mt-4 space-y-4">{detail.reviews.length === 0 && <p className="text-sm text-stone-400">아직 심사 이력이 없습니다.</p>}{detail.reviews.map((review) => { const actor = Array.isArray(review.User) ? review.User[0] : review.User; return <div key={review.id} className="border-l-2 border-rose-200 pl-3 text-xs"><strong>{STATUS[review.fromStatus ?? ""] || "신규"} → {STATUS[review.toStatus]}</strong><p className="mt-1">{actor?.name || "시스템"} · {actor?.email || "계정 없음"}</p><p className="mt-1 text-stone-400">{review.reason || "사유 없음"} · {new Date(review.createdAt).toLocaleString("ko-KR")}</p></div>})}</div></section></div>
+    </div><section className="rounded-2xl border bg-white p-5"><h3 className="font-bold">판매처 소개</h3><p className="mt-3 whitespace-pre-wrap text-sm leading-6">{String(seller.introduction || "등록된 소개가 없습니다.")}</p></section>
+  </div>
 }
-const CHANGE_LABEL: Record<string, string> = { businessNumber: "사업자번호", legalBusinessName: "법적 상호", representativeName: "대표자", settlementBank: "정산 은행", settlementAccount: "정산 계좌", settlementHolder: "예금주" }
-
-function DetailSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return <section className="rounded-xl border border-stone-100 bg-stone-50/60 p-4"><h3 className="text-xs font-bold text-stone-800 mb-3">{title}</h3><div className="space-y-2">{children}</div></section>
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return <div className="text-xs"><span className="block text-stone-400">{label}</span><span className="block text-stone-700 mt-0.5 break-words">{value}</span></div>
-}
-
-function Service({ active, label }: { active: boolean; label: string }) {
-  return <span className={`rounded-full px-3 py-1 ${active ? "bg-emerald-700 text-white" : "bg-white text-stone-400 line-through"}`}>{label}</span>
-}
+function Select({ value, set, options }: { value: string; set: (v: string) => void; options: string[][] }) { return <select value={value} onChange={(e) => set(e.target.value)} className="h-10 rounded-xl border bg-white px-3 text-sm">{options.map(([v, label]) => <option key={v} value={v}>{label}</option>)}</select> }
+function Th({ children }: { children: React.ReactNode }) { return <th className="px-4 py-3 font-semibold">{children}</th> }
+function Td({ children }: { children: React.ReactNode }) { return <td className="px-4 py-4">{children}</td> }
+function Tag({ children }: { children: React.ReactNode }) { return <span className="rounded bg-emerald-50 px-1.5 py-1 text-[10px] text-emerald-700">{children}</span> }

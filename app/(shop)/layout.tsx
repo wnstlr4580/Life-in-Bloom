@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useState, useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { useCartStore } from "@/store/cartStore"
-import { useSession, signIn, signOut } from "next-auth/react"
+import { useSession } from "next-auth/react"
 import { ShoppingCart, Flower2, User, LogIn, Search, Shield, Store } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -47,6 +47,7 @@ const NAV: NavItem[] = [
     href: "/custom", label: "꽃다발 만들기",
     children: [
       { href: "/custom", label: "💐 만들러 가기" },
+      { href: "/diy", label: "✂️ 직접 만들어보기 DIY" },
       { href: "/#bouquet-gallery", label: "📸 손님들의 꽃다발" },
     ],
   },
@@ -83,7 +84,9 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
           {/* 가운데 네비 — 중메뉴에 마우스를 올리면 소메뉴가 펼쳐진다 */}
           <nav className="hidden md:flex items-center gap-1">
             {NAV.map(({ href, label, children }) => {
-              const active = pathname === href || (href !== "/" && pathname.startsWith(href.split("?")[0]))
+              const active = pathname === href
+                || (href !== "/" && pathname.startsWith(href.split("?")[0]))
+                || children?.some((child) => pathname === child.href.split("?")[0])
               return (
                 <div key={label} className="relative group">
                   <Link
@@ -188,8 +191,10 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
 
         {/* 모바일 네비 */}
         <div className="md:hidden border-t border-stone-50 flex">
-          {NAV.map(({ href, label }) => {
-            const active = pathname === href || (href !== "/" && pathname.startsWith(href.split("?")[0]))
+          {NAV.map(({ href, label, children }) => {
+            const active = pathname === href
+              || (href !== "/" && pathname.startsWith(href.split("?")[0]))
+              || children?.some((child) => pathname === child.href.split("?")[0])
             return (
               <Link
                 key={label}
@@ -228,6 +233,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
                 <Link href="/saju" className="hover:text-rose-500 transition-colors">나의 꽃 찾기</Link>
                 <Link href="/compat" className="hover:text-rose-500 transition-colors">궁합 보기</Link>
                 <Link href="/custom" className="hover:text-rose-500 transition-colors">꽃다발 만들기</Link>
+                <Link href="/diy" className="hover:text-rose-500 transition-colors">꽃다발 DIY</Link>
                 <Link href="/products" className="hover:text-rose-500 transition-colors">꽃 & 식물</Link>
                 <Link href="/orders/lookup" className="hover:text-rose-500 transition-colors">주문 조회</Link>
               </div>

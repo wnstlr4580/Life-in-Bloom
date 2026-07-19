@@ -89,7 +89,7 @@ export default function SellerPage() {
         <div className="grid lg:grid-cols-3 gap-5">
           <Card title="제출한 사업자 정보"><Info label="상호명" value={seller.legalBusinessName} /><Info label="사업자번호" value={seller.businessNumber} /></Card>
           <Card title="판매처 정보"><Info label="마켓명" value={seller.marketName} /><Info label="주소" value={`${seller.roadAddress} ${seller.detailAddress}`} /></Card>
-          <ServiceSettings seller={seller} toggle={toggle} save={saveServices} saving={saving} />
+          <ServiceSettings seller={seller} toggle={toggle} save={saveServices} saving={saving} disabled />
         </div>
       ) : (
         <div className="space-y-6">
@@ -128,14 +128,14 @@ function Feature({ icon, title, description, href, pending = false }: { icon: Re
   const content = <><div className="flex items-start justify-between"><span className="text-emerald-600">{icon}</span><span className={`text-[10px] rounded-full px-2 py-1 ${pending ? "bg-stone-100 text-stone-500" : "bg-emerald-50 text-emerald-700"}`}>{pending ? "다음 구현 단계" : "사용 가능"}</span></div><h2 className="font-bold text-stone-800 mt-4">{title}</h2><p className="text-sm text-stone-500 mt-2 leading-6">{description}</p></>
   return pending ? <div className="bg-white rounded-2xl border border-stone-100 p-6">{content}</div> : <Link href={href} className="bg-white rounded-2xl border border-stone-100 p-6 hover:border-emerald-300 hover:shadow-md transition-all">{content}</Link>
 }
-function ServiceToggle({ checked, onChange, title }: { checked: boolean; onChange: () => void; title: string }) { return <label className="flex items-center justify-between gap-4 cursor-pointer"><span className="text-sm text-stone-700">{title}</span><input type="checkbox" checked={checked} onChange={onChange} className="w-4 h-4 accent-emerald-600" /></label> }
-function ServiceSettings({ seller, toggle, save, saving }: { seller: Seller; toggle: (key: "sellsFinishedProducts" | "offersCustomBouquet" | "offersDiyFlowers") => void; save: () => void; saving: boolean }) {
+function ServiceToggle({ checked, onChange, title, disabled }: { checked: boolean; onChange: () => void; title: string; disabled?: boolean }) { return <label className={`flex items-center justify-between gap-4 ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}><span className="text-sm text-stone-700">{title}</span><input type="checkbox" checked={checked} disabled={disabled} onChange={onChange} className="w-4 h-4 accent-emerald-600" /></label> }
+function ServiceSettings({ seller, toggle, save, saving, disabled = false }: { seller: Seller; toggle: (key: "sellsFinishedProducts" | "offersCustomBouquet" | "offersDiyFlowers") => void; save: () => void; saving: boolean; disabled?: boolean }) {
   return <Card title="서비스 참여 설정">
-    <ServiceToggle checked={seller.sellsFinishedProducts} onChange={() => toggle("sellsFinishedProducts")} title="완제품 판매" />
-    <ServiceToggle checked={seller.offersCustomBouquet} onChange={() => toggle("offersCustomBouquet")} title="나만의 꽃다발 주문하기" />
-    <ServiceToggle checked={seller.offersDiyFlowers} onChange={() => toggle("offersDiyFlowers")} title="직접 만든다면?" />
-    <p className="text-[11px] text-stone-400 mt-3">승인 전에도 변경할 수 있으며, 끄면 신규 노출만 중단됩니다.</p>
-    <Button onClick={save} disabled={saving} className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white">{saving ? "저장 중..." : "설정 저장"}</Button>
+    <ServiceToggle disabled={disabled} checked={seller.sellsFinishedProducts} onChange={() => toggle("sellsFinishedProducts")} title="완제품 판매" />
+    <ServiceToggle disabled={disabled} checked={seller.offersCustomBouquet} onChange={() => toggle("offersCustomBouquet")} title="나만의 꽃다발 주문하기" />
+    <ServiceToggle disabled={disabled} checked={seller.offersDiyFlowers} onChange={() => toggle("offersDiyFlowers")} title="직접 만든다면?" />
+    <p className="text-[11px] text-stone-400 mt-3">{disabled ? "심사 중에는 신청 당시 서비스 설정을 변경할 수 없습니다." : "끄면 신규 노출만 중단됩니다."}</p>
+    <Button onClick={save} disabled={saving || disabled} className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white">{disabled ? "심사 완료 후 변경 가능" : saving ? "저장 중..." : "설정 저장"}</Button>
   </Card>
 }
 function Metric({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: number; tone: "emerald" | "blue" | "red" | "amber" }) {

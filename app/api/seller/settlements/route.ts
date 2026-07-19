@@ -4,7 +4,10 @@ import { supabaseAdmin } from "@/lib/supabase"
 
 export async function GET() {
   const actor = await requireSeller(true)
-  if (!actor?.seller) return NextResponse.json({ error: "승인된 판매자만 이용할 수 있어요" }, { status: 403 })
+  if (!actor?.seller) {
+    const pendingActor = await requireSeller()
+    return NextResponse.json({ error: "현재 판매처 심사가 진행 중입니다. 승인 완료 후 정산 내역을 확인할 수 있어요.", status: pendingActor?.seller?.status }, { status: 403 })
+  }
   const { data: seller } = await supabaseAdmin.from("Seller").select("settlementBank, settlementAccount, settlementHolder").eq("id", actor.seller.id).single()
   const { data, error } = await supabaseAdmin.from("OrderItem").select(`
     id, orderId, quantity, price, itemType, fulfillmentStatus, commissionRate, commissionFee,

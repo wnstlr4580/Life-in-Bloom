@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
 import { nanoid } from "nanoid"
 import { supabaseAdmin } from "@/lib/supabase"
+import { adminEmails, sendEmail } from "@/lib/email"
 
 const SELLER_TYPES = new Set(["FLOWER_SHOP", "FARM", "WHOLESALE", "OTHER"])
 const TERMS_VERSION = "seller-2026-07-18"
@@ -119,6 +120,12 @@ export async function POST(req: NextRequest) {
     await supabaseAdmin.storage.from("seller-documents").remove([documentPath])
     return NextResponse.json({ error: "판매자 가입에 실패했어요. 입력 정보를 확인해주세요" }, { status: 500 })
   }
+
+  await sendEmail({
+    to: adminEmails(),
+    subject: `[인생내꽃] 새 판매처 승인 요청: ${seller.marketName}`,
+    html: `<h2>새 판매처 가입 심사가 접수되었습니다.</h2><p><b>판매처</b> ${seller.marketName}</p><p><b>대표자</b> ${seller.representativeName}</p><p><b>지역</b> ${seller.roadAddress}</p><p>관리자센터에서 신청서와 사업자등록증을 확인해주세요.</p><p style="margin-top:24px"><a href="${req.nextUrl.origin}/admin/sellers?open=${sellerId}" style="display:inline-block;padding:12px 20px;border-radius:10px;background:#1c1917;color:#fff;text-decoration:none;font-weight:700">인생내꽃에서 심사하기</a></p>`,
+  }).catch((error) => console.error("[mail] seller review request", error))
 
   return NextResponse.json({ ok: true }, { status: 201 })
 }

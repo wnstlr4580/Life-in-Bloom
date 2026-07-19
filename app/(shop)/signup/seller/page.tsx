@@ -28,6 +28,7 @@ export default function SellerSignupPage() {
   const [license, setLicense] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const openAddressSearch = () => {
     const Postcode = (window as typeof window & { daum?: { Postcode: new (options: { oncomplete: (data: { zonecode: string; roadAddress: string; jibunAddress: string }) => void }) => { open: () => void } } }).daum?.Postcode
     if (!Postcode) return setError("주소 검색을 불러오는 중입니다. 잠시 후 다시 눌러주세요.")
@@ -37,7 +38,10 @@ export default function SellerSignupPage() {
     }}).open()
   }
 
-  const set = (key: FormKey, value: string | boolean) => setForm((current) => ({ ...current, [key]: value }))
+  const set = (key: FormKey, value: string | boolean) => {
+    setForm((current) => ({ ...current, [key]: value }))
+    setFieldErrors((current) => { const next = { ...current }; delete next[key]; return next })
+  }
   const stepReady = [
     Boolean(form.email && form.password && form.passwordConfirm && form.managerName && form.managerPhone),
     Boolean(form.legalBusinessName && form.businessNumber && form.representativeName && form.businessType && form.businessCategory && license),
@@ -50,8 +54,29 @@ export default function SellerSignupPage() {
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
     setError("")
-    if (form.password !== form.passwordConfirm) return setError("비밀번호가 일치하지 않아요")
-    if (!license) return setError("사업자등록증을 첨부해주세요")
+    const errors: Record<string, string> = {}
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errors.email = "올바른 이메일 주소를 입력해주세요."
+    if (form.password.length < 8) errors.password = "비밀번호는 8자 이상이어야 합니다."
+    if (form.password !== form.passwordConfirm) errors.passwordConfirm = "비밀번호가 일치하지 않습니다."
+    if (!form.managerName.trim()) errors.managerName = "담당자명을 입력해주세요."
+    if (!/^\d{10,11}$/.test(form.managerPhone.replace(/\D/g, ""))) errors.managerPhone = "휴대전화 번호 10~11자리를 입력해주세요."
+    if (!/^\d{10}$/.test(form.businessNumber.replace(/\D/g, ""))) errors.businessNumber = "사업자등록번호 숫자 10자리를 입력해주세요."
+    for (const key of ["legalBusinessName", "representativeName", "businessType", "businessCategory", "marketName", "settlementBank", "settlementAccount", "settlementHolder"] as FormKey[]) if (!String(form[key]).trim()) errors[key] = "필수 입력 항목입니다."
+    if (!license) errors.businessLicense = "사업자등록증을 첨부해주세요."
+    if (!form.postalCode || !form.roadAddress) errors.postalCode = "도로명주소 검색으로 주소를 선택해주세요."
+    if (![form.sellsFinishedProducts, form.offersCustomBouquet, form.offersDiyFlowers].some(Boolean)) errors.services = "판매 서비스를 한 개 이상 선택해주세요."
+    if (!form.termsAgreed) errors.termsAgreed = "필수 약관에 동의해주세요."
+    if (Object.keys(errors).length) {
+      setFieldErrors(errors)
+      const first = Object.keys(errors)[0]
+      requestAnimationFrame(() => {
+        const target = document.getElementById(first)
+        target?.scrollIntoView({ behavior: "smooth", block: "center" })
+        if (target instanceof HTMLElement) target.focus()
+      })
+      return
+    }
+    if (!license) return
     setLoading(true)
     try {
       const body = new FormData()
@@ -74,7 +99,8 @@ export default function SellerSignupPage() {
   const field = (key: FormKey, label: string, placeholder = "", type = "text", required = true) => (
     <div className="space-y-1.5">
       <Label htmlFor={key} className="text-xs font-medium text-stone-600">{label}{required && " *"}</Label>
-      <Input id={key} type={type} required={required} value={String(form[key])} onChange={(e) => set(key, e.target.value)} placeholder={placeholder} className="h-11 rounded-lg border-stone-200 bg-white focus-visible:border-emerald-500 focus-visible:ring-emerald-100" />
+      <Input id={key} type={type} required={required} value={String(form[key])} onChange={(e) => set(key, e.target.value)} placeholder={placeholder} className={`h-11 rounded-lg bg-white focus-visible:ring-emerald-100 ${fieldErrors[key] ? "border-red-400 focus-visible:border-red-500" : "border-stone-200 focus-visible:border-emerald-500"}`} />
+      {fieldErrors[key] && <p className="text-xs text-red-500">{fieldErrors[key]}</p>}
     </div>
   )
 
@@ -114,7 +140,7 @@ export default function SellerSignupPage() {
 
         <form
           onSubmit={submit}
-          onInvalid={() => setError("입력하지 않았거나 형식이 맞지 않는 필수 항목을 확인해주세요.")}
+          noValidate
           className="grid lg:grid-cols-[260px_minmax(0,1fr)] gap-7 items-start"
         >
           <aside className="lg:sticky lg:top-6 bg-white border border-stone-200 rounded-2xl p-5">
@@ -151,8 +177,9 @@ export default function SellerSignupPage() {
                 {field("mailOrderNumber", "통신판매업 신고번호", "선택 입력", "text", false)}
                 <div className="sm:col-span-2 space-y-2 rounded-xl border border-dashed border-stone-300 bg-stone-50 p-4">
                   <Label htmlFor="businessLicense" className="text-xs font-medium text-stone-600">사업자등록증 *</Label>
-                  <Input id="businessLicense" type="file" required accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={(e) => setLicense(e.target.files?.[0] ?? null)} className="h-11 rounded-lg border-stone-200 bg-white file:text-stone-600" />
+                  <Input id="businessLicense" type="file" required accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={(e) => { setLicense(e.target.files?.[0] ?? null); setFieldErrors((current) => { const next = { ...current }; delete next.businessLicense; return next }) }} className={`h-11 bg-white file:text-stone-600 ${fieldErrors.businessLicense ? "border-red-400" : "border-stone-200"}`} />
                   <p className="text-[11px] text-stone-400">{license ? `${license.name} 선택됨` : "PDF, JPG, PNG, WEBP · 최대 10MB"}</p>
+                  {fieldErrors.businessLicense && <p className="text-xs text-red-500">{fieldErrors.businessLicense}</p>}
                 </div>
               </div>
             </Section>
@@ -171,6 +198,7 @@ export default function SellerSignupPage() {
                   </div>
                 </div>
                 <div className="space-y-1.5"><Label className="text-xs font-medium text-stone-600">우편번호 *</Label><div className="flex gap-2"><Input required readOnly value={form.postalCode} placeholder="주소 검색" className="h-11 bg-stone-50" /><Button type="button" variant="outline" onClick={openAddressSearch} className="h-11 whitespace-nowrap">도로명주소 검색</Button></div></div>
+                {fieldErrors.postalCode && <p id="postalCode" tabIndex={-1} className="text-xs text-red-500 sm:col-span-2">{fieldErrors.postalCode}</p>}
                 <div className="sm:col-span-2 space-y-1.5"><Label className="text-xs font-medium text-stone-600">도로명주소 *</Label><Input required readOnly value={form.roadAddress} placeholder="주소 검색 버튼을 눌러주세요" className="h-11 bg-stone-50" /></div>
                 <div className="sm:col-span-2">{field("detailAddress", "상세주소", "1층", "text", false)}</div>
                 <div className="sm:col-span-2">{field("introduction", "판매처 소개", "주력 꽃과 제작 스타일을 간단히 소개해주세요.", "text", false)}</div>
@@ -191,16 +219,18 @@ export default function SellerSignupPage() {
                 <Check checked={form.offersCustomBouquet} onChange={(v) => set("offersCustomBouquet", v)} title="맞춤 꽃다발 제작" description="고객이 고른 꽃을 조합해 제작·배송해요." badge="제작 주문" />
                 <Check checked={form.offersDiyFlowers} onChange={(v) => set("offersDiyFlowers", v)} title="개별 꽃·소재 판매" description="송이 단위 재고와 가격을 고객에게 보여줘요." badge="DIY·재료" />
               </div>
+              {fieldErrors.services && <p id="services" tabIndex={-1} className="mt-3 text-xs text-red-500">{fieldErrors.services}</p>}
             </Section>
 
-            <label className="flex items-start gap-3 bg-white border border-stone-200 rounded-2xl p-5 cursor-pointer">
+            <label id="termsAgreed" className={`flex items-start gap-3 bg-white border rounded-2xl p-5 cursor-pointer ${fieldErrors.termsAgreed ? "border-red-400" : "border-stone-200"}`}>
               <input type="checkbox" checked={form.termsAgreed} onChange={(e) => set("termsAgreed", e.target.checked)} className="mt-1 accent-emerald-700" />
               <span><span className="block text-sm font-semibold text-stone-700">판매자 이용약관과 정보 처리에 동의합니다. <strong className="text-emerald-700">(필수)</strong></span><span className="block text-xs text-stone-400 mt-1">개인정보 수집, 사업자 심사, 정산 정보 처리 내용을 포함합니다.</span></span>
             </label>
+            {fieldErrors.termsAgreed && <p className="-mt-3 text-xs text-red-500">{fieldErrors.termsAgreed}</p>}
             {error && <p className="text-sm text-red-500 text-center">{error}</p>}
             <div className="sticky bottom-0 z-10 bg-[#f7f8f5]/95 backdrop-blur border-t border-stone-200 -mx-2 px-2 py-4 flex items-center justify-between gap-4">
               <p className="hidden sm:block text-xs text-stone-500">필수 정보를 확인한 후 심사를 신청해주세요.</p>
-              <Button type="submit" disabled={loading || !form.termsAgreed} className="w-full sm:w-auto sm:min-w-56 h-12 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl">
+              <Button type="submit" disabled={loading} className="w-full sm:w-auto sm:min-w-56 h-12 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl">
                 {loading ? "신청서를 제출하는 중..." : "판매자 가입 및 심사 신청"}
               </Button>
             </div>

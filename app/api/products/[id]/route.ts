@@ -15,6 +15,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
       )
     `)
     .eq("id", id)
+    .eq("reviews.isHidden", false)
     .single()
 
   if (error || !data) return NextResponse.json({ error: "상품을 찾을 수 없습니다" }, { status: 404 })

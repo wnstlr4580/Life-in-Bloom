@@ -2,15 +2,35 @@ import { NextResponse } from "next/server"
 import { nanoid } from "nanoid"
 import { requireAdmin } from "@/lib/authorization"
 import { supabaseAdmin } from "@/lib/supabase"
+import { writeAdminAudit } from "@/lib/adminAudit"
+import { sendEmail } from "@/lib/email"
 
-export async function GET() {
+export async function GET(req: Request) {
   if (!await requireAdmin()) return NextResponse.json({ error: "관리자 권한이 필요해요" }, { status: 403 })
+  const params = new URL(req.url).searchParams
+  const q = params.get("q")?.trim().toLowerCase()
+  const status = params.get("status")
+  const region = params.get("region")
+  const sellerType = params.get("sellerType")
+  const service = params.get("service")
   const { data, error } = await supabaseAdmin
     .from("Seller")
-    .select("id, status, marketName, legalBusinessName, businessNumber, representativeName, managerName, managerPhone, sellerType, submittedAt, offersCustomBouquet, offersDiyFlowers, User(email)")
+    .select("id, status, marketName, legalBusinessName, businessNumber, representativeName, managerName, managerPhone, publicPhone, roadAddress, sellerType, submittedAt, approvedAt, sellsFinishedProducts, offersCustomBouquet, offersDiyFlowers, User(email)")
     .order("submittedAt", { ascending: false })
   if (error) return NextResponse.json({ error: "판매처 목록을 불러오지 못했어요" }, { status: 500 })
-  return NextResponse.json({ sellers: data ?? [] })
+  const sellers = (data ?? []).filter((seller) => {
+    const user = Array.isArray(seller.User) ? seller.User[0] : seller.User
+    const haystack = [seller.marketName, seller.legalBusinessName, seller.businessNumber, seller.representativeName, seller.managerName, seller.managerPhone, seller.publicPhone, seller.roadAddress, user?.email].join(" ").toLowerCase()
+    if (q && !haystack.includes(q)) return false
+    if (status && status !== "ALL" && seller.status !== status) return false
+    if (region && region !== "ALL" && !seller.roadAddress.includes(region)) return false
+    if (sellerType && sellerType !== "ALL" && seller.sellerType !== sellerType) return false
+    if (service === "FINISHED" && !seller.sellsFinishedProducts) return false
+    if (service === "CUSTOM" && !seller.offersCustomBouquet) return false
+    if (service === "DIY" && !seller.offersDiyFlowers) return false
+    return true
+  })
+  return NextResponse.json({ sellers })
 }
 
 export async function PATCH(req: Request) {
@@ -44,5 +64,11 @@ export async function PATCH(req: Request) {
     id: nanoid(), sellerId, reviewerId: admin.id, fromStatus: seller.status,
     toStatus: status, reason: String(reason ?? "").trim() || null, snapshot: seller,
   })
+  await writeAdminAudit({ actorId: admin.id, action: `SELLER_${status}`, targetType: "SELLER", targetId: sellerId, reason, before: seller, after: { status, ...requestedChanges } })
+  const { data: sellerUser } = await supabaseAdmin.from("User").select("email").eq("id", seller.userId).maybeSingle()
+  if (sellerUser?.email && ["APPROVED", "REJECTED", "SUSPENDED"].includes(status)) {
+    const label = status === "APPROVED" ? "승인" : status === "REJECTED" ? "반려" : "사용 중지"
+    await sendEmail({ to: sellerUser.email, subject: `[인생내꽃] 판매처 ${label} 안내`, html: `<h2>${seller.marketName} 판매처가 ${label} 처리되었습니다.</h2>${reason ? `<p><b>처리 사유</b> ${String(reason)}</p>` : ""}<p>자세한 내용은 판매자센터에서 확인해주세요.</p>` }).catch((error) => console.error("[mail] seller status", error))
+  }
   return NextResponse.json({ ok: true, status })
 }
