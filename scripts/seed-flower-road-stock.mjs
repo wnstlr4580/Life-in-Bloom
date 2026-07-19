@@ -26,6 +26,16 @@ const STOCKS = [
   ["freesia", "프리지아", "천진난만과 새로운 시작", "옐로", "상", 34, 2000],
   ["eucalyptus", "유칼립투스", "추억과 재생", "그린", "상", 80, 1800],
 ]
+const IMAGES = {
+  "rose-red": "/flowers/red_rose.jpg", "rose-pink": "/flowers/pink_rose.jpg", "rose-white": "/flowers/white_rose.jpg", "rose-yellow": "/flowers/yellow_rose.jpg",
+  "tulip-pink": "/flowers/pink_tulip.jpg", "tulip-white": "/flowers/white_tulip.jpg", "tulip-purple": "/flowers/purple_tulip.jpg",
+  "lily-white": "/flowers/white_lily.jpg", "lily-pink": "/flowers/pink_lily.jpg",
+  "hydrangea-blue": "/flowers/blue_hydrangea.jpg", "hydrangea-pink": "/flowers/pink_hydrangea.jpg",
+  "carnation-red": "/flowers/red_carnation.jpg", "carnation-pink": "/flowers/pink_carnation.jpg",
+  "gerbera-yellow": "/flowers/yellow_gerbera.jpg", "gerbera-orange": "/flowers/orange_gerbera.jpg",
+  "babysbreath-white": "/flowers/white_baby%27s_breath.jpg", "babysbreath-pink": "/flowers/pink_baby%27s_breath.jpg",
+  sunflower: "/flowers/yellow_sunflower.jpg", freesia: "/flowers/yellow_freesia.jpg", eucalyptus: "/flowers/green_eucalyptus.jpg",
+}
 
 const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL
 if (!connectionString) throw new Error("DIRECT_URL 또는 DATABASE_URL이 필요합니다.")
@@ -50,8 +60,9 @@ try {
   for (const [code, name, meaning, color, grade, quantity, unitPrice] of STOCKS) {
     await client.query(
       `INSERT INTO "SellerStock"
-        ("id", "sellerId", "flowerCode", "flowerName", "flowerMeaning", "color", "grade", "unit", "quantity", "unitPrice", "isActive", "updatedAt")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'STEM', $8, $9, true, NOW())
+        ("id", "sellerId", "flowerCode", "flowerName", "flowerMeaning", "color", "grade", "unit", "quantity", "unitPrice",
+         "imageUrl", "availableForCustom", "availableForDiy", "isVisible", "isActive", "updatedAt")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'STEM', $8, $9, $10, true, true, true, true, NOW())
        ON CONFLICT ("id")
        DO UPDATE SET
          "sellerId" = EXCLUDED."sellerId",
@@ -62,9 +73,13 @@ try {
          "grade" = EXCLUDED."grade",
          "quantity" = EXCLUDED."quantity",
          "unitPrice" = EXCLUDED."unitPrice",
+         "imageUrl" = EXCLUDED."imageUrl",
+         "availableForCustom" = true,
+         "availableForDiy" = true,
+         "isVisible" = true,
          "isActive" = true,
          "updatedAt" = NOW()`,
-      [`flower-road-${code}`, seller.id, code, name, meaning, color, grade, quantity, unitPrice],
+      [`flower-road-${code}`, seller.id, code, name, meaning, color, grade, quantity, unitPrice, IMAGES[code]],
     )
   }
 

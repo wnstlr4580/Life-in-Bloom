@@ -18,14 +18,18 @@ const COLORS = ["화이트", "핑크", "레드", "옐로", "퍼플", "블루", "
 
 type Product = {
   id: string; name: string; description: string; price: number; stock: number
-  category: string; images: string[]; flowerMeaning: string | null
+  composition: string | null; sizeGuide: string | null; substitutionNotice: string | null; originInfo: string | null
+  deliveryArea: string | null; sameDayCutoff: string | null; orderNotice: string | null; careInstructions: string | null
+  category: string; images: string[]; detailImages: string[]; noticeImages: string[]; flowerMeaning: string | null
   ohaengTags: string[]; seasonTags: string[]; colorTags: string[]
   useTags: string[]; deliveryDays: string[]; deliveryStartTime: string | null; deliveryEndTime: string | null
-  displayStartAt: string | null; displayEndAt: string | null; saleStatus: "ON_SALE" | "PAUSED" | "HIDDEN"; isActive: boolean; createdAt: string
+  displayStartAt: string | null; displayEndAt: string | null; saleStatus: "ON_SALE" | "SOLD_OUT" | "PAUSED" | "HIDDEN"; isActive: boolean; createdAt: string
 }
 
 const emptyForm = {
   name: "", description: "", price: "", stock: "10", category: "bouquet",
+  composition: "", sizeGuide: "", substitutionNotice: "", originInfo: "", deliveryArea: "", sameDayCutoff: "",
+  orderNotice: "", careInstructions: "",
   seasonTags: ["all"] as string[], colorTags: [] as string[], useTags: [] as string[],
   deliveryDays: ["월", "화", "수", "목", "금"] as string[], deliveryStartTime: "09:00", deliveryEndTime: "18:00",
   displayStartAt: "", displayEndAt: "",
@@ -40,6 +44,8 @@ export default function SellerProductsPage() {
   const [query, setQuery] = useState("")
   const [form, setForm] = useState(emptyForm)
   const [files, setFiles] = useState<File[]>([])
+  const [detailFiles, setDetailFiles] = useState<File[]>([])
+  const [noticeFiles, setNoticeFiles] = useState<File[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const [message, setMessage] = useState("")
@@ -60,17 +66,20 @@ export default function SellerProductsPage() {
 
   const createProduct = async () => {
     setError(""); setMessage("")
-    if (!form.name.trim() || !form.description.trim() || !form.price || files.length === 0) {
-      setError("상품명, 상세 설명, 가격, 대표 이미지는 필수입니다."); return
+    const requiredTexts = [form.name, form.description, form.composition, form.sizeGuide, form.substitutionNotice, form.originInfo, form.deliveryArea, form.sameDayCutoff, form.orderNotice, form.careInstructions]
+    if (requiredTexts.some((value) => !value.trim()) || !form.price || files.length < 3 || detailFiles.length < 1) {
+      setError("필수 상품·구성·크기·원산지·배송·주문 안내와 갤러리 사진 3장 이상, 상세 이미지 1장 이상을 입력해주세요."); return
     }
     setSaving(true)
     const body = new FormData()
     Object.entries(form).forEach(([key, value]) => body.append(key, Array.isArray(value) ? JSON.stringify(value) : value))
     files.forEach((file) => body.append("images", file))
+    detailFiles.forEach((file) => body.append("detailImages", file))
+    noticeFiles.forEach((file) => body.append("noticeImages", file))
     const response = await fetch("/api/seller/products", { method: "POST", body })
     const data = await response.json()
     if (response.ok) {
-      setForm(emptyForm); setFiles([]); setMessage("상품이 등록됐습니다."); setMode("list"); await load()
+      setForm(emptyForm); setFiles([]); setDetailFiles([]); setNoticeFiles([]); setMessage("상품이 등록됐습니다."); setMode("list"); await load()
     } else setError(data.error ?? "상품 등록에 실패했어요")
     setSaving(false)
   }
@@ -102,7 +111,7 @@ export default function SellerProductsPage() {
 
         {message && <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700"><CheckCircle2 size={16} className="inline mr-2" />{message}</div>}
         {mode === "list" ? (
-          <ProductList products={filtered} allProducts={products} query={query} setQuery={setQuery} updateProduct={updateProduct} />
+          <ProductList products={filtered} allProducts={products} query={query} setQuery={setQuery} updateProduct={updateProduct} reload={load} />
         ) : mode === "bulk" ? <BulkRegistration onDone={async (count) => { setMessage(`${count}개 상품이 등록됐습니다.`); setMode("list"); await load() }} /> : (
           <div className="grid xl:grid-cols-[1fr_300px] gap-6 items-start">
             <div className="space-y-5">
@@ -118,7 +127,7 @@ export default function SellerProductsPage() {
                   <Field label="판매 가능 수량 *"><Input type="number" min={0} value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} className="h-11 border-stone-200" /></Field>
                 </div>
               </Section>
-              <Section number="03" title="상품 이미지" description="첫 번째 사진이 대표 이미지가 됩니다. 1~5장, 장당 10MB 이하로 등록해주세요.">
+              <Section number="03" title="대표·갤러리 이미지" description="첫 사진은 대표 이미지입니다. 정면, 측면·포장, 크기 비교 사진을 포함해 3~5장 등록해주세요.">
                 <label className="min-h-36 rounded-xl border-2 border-dashed border-stone-200 bg-stone-50 flex flex-col items-center justify-center cursor-pointer hover:border-emerald-400">
                   <ImagePlus className="text-emerald-600" /><span className="text-sm font-semibold text-stone-700 mt-2">상품 사진 선택</span><span className="text-xs text-stone-400 mt-1">JPG · PNG · WEBP</span>
                   <input type="file" multiple accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => setFiles(Array.from(e.target.files ?? []).slice(0, 5))} />
@@ -126,7 +135,17 @@ export default function SellerProductsPage() {
                 {files.length > 0 && <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-3">{files.map((file, index) => <div key={`${file.name}-${index}`} className="aspect-square rounded-lg overflow-hidden bg-stone-100 relative"><img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />{index === 0 && <span className="absolute left-1.5 top-1.5 text-[10px] bg-emerald-700 text-white rounded px-1.5 py-0.5">대표</span>}</div>)}</div>}
               </Section>
               <Section number="04" title="꽃 상품 상세 정보" description="꽃의 구성과 관리 방법, 제작 특성을 구체적으로 적어주세요.">
-                <Field label="상세 설명 *"><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={7} placeholder={"사용 꽃과 소재, 대략적인 크기, 포장 방식, 생화 특성상 사진과 달라질 수 있는 점, 관리 방법을 적어주세요."} className="w-full rounded-lg border border-stone-200 p-3 text-sm resize-y" /></Field>
+                <Field label="상세 설명 *"><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={7} placeholder={"사용 꽃과 소재, 대략적인 크기, 포장 방식, 생화 특성상 사진과 달라질 수 있는 점, 관리 방법을 적어주세요."} className="w-full rounded-lg border border-stone-200 p-3 text-sm resize-y" /><WritingHelp field="description" category={form.category} onApply={(value) => setForm({ ...form, description: value })} /></Field>
+                <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                  <Field label="주요 꽃·소재 구성 *"><textarea value={form.composition} onChange={(e) => setForm({ ...form, composition: e.target.value })} rows={3} placeholder="예: 핑크 장미 10송이, 리시안셔스, 유칼립투스, 포장지" className="w-full rounded-lg border p-3 text-sm" /><WritingHelp field="composition" category={form.category} onApply={(value) => setForm({ ...form, composition: value })} /></Field>
+                  <Field label="상품 크기 *"><textarea value={form.sizeGuide} onChange={(e) => setForm({ ...form, sizeGuide: e.target.value })} rows={3} placeholder="예: 가로 약 35cm × 높이 약 45cm (수작업 오차 ±5cm)" className="w-full rounded-lg border p-3 text-sm" /><WritingHelp field="sizeGuide" category={form.category} onApply={(value) => setForm({ ...form, sizeGuide: value })} /></Field>
+                  <Field label="원산지 정보 *"><textarea value={form.originInfo} onChange={(e) => setForm({ ...form, originInfo: e.target.value })} rows={3} placeholder="예: 장미 국내산, 기타 소재 국내산·수입산 혼합" className="w-full rounded-lg border p-3 text-sm" /><WritingHelp field="originInfo" category={form.category} onApply={(value) => setForm({ ...form, originInfo: value })} /></Field>
+                  <Field label="소재 변경 안내 *"><textarea value={form.substitutionNotice} onChange={(e) => setForm({ ...form, substitutionNotice: e.target.value })} rows={3} placeholder="계절과 수급에 따라 비슷한 색감·가격대 소재로 변경될 수 있습니다." className="w-full rounded-lg border p-3 text-sm" /><WritingHelp field="substitutionNotice" category={form.category} onApply={(value) => setForm({ ...form, substitutionNotice: value })} /></Field>
+                  <Field label="꽃 관리 방법 *"><textarea value={form.careInstructions} onChange={(e) => setForm({ ...form, careInstructions: e.target.value })} rows={3} placeholder="포장을 풀고 줄기 끝을 사선으로 잘라 깨끗한 물에 꽂아주세요." className="w-full rounded-lg border p-3 text-sm" /><WritingHelp field="careInstructions" category={form.category} onApply={(value) => setForm({ ...form, careInstructions: value })} /></Field>
+                  <Field label="주문 전 필수 안내 *"><textarea value={form.orderNotice} onChange={(e) => setForm({ ...form, orderNotice: e.target.value })} rows={3} placeholder="생화 특성, 취소 마감, 수령인 연락 필요 여부 등을 적어주세요." className="w-full rounded-lg border p-3 text-sm" /><WritingHelp field="orderNotice" category={form.category} onApply={(value) => setForm({ ...form, orderNotice: value })} /></Field>
+                </div>
+                <ImagePicker label="상품 상세 이미지 *" description="구성, 크기, 포장, 분위기를 설명하는 이미지를 1~20장 등록하세요." files={detailFiles} setFiles={(value) => setDetailFiles(value.slice(0, 20))} />
+                <ImagePicker label="주문 전 공지 이미지" description="배송·교환·생화 유의사항 등을 최대 10장 등록하세요." files={noticeFiles} setFiles={(value) => setNoticeFiles(value.slice(0, 10))} />
                 <p className="mt-4 rounded-xl bg-stone-50 p-4 text-xs text-stone-500">완제품은 여러 꽃과 소재가 조합되므로 꽃말을 별도로 입력하지 않습니다. 꽃말 추천은 개별 꽃 판매에서 꽃명 기준으로 제공됩니다.</p>
               </Section>
               <Section number="05" title="검색과 추천 정보" description="오행은 입력한 꽃·색상 정보를 바탕으로 인생내꽃이 자동 분류합니다.">
@@ -140,6 +159,8 @@ export default function SellerProductsPage() {
               <Section number="06" title="배송 가능 시간과 상품 노출 기간" description="구매자가 실제로 주문할 수 있는 범위만 설정해주세요.">
                 <Tags label="배송 가능 요일" options={["월","화","수","목","금","토","일"].map((v) => [v,v] as const)} selected={form.deliveryDays} toggle={(v) => toggleTag("deliveryDays", v)} />
                 <div className="grid sm:grid-cols-2 gap-4 mt-5">
+                  <Field label="배송 가능 지역 *"><Input value={form.deliveryArea} onChange={(e) => setForm({ ...form, deliveryArea: e.target.value })} placeholder="예: 서울 전 지역, 경기 일부(상세페이지 참고)" /><WritingHelp field="deliveryArea" category={form.category} onApply={(value) => setForm({ ...form, deliveryArea: value })} /></Field>
+                  <Field label="당일 배송 주문 마감 *"><Input value={form.sameDayCutoff} onChange={(e) => setForm({ ...form, sameDayCutoff: e.target.value })} placeholder="예: 평일 오전 11시 이전 결제 완료" /><WritingHelp field="sameDayCutoff" category={form.category} onApply={(value) => setForm({ ...form, sameDayCutoff: value })} /></Field>
                   <Field label="배송 시작 시간"><Input type="time" value={form.deliveryStartTime} onChange={(e) => setForm({ ...form, deliveryStartTime: e.target.value })} /></Field>
                   <Field label="배송 종료 시간"><Input type="time" value={form.deliveryEndTime} onChange={(e) => setForm({ ...form, deliveryEndTime: e.target.value })} /></Field>
                   <Field label="상품 노출 시작"><DateTimeInput value={form.displayStartAt} onChange={(value) => setForm({ ...form, displayStartAt: value })} /></Field>
@@ -168,7 +189,7 @@ export default function SellerProductsPage() {
   )
 }
 
-function ProductList({ products, allProducts, query, setQuery, updateProduct }: { products: Product[]; allProducts: Product[]; query: string; setQuery: (value: string) => void; updateProduct: (id: string, update: Partial<Product>) => void }) {
+function ProductList({ products, allProducts, query, setQuery, updateProduct, reload }: { products: Product[]; allProducts: Product[]; query: string; setQuery: (value: string) => void; updateProduct: (id: string, update: Partial<Product>) => Promise<void>; reload: () => Promise<void> }) {
   const [category, setCategory] = useState("")
   const [status, setStatus] = useState("")
   const [color, setColor] = useState("")
@@ -224,17 +245,19 @@ function ProductList({ products, allProducts, query, setQuery, updateProduct }: 
             <div className="w-20 h-20 rounded-xl overflow-hidden bg-stone-100 shrink-0">{product.images[0] ? <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" /> : <div className="w-full h-full grid place-items-center">🌸</div>}</div>
             <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="font-semibold text-stone-800 truncate">{product.name}</p><StatusBadge product={product} /></div><p className="text-sm font-bold text-stone-800 mt-2">{product.price.toLocaleString()}원</p><p className="text-xs text-stone-400 mt-1">{CATEGORIES.find(([value]) => value === product.category)?.[1]} · 재고 {product.stock}개</p></div><ChevronDown size={17} className={`text-stone-400 transition-transform ${expanded === product.id ? "rotate-180" : ""}`} />
           </button>
-          <div className="flex items-center gap-2"><Input type="number" min={0} defaultValue={product.stock} onBlur={(e) => updateProduct(product.id, { stock: Number(e.target.value) })} className="w-24 h-9" /><select value={product.saleStatus ?? (product.isActive ? "ON_SALE" : "PAUSED")} onChange={(e) => updateProduct(product.id, { saleStatus: e.target.value as Product["saleStatus"] })} className="h-9 rounded-lg border border-stone-200 bg-white px-3 text-xs"><option value="ON_SALE">판매 중</option><option value="PAUSED">판매 중지</option><option value="HIDDEN">숨김</option></select></div>
+          <div className="flex items-center gap-2"><Input type="number" min={0} defaultValue={product.stock} onBlur={(e) => updateProduct(product.id, { stock: Number(e.target.value) })} className="w-24 h-9" /><select value={product.stock === 0 && product.saleStatus === "ON_SALE" ? "SOLD_OUT" : product.saleStatus ?? (product.isActive ? "ON_SALE" : "PAUSED")} onChange={(e) => updateProduct(product.id, { saleStatus: e.target.value as Product["saleStatus"] })} className="h-9 rounded-lg border border-stone-200 bg-white px-3 text-xs"><option value="ON_SALE">판매 중</option><option value="SOLD_OUT" disabled>품절 (재고 0)</option><option value="PAUSED">판매 중지</option><option value="HIDDEN">숨김</option></select></div>
         </div>
-        {expanded === product.id && <ProductDetail product={product} />}
+        {expanded === product.id && <ProductDetail product={product} reload={reload} />}
       </div>)}</div>}
     </div>
   </div>
 }
 
-function ProductDetail({ product }: { product: Product }) {
+function ProductDetail({ product, reload }: { product: Product; reload: () => Promise<void> }) {
+  const [editing, setEditing] = useState(false)
   const tags = [...product.colorTags, ...product.useTags, ...product.seasonTags, ...product.ohaengTags]
   return <div className="border-t border-stone-100 bg-stone-50/70 p-5 sm:pl-28">
+    <div className="mb-4 flex justify-end"><Button variant="outline" onClick={() => setEditing(true)} className="border-emerald-200 text-emerald-700">전체 정보 수정</Button></div>
     <div className="grid md:grid-cols-2 gap-5 text-xs">
       <div><p className="font-bold text-stone-700">상품 설명</p><p className="mt-2 whitespace-pre-wrap leading-6 text-stone-500">{product.description}</p></div>
       <div className="space-y-3">
@@ -245,12 +268,107 @@ function ProductDetail({ product }: { product: Product }) {
       </div>
     </div>
     {product.images.length > 1 && <div className="mt-4 flex gap-2 overflow-x-auto">{product.images.map((image, index) => <img key={image} src={image} alt={`${product.name} ${index + 1}`} className="h-24 w-24 rounded-lg object-cover" />)}</div>}
+    {editing && <ProductEditModal product={product} close={() => setEditing(false)} reload={reload} />}
   </div>
 }
+
+function ProductEditModal({ product, close, reload }: { product: Product; close: () => void; reload: () => Promise<void> }) {
+  const [draft, setDraft] = useState({
+    name: product.name, description: product.description, category: product.category,
+    composition: product.composition ?? "", sizeGuide: product.sizeGuide ?? "", substitutionNotice: product.substitutionNotice ?? "",
+    originInfo: product.originInfo ?? "", deliveryArea: product.deliveryArea ?? "", sameDayCutoff: product.sameDayCutoff ?? "",
+    orderNotice: product.orderNotice ?? "", careInstructions: product.careInstructions ?? "",
+    price: String(product.price), stock: String(product.stock), saleStatus: product.saleStatus,
+    seasonTags: [...(product.seasonTags ?? [])], colorTags: [...(product.colorTags ?? [])], useTags: [...(product.useTags ?? [])],
+    deliveryDays: [...(product.deliveryDays ?? [])], deliveryStartTime: product.deliveryStartTime ?? "",
+    deliveryEndTime: product.deliveryEndTime ?? "", displayStartAt: localDate(product.displayStartAt), displayEndAt: localDate(product.displayEndAt),
+  })
+  const [existingImages, setExistingImages] = useState(product.images ?? [])
+  const [existingDetail, setExistingDetail] = useState(product.detailImages ?? [])
+  const [existingNotice, setExistingNotice] = useState(product.noticeImages ?? [])
+  const [newImages, setNewImages] = useState<File[]>([])
+  const [newDetail, setNewDetail] = useState<File[]>([])
+  const [newNotice, setNewNotice] = useState<File[]>([])
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState("")
+  const toggle = (key: "seasonTags" | "colorTags" | "useTags" | "deliveryDays", value: string) =>
+    setDraft((current) => ({ ...current, [key]: current[key].includes(value) ? current[key].filter((tag) => tag !== value) : [...current[key], value] }))
+  const save = async () => {
+    setSaving(true); setError("")
+    if (!draft.name.trim() || !draft.description.trim() || existingImages.length + newImages.length < 1) {
+      setError("상품명, 상세 설명, 대표 이미지는 필수입니다."); setSaving(false); return
+    }
+    const patchResponse = await fetch("/api/seller/products", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: product.id, ...draft, price: Number(draft.price), stock: Number(draft.stock) }),
+    })
+    const patchData = await patchResponse.json()
+    if (!patchResponse.ok) { setError(patchData.error ?? "상품 정보를 저장하지 못했어요"); setSaving(false); return }
+    const body = new FormData()
+    body.append("id", product.id)
+    body.append("existingImages", JSON.stringify(existingImages))
+    body.append("existingDetailImages", JSON.stringify(existingDetail))
+    body.append("existingNoticeImages", JSON.stringify(existingNotice))
+    newImages.forEach((file) => body.append("images", file))
+    newDetail.forEach((file) => body.append("detailImages", file))
+    newNotice.forEach((file) => body.append("noticeImages", file))
+    const imageResponse = await fetch("/api/seller/products", { method: "PUT", body })
+    const imageData = await imageResponse.json()
+    if (!imageResponse.ok) { setError(imageData.error ?? "상품 이미지를 저장하지 못했어요"); setSaving(false); return }
+    await reload()
+    setSaving(false); close()
+  }
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+    <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-[#f7f8f5] p-6 shadow-2xl">
+      <div className="flex items-center justify-between"><div><p className="text-xs font-bold text-emerald-700">완제품 수정</p><h2 className="mt-1 text-xl font-bold">{product.name}</h2></div><button onClick={close} className="text-2xl text-stone-500">×</button></div>
+      <div className="mt-5 space-y-5">
+        <section className="rounded-xl border bg-white p-5"><div className="grid gap-4 sm:grid-cols-2">
+          <Field label="상품명 *"><Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></Field>
+          <Field label="카테고리"><select value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })} className="h-10 w-full rounded-md border px-3 text-sm">{CATEGORIES.map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select></Field>
+          <Field label="판매가"><Input type="number" min={100} value={draft.price} onChange={(e) => setDraft({ ...draft, price: e.target.value })} /></Field>
+          <Field label="재고"><Input type="number" min={0} value={draft.stock} onChange={(e) => setDraft({ ...draft, stock: e.target.value })} /></Field>
+          <Field label="판매 상태"><select value={Number(draft.stock) === 0 && draft.saleStatus === "ON_SALE" ? "SOLD_OUT" : draft.saleStatus} onChange={(e) => setDraft({ ...draft, saleStatus: e.target.value as Product["saleStatus"] })} className="h-10 w-full rounded-md border px-3 text-sm"><option value="ON_SALE">판매 중</option><option value="SOLD_OUT" disabled>품절 (재고 0)</option><option value="PAUSED">판매 중지</option><option value="HIDDEN">숨김</option></select></Field>
+          <Field label="배송 시간"><div className="grid grid-cols-2 gap-2"><Input type="time" value={draft.deliveryStartTime} onChange={(e) => setDraft({ ...draft, deliveryStartTime: e.target.value })} /><Input type="time" value={draft.deliveryEndTime} onChange={(e) => setDraft({ ...draft, deliveryEndTime: e.target.value })} /></div></Field>
+          <Field label="노출 시작"><Input type="datetime-local" value={draft.displayStartAt} onChange={(e) => setDraft({ ...draft, displayStartAt: e.target.value })} /></Field>
+          <Field label="노출 종료"><Input type="datetime-local" value={draft.displayEndAt} onChange={(e) => setDraft({ ...draft, displayEndAt: e.target.value })} /></Field>
+          <Field label="상세 설명 *" className="sm:col-span-2"><textarea value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} rows={7} className="w-full rounded-md border p-3 text-sm" /></Field>
+          <Field label="주요 꽃·소재 구성 *"><textarea value={draft.composition} onChange={(e) => setDraft({ ...draft, composition: e.target.value })} rows={3} className="w-full rounded-md border p-3 text-sm" /></Field>
+          <Field label="상품 크기 *"><textarea value={draft.sizeGuide} onChange={(e) => setDraft({ ...draft, sizeGuide: e.target.value })} rows={3} className="w-full rounded-md border p-3 text-sm" /></Field>
+          <Field label="원산지 정보 *"><textarea value={draft.originInfo} onChange={(e) => setDraft({ ...draft, originInfo: e.target.value })} rows={3} className="w-full rounded-md border p-3 text-sm" /></Field>
+          <Field label="소재 변경 안내 *"><textarea value={draft.substitutionNotice} onChange={(e) => setDraft({ ...draft, substitutionNotice: e.target.value })} rows={3} className="w-full rounded-md border p-3 text-sm" /></Field>
+          <Field label="배송 가능 지역 *"><Input value={draft.deliveryArea} onChange={(e) => setDraft({ ...draft, deliveryArea: e.target.value })} /></Field>
+          <Field label="당일 배송 주문 마감 *"><Input value={draft.sameDayCutoff} onChange={(e) => setDraft({ ...draft, sameDayCutoff: e.target.value })} /></Field>
+          <Field label="꽃 관리 방법 *"><textarea value={draft.careInstructions} onChange={(e) => setDraft({ ...draft, careInstructions: e.target.value })} rows={3} className="w-full rounded-md border p-3 text-sm" /></Field>
+          <Field label="주문 전 필수 안내 *"><textarea value={draft.orderNotice} onChange={(e) => setDraft({ ...draft, orderNotice: e.target.value })} rows={3} className="w-full rounded-md border p-3 text-sm" /></Field>
+        </div></section>
+        <section className="rounded-xl border bg-white p-5 space-y-4">
+          <Tags label="배송 가능 요일" options={["월","화","수","목","금","토","일"].map((v) => [v,v] as const)} selected={draft.deliveryDays} toggle={(v) => toggle("deliveryDays", v)} />
+          <Tags label="용도" options={USES.map((v) => [v,v] as const)} selected={draft.useTags} toggle={(v) => toggle("useTags", v)} />
+          <Tags label="주요 색상" options={COLORS.map((v) => [v,v] as const)} selected={draft.colorTags} toggle={(v) => toggle("colorTags", v)} />
+          <Tags label="계절" options={SEASONS} selected={draft.seasonTags} toggle={(v) => toggle("seasonTags", v)} />
+        </section>
+        <ExistingImageEditor label="대표·갤러리 이미지 (첫 장이 대표)" images={existingImages} setImages={setExistingImages} newFiles={newImages} setNewFiles={(v) => setNewImages(v.slice(0, Math.max(0, 5 - existingImages.length)))} max={5} />
+        <ExistingImageEditor label="상품 상세 이미지" images={existingDetail} setImages={setExistingDetail} newFiles={newDetail} setNewFiles={(v) => setNewDetail(v.slice(0, Math.max(0, 20 - existingDetail.length)))} max={20} />
+        <ExistingImageEditor label="주문 전 공지 이미지" images={existingNotice} setImages={setExistingNotice} newFiles={newNotice} setNewFiles={(v) => setNewNotice(v.slice(0, Math.max(0, 10 - existingNotice.length)))} max={10} />
+      </div>
+      {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+      <div className="sticky bottom-0 mt-5 flex justify-end gap-2 border-t bg-[#f7f8f5]/95 py-4"><Button variant="outline" onClick={close}>취소</Button><Button onClick={save} disabled={saving} className="bg-emerald-700 text-white">{saving ? "저장 중..." : "수정 내용 저장"}</Button></div>
+    </div>
+  </div>
+}
+
+function ExistingImageEditor({ label, images, setImages, newFiles, setNewFiles, max }: { label: string; images: string[]; setImages: (value: string[]) => void; newFiles: File[]; setNewFiles: (value: File[]) => void; max: number }) {
+  return <section className="rounded-xl border bg-white p-5"><p className="text-sm font-bold">{label}</p><p className="mt-1 text-xs text-stone-400">삭제 후 새 이미지를 추가할 수 있습니다. 최대 {max}장</p>
+    <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-6">{images.map((image, index) => <div key={image} className="relative aspect-square overflow-hidden rounded-lg bg-stone-100"><img src={image} alt="" className="h-full w-full object-cover" /><button type="button" onClick={() => setImages(images.filter((_, i) => i !== index))} className="absolute right-1 top-1 h-6 w-6 rounded-full bg-black/60 text-xs text-white">×</button></div>)}{newFiles.map((file, index) => <div key={`${file.name}-${index}`} className="relative aspect-square overflow-hidden rounded-lg bg-stone-100"><img src={URL.createObjectURL(file)} alt="" className="h-full w-full object-cover" /><button type="button" onClick={() => setNewFiles(newFiles.filter((_, i) => i !== index))} className="absolute right-1 top-1 h-6 w-6 rounded-full bg-black/60 text-xs text-white">×</button></div>)}</div>
+    <label className="mt-3 flex cursor-pointer justify-center rounded-lg border border-dashed p-3 text-xs text-stone-500">이미지 추가<input type="file" multiple accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => setNewFiles([...newFiles, ...Array.from(e.target.files ?? [])].slice(0, Math.max(0, max - images.length)))} /></label>
+  </section>
+}
+
+const localDate = (value: string | null) => value ? new Date(value).toISOString().slice(0, 16) : ""
 const formatDate = (value: string | null) => value ? new Date(value).toLocaleString("ko-KR") : "제한 없음"
 function StatusBadge({ product }: { product: Product }) {
   if (product.stock === 0) return <span className="rounded-full bg-red-50 px-2 py-1 text-[10px] text-red-600">품절</span>
-  const config = { ON_SALE: ["판매 중", "bg-emerald-50 text-emerald-700"], PAUSED: ["판매 중지", "bg-amber-50 text-amber-700"], HIDDEN: ["숨김", "bg-stone-100 text-stone-500"] }[product.saleStatus ?? "ON_SALE"]
+  const config = { ON_SALE: ["판매 중", "bg-emerald-50 text-emerald-700"], SOLD_OUT: ["품절", "bg-red-50 text-red-600"], PAUSED: ["판매 중지", "bg-amber-50 text-amber-700"], HIDDEN: ["숨김", "bg-stone-100 text-stone-500"] }[product.saleStatus ?? "ON_SALE"]
   return <span className={`rounded-full px-2 py-1 text-[10px] ${config[1]}`}>{config[0]}</span>
 }
 
@@ -310,5 +428,27 @@ function DateTimeInput({ value, onChange }: { value: string; onChange: (value: s
 function Section({ number, title, description, children }: { number: string; title: string; description: string; children: React.ReactNode }) { return <section className="rounded-2xl border border-stone-200 bg-white p-6"><p className="text-[11px] font-bold text-emerald-700">STEP {number}</p><h2 className="text-lg font-bold text-stone-900 mt-1">{title}</h2><p className="text-xs text-stone-400 mt-1 mb-6">{description}</p>{children}</section> }
 function Field({ label, className = "", children }: { label: string; className?: string; children: React.ReactNode }) { return <div className={`space-y-1.5 ${className}`}><Label className="text-xs text-stone-600">{label}</Label>{children}</div> }
 function Tags({ label, options, selected, toggle }: { label: string; options: readonly (readonly [string, string])[]; selected: string[]; toggle: (value: string) => void }) { return <div><p className="text-xs font-medium text-stone-600 mb-2">{label}</p><div className="flex flex-wrap gap-2">{options.map(([value, text]) => <button type="button" key={value} onClick={() => toggle(value)} className={`rounded-full border px-3 py-1.5 text-xs ${selected.includes(value) ? "border-emerald-600 bg-emerald-50 text-emerald-700 font-semibold" : "border-stone-200 text-stone-500"}`}>{text}</button>)}</div></div> }
+function ImagePicker({ label, description, files, setFiles }: { label: string; description: string; files: File[]; setFiles: (value: File[]) => void }) { return <div className="mt-5"><p className="text-xs font-medium text-stone-600">{label}</p><p className="mt-1 text-[11px] text-stone-400">{description}</p><label className="mt-2 flex cursor-pointer justify-center rounded-lg border border-dashed p-3 text-xs text-stone-500">이미지 여러 장 선택<input type="file" multiple accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => setFiles(Array.from(e.target.files ?? []))} /></label>{files.length > 0 && <div className="mt-2 grid grid-cols-4 gap-2 sm:grid-cols-8">{files.map((file, index) => <div key={`${file.name}-${index}`} className="aspect-square overflow-hidden rounded-lg bg-stone-100"><img src={URL.createObjectURL(file)} alt="" className="h-full w-full object-cover" /></div>)}</div>}</div> }
+function WritingHelp({ field, category, onApply }: { field: string; category: string; onApply: (value: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [examples, setExamples] = useState<{ id: string; title: string; content: string }[]>([])
+  const show = async () => {
+    setOpen(true)
+    if (examples.length) return
+    setLoading(true)
+    const response = await fetch(`/api/seller/product-examples?field=${encodeURIComponent(field)}&category=${encodeURIComponent(category)}`)
+    const data = await response.json()
+    if (response.ok) setExamples(data.examples ?? [])
+    setLoading(false)
+  }
+  return <><button type="button" onClick={show} className="mt-2 inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-semibold text-emerald-700">작성 도움말 · 예문 보기</button>
+    {open && <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-4"><div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
+      <div className="flex items-center justify-between"><div><p className="text-xs font-bold text-emerald-700">판매자 작성 도움말</p><h3 className="mt-1 text-lg font-bold">마음에 드는 예문을 참고하거나 바로 적용하세요</h3></div><button onClick={() => setOpen(false)} className="text-2xl text-stone-400">×</button></div>
+      <p className="mt-2 text-xs text-stone-500">예문을 그대로 사용한 뒤 실제 상품에 맞는 꽃명, 수량, 지역과 시간을 반드시 수정해주세요.</p>
+      <div className="mt-5 space-y-3">{loading ? <p className="py-10 text-center text-sm text-stone-400">예문을 불러오는 중...</p> : examples.map((example) => <article key={example.id} className="rounded-xl border border-stone-200 p-4"><p className="text-sm font-bold text-stone-800">{example.title}</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-stone-600">{example.content}</p><div className="mt-3 flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => navigator.clipboard.writeText(example.content)} className="h-8 text-xs">복사</Button><Button type="button" onClick={() => { onApply(example.content); setOpen(false) }} className="h-8 bg-emerald-700 text-xs text-white">이 예문 적용</Button></div></article>)}</div>
+    </div></div>}
+  </>
+}
 function Stat({ label, value }: { label: string; value: number }) { return <div className="rounded-2xl border border-stone-200 bg-white p-5"><p className="text-xs text-stone-400">{label}</p><p className="text-2xl font-bold text-stone-800 mt-2">{value}</p></div> }
 function Notice({ text }: { text: string }) { return <div className="py-32 text-center text-stone-500">{text}</div> }

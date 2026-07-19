@@ -60,10 +60,20 @@ model Product {
   id            String   @id @default(cuid())
   name          String
   description   String
+  composition   String?
+  sizeGuide     String?
+  substitutionNotice String?
+  originInfo    String?
+  deliveryArea  String?
+  sameDayCutoff String?
+  orderNotice   String?
+  careInstructions String?
   price         Int
   stock         Int      @default(0)
   category      String
   images        String[]
+  detailImages  String[] @default([])
+  noticeImages  String[] @default([])
   flowerMeaning String?
   ohaengTags    String[]
   seasonTags    String[]
@@ -91,6 +101,18 @@ model Product {
   seller     Seller? @relation(fields: [sellerId], references: [id])
 
   @@index([sellerId, isActive])
+}
+
+model SellerProductExample {
+  id        String   @id
+  field     String
+  category  String   @default("all")
+  title     String
+  content   String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([field, category, sortOrder])
 }
 
 // ─── 판매처 ───────────────────────────────────────────
@@ -170,6 +192,12 @@ model SellerStock {
   quantity   Int
   unitPrice  Int
   barcode    String?
+  imageUrl   String?
+  availableForCustom Boolean @default(true)
+  availableForDiy Boolean @default(true)
+  isVisible  Boolean  @default(true)
+  displayStartAt DateTime?
+  displayEndAt DateTime?
   isActive   Boolean  @default(true)
   updatedAt  DateTime @updatedAt
 
@@ -177,6 +205,7 @@ model SellerStock {
 
   @@unique([sellerId, flowerCode, color, grade])
   @@index([flowerCode, isActive])
+  @@index([sellerId, isVisible, displayStartAt, displayEndAt])
 }
 
 enum SellerStatus {
