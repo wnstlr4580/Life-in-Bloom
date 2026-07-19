@@ -6,7 +6,6 @@ import { useSession } from "next-auth/react"
 import { ShoppingBag, ArrowLeft, Heart, Star, BadgeCheck, ExternalLink, Store } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useCartStore } from "@/store/cartStore"
-import { ProductGuide } from "@/components/shop/ProductGuide"
 import Link from "next/link"
 
 interface Review {
@@ -16,7 +15,9 @@ interface Review {
 
 interface Product {
   id: string; name: string; description: string; price: number; stock: number
-  images: string[]; flowerMeaning: string | null; ohaengTags: string[]
+  composition?: string | null; sizeGuide?: string | null; substitutionNotice?: string | null; originInfo?: string | null
+  deliveryArea?: string | null; sameDayCutoff?: string | null; orderNotice?: string | null; careInstructions?: string | null
+  images: string[]; detailImages?: string[]; noticeImages?: string[]; flowerMeaning: string | null; ohaengTags: string[]
   colorTags: string[]; seasonTags: string[]; category: string
   useTags?: string[] | null
   saleStatus?: string
@@ -32,6 +33,7 @@ export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { data: session } = useSession()
   const [product, setProduct] = useState<Product | null>(null)
+  const [selectedImage, setSelectedImage] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
   const addItem = useCartStore((s) => s.addItem)
@@ -152,12 +154,13 @@ export default function ProductDetailPage() {
         {/* 이미지 */}
         <div className="lg:w-1/2 shrink-0">
           <div className="aspect-square bg-stone-50 rounded-3xl overflow-hidden flex items-center justify-center">
-            {product.images[0] ? (
-              <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+            {product.images[selectedImage] ? (
+              <img src={product.images[selectedImage]} alt={product.name} className="w-full h-full object-cover" />
             ) : (
               <span className="text-9xl">🌸</span>
             )}
           </div>
+          {product.images.length > 1 && <div className="mt-3 grid grid-cols-5 gap-2">{product.images.map((image, index) => <button key={image} type="button" onClick={() => setSelectedImage(index)} className={`aspect-square overflow-hidden rounded-xl border-2 ${selectedImage === index ? "border-rose-400" : "border-transparent"}`}><img src={image} alt={`${product.name} ${index + 1}`} className="h-full w-full object-cover" /></button>)}</div>}
         </div>
 
         {/* 상품 정보 */}
@@ -235,18 +238,43 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* 상세 안내 — 상품 이야기·추천 순간·관리법·배송·교환환불 */}
-      <ProductGuide
-        name={product.name}
-        category={product.category}
-        description={product.description}
-        flowerMeaning={product.flowerMeaning}
-        ohaengTags={product.ohaengTags}
-        useTags={product.useTags}
-      />
+      <nav className="mx-auto mt-20 flex max-w-[860px] justify-center gap-2 border-y border-stone-100 py-4 text-sm">
+        <a href="#product-info" className="rounded-full px-4 py-2 text-stone-600 hover:bg-rose-50 hover:text-rose-500">상품 정보</a>
+        <a href="#product-detail" className="rounded-full px-4 py-2 text-stone-600 hover:bg-rose-50 hover:text-rose-500">상세 이미지</a>
+        <a href="#order-notice" className="rounded-full px-4 py-2 text-stone-600 hover:bg-rose-50 hover:text-rose-500">주문 안내</a>
+        <a href="#reviews" className="rounded-full px-4 py-2 text-stone-600 hover:bg-rose-50 hover:text-rose-500">구매 후기</a>
+      </nav>
+
+      {(product.composition || product.sizeGuide || product.originInfo || product.deliveryArea) && <section id="product-info" className="mx-auto mt-14 max-w-[860px] scroll-mt-24 rounded-3xl border border-stone-100 bg-white p-7 sm:p-10">
+        <p className="text-center text-xs font-bold tracking-[0.2em] text-rose-400">PRODUCT INFORMATION</p>
+        <h2 className="mt-2 text-center text-2xl font-bold text-stone-800">상품을 자세히 알려드려요</h2>
+        <dl className="mt-9 grid gap-4 sm:grid-cols-2">
+          <ProductInfo label="주요 꽃·소재" value={product.composition} />
+          <ProductInfo label="상품 크기" value={product.sizeGuide} />
+          <ProductInfo label="원산지" value={product.originInfo} />
+          <ProductInfo label="배송 가능 지역" value={product.deliveryArea} />
+          <ProductInfo label="당일 배송 주문 마감" value={product.sameDayCutoff} />
+          <ProductInfo label="꽃 관리 방법" value={product.careInstructions} />
+        </dl>
+        {product.substitutionNotice && <div className="mt-7 rounded-2xl bg-amber-50 p-5"><p className="text-sm font-bold text-amber-800">계절·수급에 따른 소재 변경 안내</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-amber-700">{product.substitutionNotice}</p></div>}
+        {product.orderNotice && <div className="mt-4 rounded-2xl bg-stone-50 p-5"><p className="text-sm font-bold text-stone-700">주문 전 필수 안내</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-stone-600">{product.orderNotice}</p></div>}
+      </section>}
+
+      {Boolean(product.detailImages?.length) && <section id="product-detail" className="mx-auto mt-16 max-w-[860px] scroll-mt-24">
+        <p className="text-center text-xs font-bold tracking-[0.2em] text-rose-400">PRODUCT DETAIL</p>
+        <h2 className="mb-8 mt-2 text-center text-2xl font-bold text-stone-800">꽃길 플라워가 정성껏 준비합니다</h2>
+        <div className="overflow-hidden rounded-3xl bg-white shadow-sm">{product.detailImages!.map((image, index) => <img key={`${image}-${index}`} src={image} alt={`${product.name} 상세 ${index + 1}`} className="block h-auto w-full" />)}</div>
+      </section>}
+
+      {Boolean(product.noticeImages?.length) && <section id="order-notice" className="mx-auto mt-16 max-w-[860px] scroll-mt-24 border-t border-stone-100 pt-14">
+        <p className="text-center text-xs font-bold tracking-[0.2em] text-rose-400">ORDER & DELIVERY</p>
+        <h2 className="mb-2 mt-2 text-center text-2xl font-bold text-stone-800">주문 전 확인해주세요</h2>
+        <p className="mb-7 text-center text-sm text-stone-500">배송, 상품 변경 가능성, 교환·환불 안내를 확인한 뒤 주문해주세요.</p>
+        <div className="overflow-hidden rounded-3xl bg-white shadow-sm">{product.noticeImages!.map((image, index) => <img key={`${image}-${index}`} src={image} alt={`주문 전 안내 ${index + 1}`} className="block h-auto w-full" />)}</div>
+      </section>}
 
       {/* 리뷰 */}
-      <div className="mt-16 max-w-3xl">
+      <div id="reviews" className="mx-auto mt-20 max-w-[860px] scroll-mt-24 border-t border-stone-100 pt-14">
         <h2 className="text-lg font-bold text-stone-800 mb-1">
           구매 후기 {product.reviews && product.reviews.length > 0 && `(${product.reviews.length})`}
         </h2>
@@ -360,4 +388,9 @@ export default function ProductDetailPage() {
       </div>
     </div>
   )
+}
+
+function ProductInfo({ label, value }: { label: string; value?: string | null }) {
+  if (!value) return null
+  return <div className="rounded-2xl bg-stone-50 p-5"><dt className="text-xs font-bold text-rose-400">{label}</dt><dd className="mt-2 whitespace-pre-wrap text-sm leading-6 text-stone-700">{value}</dd></div>
 }

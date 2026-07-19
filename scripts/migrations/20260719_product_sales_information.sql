@@ -1,0 +1,9 @@
+ALTER TABLE "Product"
+  ADD COLUMN IF NOT EXISTS "composition" TEXT,
+  ADD COLUMN IF NOT EXISTS "sizeGuide" TEXT,
+  ADD COLUMN IF NOT EXISTS "substitutionNotice" TEXT,
+  ADD COLUMN IF NOT EXISTS "originInfo" TEXT,
+  ADD COLUMN IF NOT EXISTS "deliveryArea" TEXT,
+  ADD COLUMN IF NOT EXISTS "sameDayCutoff" TEXT,
+  ADD COLUMN IF NOT EXISTS "orderNotice" TEXT,
+  ADD COLUMN IF NOT EXISTS "careInstructions" TEXT;

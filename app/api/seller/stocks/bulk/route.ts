@@ -60,7 +60,10 @@ export async function POST(req: Request) {
     rows.push({
       id: nanoid(), sellerId: actor.seller.id, flowerCode, flowerName,
       flowerMeaning: suppliedMeaning || recommended?.meaning || null, color: color || null, grade: grade || null,
-      unit: unit || "STEM", quantity, unitPrice, isActive: !["아니오", "N", "NO", "FALSE", "0"].includes(activeText.toUpperCase()),
+      unit: unit || "STEM", quantity, unitPrice, availableForCustom: true, availableForDiy: true,
+      // 엑셀은 이미지 파일을 포함하지 않으므로 대표사진 등록 전까지 고객 화면에는 숨긴다.
+      isVisible: false,
+      isActive: !["아니오", "N", "NO", "FALSE", "0"].includes(activeText.toUpperCase()),
     })
   }
   if (rows.length === 0) return NextResponse.json({ error: "등록할 데이터가 없어요" }, { status: 400 })

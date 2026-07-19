@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
       ohaengTags: classifyProductOhaeng({ ...item, colorTags }),
       deliveryDays: split(item.deliveryDays), deliveryStartTime: item.deliveryStartTime || null,
       deliveryEndTime: item.deliveryEndTime || null, displayStartAt: item.displayStartAt || null,
-      displayEndAt: item.displayEndAt || null, saleStatus: "ON_SALE", isActive: true,
+      displayEndAt: item.displayEndAt || null, saleStatus: Number(item.stock) === 0 ? "SOLD_OUT" : "ON_SALE", isActive: true,
     }
   })
   const { error } = await supabaseAdmin.from("Product").insert(payload)
