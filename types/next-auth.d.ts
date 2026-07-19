@@ -7,6 +7,8 @@ declare module "next-auth" {
       isAdmin: boolean
       role: "CUSTOMER" | "SELLER" | "ADMIN"
       sellerStatus: "PENDING" | "UNDER_REVIEW" | "APPROVED" | "REJECTED" | "SUSPENDED" | null
+      accountStatus: string
+      passwordResetRequired: boolean
     } & DefaultSession["user"]
   }
 }
@@ -17,5 +19,7 @@ declare module "next-auth/jwt" {
     isAdmin?: boolean
     role?: "CUSTOMER" | "SELLER" | "ADMIN"
     sellerStatus?: "PENDING" | "UNDER_REVIEW" | "APPROVED" | "REJECTED" | "SUSPENDED" | null
+    accountStatus?: string
+    passwordResetRequired?: boolean
   }
 }

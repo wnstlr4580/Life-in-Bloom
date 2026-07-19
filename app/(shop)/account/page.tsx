@@ -10,6 +10,10 @@ export default function AccountRedirectPage() {
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/login")
     if (status !== "authenticated") return
+    if (session.user.passwordResetRequired) {
+      router.replace("/account/password")
+      return
+    }
     const role = session.user.role
     router.replace(role === "ADMIN" ? "/admin" : role === "SELLER" ? "/seller" : "/mypage")
   }, [router, session, status])

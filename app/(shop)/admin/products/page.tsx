@@ -1,302 +1,58 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-import { useSession } from "next-auth/react"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { useEffect, useState } from "react"
 
-const CATEGORIES = [
-  { value: "bouquet", label: "꽃다발" },
-  { value: "plant", label: "화분" },
-  { value: "wreath", label: "화환" },
-  { value: "dried", label: "드라이플라워" },
-]
-const OHAENG = ["목", "화", "토", "금", "수"]
-const USES = ["생일", "축하", "개업", "결혼", "추모", "감사"]
-const SEASONS = [
-  { value: "spring", label: "봄" }, { value: "summer", label: "여름" },
-  { value: "autumn", label: "가을" }, { value: "winter", label: "겨울" }, { value: "all", label: "사계절" },
-]
-
-interface AdminProduct {
-  id: string
-  name: string
-  description: string
-  price: number
-  stock: number
-  category: string
-  images: string[]
-  flowerMeaning: string | null
-  ohaengTags: string[]
-  seasonTags: string[]
-  colorTags: string[]
-  useTags: string[] | null
-  isActive: boolean
-}
-
-interface FormState {
-  name: string; price: string; stock: string; category: string
-  description: string; flowerMeaning: string; imageUrl: string; colorTags: string
-  ohaengTags: string[]; useTags: string[]; seasonTags: string[]
-}
-
-const emptyForm = (): FormState => ({
-  name: "", price: "", stock: "10", category: "bouquet",
-  description: "", flowerMeaning: "", imageUrl: "", colorTags: "",
-  ohaengTags: [], useTags: [], seasonTags: ["all"],
-})
-
-function toggleIn(arr: string[], v: string) {
-  return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]
-}
+type Product = { id: string; name: string; price: number; stock: number; category: string; images: string[]; isActive: boolean; saleStatus: string; createdAt: string; useTags: string[]; colorTags: string[]; seasonTags: string[]; seller: { id: string; marketName: string; status: string } | null }
+const initialFilters = { q: "", seller: "", category: "ALL", use: "ALL", visibility: "ALL", stock: "ALL", sort: "newest" }
+const CATEGORY: Record<string, string> = { bouquet: "꽃다발", basket: "꽃바구니", orchid: "난·화분", plant: "식물", wreath: "화환", dried: "드라이플라워" }
 
 export default function AdminProductsPage() {
-  const { data: session, status } = useSession()
-  const [products, setProducts] = useState<AdminProduct[]>([])
-  const [forbidden, setForbidden] = useState(false)
+  const [products, setProducts] = useState<Product[]>([])
+  const [filters, setFilters] = useState(initialFilters)
+  const [reason, setReason] = useState<Record<string, string>>({})
+  const [selected, setSelected] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
-  const [form, setForm] = useState<FormState>(emptyForm())
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
-
-  const load = useCallback(() => {
-    setLoading(true)
-    fetch("/api/admin/products")
-      .then((r) => {
-        if (r.status === 403) { setForbidden(true); return { products: [] } }
-        return r.json()
-      })
-      .then((d) => setProducts(d.products ?? []))
-      .finally(() => setLoading(false))
-  }, [])
-
-  useEffect(() => {
-    if (session?.user) load()
-    else if (status !== "loading") setLoading(false)
-  }, [session, status, load])
-
-  const startEdit = (p: AdminProduct) => {
-    setEditingId(p.id)
-    setForm({
-      name: p.name, price: String(p.price), stock: String(p.stock), category: p.category,
-      description: p.description ?? "", flowerMeaning: p.flowerMeaning ?? "",
-      imageUrl: p.images[0] ?? "", colorTags: (p.colorTags ?? []).join(", "),
-      ohaengTags: p.ohaengTags ?? [], useTags: p.useTags ?? [], seasonTags: p.seasonTags ?? [],
-    })
-    window.scrollTo({ top: 0, behavior: "smooth" })
+  const load = async (values = filters) => {
+    setLoading(true); setError("")
+    const response = await fetch(`/api/admin/products?${new URLSearchParams(values)}`, { cache: "no-store" })
+    const data = await response.json()
+    if (response.ok) setProducts(data.products ?? []); else setError(data.error || "상품을 불러오지 못했습니다.")
+    setLoading(false)
   }
-
-  const cancelEdit = () => { setEditingId(null); setForm(emptyForm()); setError("") }
-
-  const save = async () => {
-    if (!form.name.trim() || !form.price) { setError("이름과 가격은 꼭 입력해주세요"); return }
-    setSaving(true)
-    setError("")
-    const payload = {
-      name: form.name, price: Number(form.price), stock: Number(form.stock || 0),
-      category: form.category, description: form.description,
-      flowerMeaning: form.flowerMeaning,
-      images: form.imageUrl.trim() ? [form.imageUrl.trim()] : [],
-      colorTags: form.colorTags.split(",").map((s) => s.trim()).filter(Boolean),
-      ohaengTags: form.ohaengTags, useTags: form.useTags, seasonTags: form.seasonTags,
-    }
-    try {
-      const res = await fetch("/api/admin/products", {
-        method: editingId ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editingId ? { id: editingId, ...payload } : payload),
-      })
-      const d = await res.json()
-      if (!res.ok) throw new Error(d.error ?? "저장에 실패했어요")
-      cancelEdit()
-      load()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "저장에 실패했어요")
-    } finally {
-      setSaving(false)
-    }
+  useEffect(() => { load(initialFilters) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const toggle = async (product: Product) => {
+    const response = await fetch("/api/admin/products", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: product.id, isActive: !product.isActive, reason: reason[product.id] }) })
+    const data = await response.json(); if (!response.ok) return alert(data.error)
+    load()
   }
-
-  const toggleActive = async (p: AdminProduct) => {
-    const res = await fetch("/api/admin/products", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: p.id, isActive: !p.isActive }),
-    })
-    if (res.ok) setProducts((prev) => prev.map((x) => (x.id === p.id ? { ...x, isActive: !p.isActive } : x)))
-  }
-
-  if (status === "loading" || loading) {
-    return <div className="max-w-6xl mx-auto px-6 py-32 flex justify-center"><div className="w-8 h-8 border-2 border-rose-300 border-t-transparent rounded-full animate-spin" /></div>
-  }
-
-  if (!session?.user) {
-    return (
-      <div className="max-w-md mx-auto px-6 py-32 text-center space-y-4">
-        <p className="text-stone-500">관리자 로그인이 필요해요</p>
-        <Link href="/login?callbackUrl=/admin"><Button className="bg-rose-400 hover:bg-rose-500 text-white">로그인</Button></Link>
-      </div>
-    )
-  }
-
-  if (forbidden) {
-    return (
-      <div className="max-w-md mx-auto px-6 py-32 text-center space-y-2">
-        <p className="text-3xl">🔒</p>
-        <p className="text-stone-500">관리자 권한이 없는 계정이에요</p>
-        <p className="text-xs text-stone-400">Vercel 환경변수 ADMIN_EMAILS에 이메일을 등록해주세요</p>
-      </div>
-    )
-  }
-
-  const checkboxGroup = (
-    label: string,
-    options: { value: string; label: string }[],
-    selected: string[],
-    onToggle: (v: string) => void,
-  ) => (
-    <div className="space-y-1.5">
-      <Label className="text-xs text-stone-500">{label}</Label>
-      <div className="flex flex-wrap gap-1.5">
-        {options.map((o) => (
-          <button
-            key={o.value}
-            type="button"
-            onClick={() => onToggle(o.value)}
-            className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-              selected.includes(o.value)
-                ? "bg-rose-400 border-rose-400 text-white"
-                : "bg-white border-stone-200 text-stone-500 hover:border-rose-300"
-            }`}
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-
-  return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-bold text-stone-800">상품 관리</h1>
-        <Link href="/admin" className="text-sm text-rose-500 font-medium hover:text-rose-600">주문 관리 →</Link>
-      </div>
-
-      {/* 등록/수정 폼 */}
-      <div className="bg-white rounded-2xl border border-stone-100 p-6 mb-8 space-y-4">
-        <h2 className="font-semibold text-stone-800">{editingId ? "상품 수정" : "새 상품 등록"}</h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="space-y-1.5 lg:col-span-2">
-            <Label className="text-xs text-stone-500">상품 이름 *</Label>
-            <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="예: 생일 꽃다발 — 핑크 장미" className="rounded-xl border-stone-200" />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs text-stone-500">가격(원) *</Label>
-            <Input type="number" value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))} placeholder="45000" className="rounded-xl border-stone-200" />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs text-stone-500">재고</Label>
-            <Input type="number" value={form.stock} onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))} className="rounded-xl border-stone-200" />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs text-stone-500">카테고리 *</Label>
-            <select
-              value={form.category}
-              onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-              className="w-full h-9 rounded-xl border border-stone-200 px-3 text-sm text-stone-700 bg-white focus:outline-none focus:border-rose-300"
-            >
-              {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs text-stone-500">이미지 주소</Label>
-            <Input value={form.imageUrl} onChange={(e) => setForm((f) => ({ ...f, imageUrl: e.target.value }))} placeholder="/flowers/pink_rose.jpg 또는 https://..." className="rounded-xl border-stone-200" />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs text-stone-500">꽃말</Label>
-            <Input value={form.flowerMeaning} onChange={(e) => setForm((f) => ({ ...f, flowerMeaning: e.target.value }))} placeholder="예: 행복한 사랑" className="rounded-xl border-stone-200" />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs text-stone-500">색상 태그 (쉼표로 구분)</Label>
-            <Input value={form.colorTags} onChange={(e) => setForm((f) => ({ ...f, colorTags: e.target.value }))} placeholder="pink, red" className="rounded-xl border-stone-200" />
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label className="text-xs text-stone-500">상품 설명</Label>
-          <textarea
-            value={form.description}
-            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-            rows={2}
-            placeholder="상품 소개를 적어주세요"
-            className="w-full rounded-xl border border-stone-200 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-rose-300"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {checkboxGroup("오행 태그", OHAENG.map((o) => ({ value: o, label: o })), form.ohaengTags, (v) => setForm((f) => ({ ...f, ohaengTags: toggleIn(f.ohaengTags, v) })))}
-          {checkboxGroup("용도 태그", USES.map((u) => ({ value: u, label: u })), form.useTags, (v) => setForm((f) => ({ ...f, useTags: toggleIn(f.useTags, v) })))}
-          {checkboxGroup("계절 태그", SEASONS, form.seasonTags, (v) => setForm((f) => ({ ...f, seasonTags: toggleIn(f.seasonTags, v) })))}
-        </div>
-
-        {error && <p className="text-sm text-red-500">{error}</p>}
-
-        <div className="flex gap-2 justify-end">
-          {editingId && (
-            <Button variant="outline" onClick={cancelEdit} className="h-10 border-stone-200 text-stone-600">취소</Button>
-          )}
-          <Button onClick={save} disabled={saving} className="h-10 px-6 bg-rose-400 hover:bg-rose-500 text-white font-semibold">
-            {saving ? "저장 중..." : editingId ? "수정 저장" : "상품 등록"}
-          </Button>
-        </div>
-      </div>
-
-      {/* 상품 목록 */}
-      <div className="space-y-2">
-        {products.map((p) => (
-          <div key={p.id} className={`bg-white rounded-xl border p-4 flex items-center gap-4 ${p.isActive ? "border-stone-100" : "border-stone-100 opacity-50"}`}>
-            <div className="w-14 h-14 rounded-lg bg-stone-50 overflow-hidden shrink-0 flex items-center justify-center">
-              {p.images[0] ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-xl">🌸</span>
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-stone-800 truncate">{p.name}</p>
-              <p className="text-xs text-stone-400">
-                {p.price.toLocaleString()}원 · 재고 {p.stock} · {CATEGORIES.find((c) => c.value === p.category)?.label ?? p.category}
-                {(p.useTags ?? []).length > 0 && ` · ${(p.useTags ?? []).join("/")}`}
-              </p>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={() => toggleActive(p)}
-                className={`text-xs px-3 py-1.5 rounded-full font-medium border transition-colors ${
-                  p.isActive
-                    ? "bg-green-50 border-green-200 text-green-700"
-                    : "bg-stone-50 border-stone-200 text-stone-400"
-                }`}
-              >
-                {p.isActive ? "판매 중" : "숨김"}
-              </button>
-              <Button variant="outline" onClick={() => startEdit(p)} className="h-8 text-xs border-stone-200 text-stone-600">수정</Button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
+  const update = (key: keyof typeof filters, value: string) => setFilters((current) => ({ ...current, [key]: value }))
+  return <div className="p-6 sm:p-10">
+    <h1 className="text-2xl font-bold">상품 현황</h1><p className="mt-2 text-sm text-stone-500">구매 화면과 같은 기준으로 상품을 찾고, 정책 위반 상품의 노출 상태를 관리합니다.</p>
+    <form onSubmit={(e) => { e.preventDefault(); load() }} className="mt-6 rounded-2xl border bg-white p-4"><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <input value={filters.q} onChange={(e) => update("q", e.target.value)} placeholder="상품명·색상·태그 검색" className="h-10 rounded-xl border px-3 text-sm" />
+      <input value={filters.seller} onChange={(e) => update("seller", e.target.value)} placeholder="판매처명 검색" className="h-10 rounded-xl border px-3 text-sm" />
+      <Select value={filters.category} set={(v) => update("category", v)} options={[["ALL","모든 상품 유형"],["bouquet","꽃다발"],["basket","꽃바구니"],["orchid","난·화분"],["plant","식물"],["wreath","화환"],["dried","드라이플라워"]]} />
+      <Select value={filters.use} set={(v) => update("use", v)} options={[["ALL","모든 용도"],["생일","생일"],["축하","축하"],["개업","개업"],["결혼","결혼·웨딩"],["추모","추모"],["감사","감사"]]} />
+      <Select value={filters.visibility} set={(v) => update("visibility", v)} options={[["ALL","모든 노출 상태"],["ACTIVE","노출 중"],["HIDDEN","노출 중지"]]} />
+      <Select value={filters.stock} set={(v) => update("stock", v)} options={[["ALL","모든 재고"],["AVAILABLE","재고 있음"],["SOLD_OUT","품절"]]} />
+      <Select value={filters.sort} set={(v) => update("sort", v)} options={[["newest","최신 등록순"],["priceAsc","낮은 가격순"],["priceDesc","높은 가격순"],["stockAsc","재고 적은순"]]} />
+    </div><div className="mt-3 flex justify-end gap-2"><button type="button" onClick={() => { setFilters(initialFilters); load(initialFilters) }} className="h-9 rounded-lg border px-4 text-xs">초기화</button><button className="h-9 rounded-lg bg-stone-900 px-5 text-xs text-white">검색</button></div></form>
+    {loading && <p className="mt-5 rounded-2xl border bg-white p-12 text-center text-sm text-stone-400">상품을 불러오는 중...</p>}
+    {error && <p className="mt-5 rounded-xl bg-rose-50 p-4 text-sm text-rose-600">{error}</p>}
+    {!loading && !error && <div className="mt-5 overflow-hidden rounded-2xl border bg-white"><table className="w-full table-auto text-left text-sm [&_th]:px-3 [&_td]:px-3 [&_th:nth-child(3)]:hidden [&_td:nth-child(3)]:hidden [&_th:nth-child(7)]:hidden [&_td:nth-child(7)]:hidden"><thead className="bg-stone-50 text-xs text-stone-500"><tr><Th>상품</Th><Th>판매처</Th><Th>분류·태그</Th><Th>가격</Th><Th>재고</Th><Th>노출 상태</Th><Th>등록일</Th><Th>관리</Th></tr></thead><tbody className="divide-y">{products.map((p) => <tr key={p.id} className={`align-top hover:bg-stone-50/60 ${p.isActive ? "" : "opacity-60"}`}>
+      <Td><Link href={`/products/${p.id}`} className="flex min-w-0 items-center gap-3 font-semibold hover:text-rose-500"><span className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-stone-100">{p.images[0] && <img src={p.images[0]} alt="" className="h-full w-full object-cover" />}</span><span className="min-w-0 whitespace-normal break-keep leading-5">{p.name}</span></Link></Td>
+      <Td>{p.seller ? <Link href={`/admin/sellers?open=${p.seller.id}`} className="font-medium underline-offset-2 hover:underline">{p.seller.marketName}</Link> : "판매처 미지정"}</Td>
+      <Td><p>{CATEGORY[p.category] ?? "기타 상품"}</p><div className="mt-2 flex flex-wrap gap-1">{[...p.useTags, ...p.colorTags, ...p.seasonTags].slice(0, 4).map((tag) => <Tag key={tag}>{tag}</Tag>)}</div></Td>
+      <Td><span className="whitespace-nowrap">{p.price.toLocaleString()}원</span></Td><Td><span className={`whitespace-nowrap ${p.stock === 0 ? "text-rose-600" : ""}`}>{p.stock === 0 ? "품절" : `${p.stock}개`}</span></Td>
+      <Td><Tag tone={p.isActive ? "green" : "red"}>{p.isActive ? "노출 중" : "노출 중지"}</Tag></Td><Td>{new Date(p.createdAt).toLocaleDateString("ko-KR")}</Td>
+      <Td><button onClick={() => setSelected(p)} className="h-9 w-full rounded-lg border px-3 text-xs font-semibold">상세·관리</button></Td>
+    </tr>)}</tbody></table>{products.length === 0 && <p className="p-16 text-center text-sm text-stone-400">조건에 맞는 상품이 없습니다.</p>}</div>}
+    {selected && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4" onMouseDown={() => setSelected(null)}><section onMouseDown={(e) => e.stopPropagation()} className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl"><div className="flex items-start justify-between gap-4"><div><p className="text-xs text-stone-400">{selected.seller?.marketName}</p><h2 className="mt-1 text-lg font-bold">{selected.name}</h2></div><button onClick={() => setSelected(null)} className="rounded-lg border px-3 py-1 text-sm">닫기</button></div><dl className="mt-5 grid grid-cols-2 gap-4 rounded-2xl bg-stone-50 p-4 text-sm"><div><dt className="text-xs text-stone-400">분류</dt><dd className="mt-1">{CATEGORY[selected.category] ?? "기타 상품"}</dd></div><div><dt className="text-xs text-stone-400">가격·재고</dt><dd className="mt-1">{selected.price.toLocaleString()}원 · {selected.stock}개</dd></div></dl><div className="mt-5"><label className="text-xs font-semibold">{selected.isActive ? "노출 중지 사유" : "현재 노출이 중지된 상품입니다."}</label>{selected.isActive && <textarea value={reason[selected.id] ?? ""} onChange={(e) => setReason((r) => ({ ...r, [selected.id]: e.target.value }))} placeholder="판매자에게 전달할 노출 중지 사유를 입력하세요." className="mt-2 h-24 w-full resize-none rounded-xl border p-3 text-sm" />}<button onClick={async () => { await toggle(selected); setSelected(null) }} className={`mt-3 h-11 w-full rounded-xl border text-sm font-semibold ${selected.isActive ? "text-rose-600" : "text-emerald-700"}`}>{selected.isActive ? "사유 전달 후 노출 중지" : "노출 복구"}</button></div></section></div>}
+  </div>
 }
+function Select({ value, set, options }: { value: string; set: (v: string) => void; options: string[][] }) { return <select value={value} onChange={(e) => set(e.target.value)} className="h-10 rounded-xl border bg-white px-3 text-sm">{options.map(([v, label]) => <option key={v} value={v}>{label}</option>)}</select> }
+function Th({ children }: { children: React.ReactNode }) { return <th className="px-4 py-3 font-semibold">{children}</th> }
+function Td({ children }: { children: React.ReactNode }) { return <td className="px-4 py-4">{children}</td> }
+function Tag({ children, tone = "gray" }: { children: React.ReactNode; tone?: "gray" | "green" | "red" }) { const style = tone === "green" ? "bg-emerald-100 text-emerald-700" : tone === "red" ? "bg-rose-100 text-rose-700" : "bg-stone-100 text-stone-600"; return <span className={`rounded-full px-2 py-1 text-[10px] ${style}`}>{children}</span> }

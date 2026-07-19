@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
   const { data, error } = await supabaseAdmin
     .from("BouquetPost")
     .select("id, userId, authorName, imageUrl, composition, content, derivedOrderCount, createdAt")
+    .eq("isHidden", false)
     .order("createdAt", { ascending: false })
     .range(offset, offset + limit - 1)
 

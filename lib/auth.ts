@@ -20,11 +20,14 @@ const providers: Provider[] = [
 
       const { data: user } = await supabaseAdmin
         .from("User")
-        .select("id, email, name, image, password, role")
+        .select("id, email, name, image, password, role, status, suspendedUntil, passwordResetRequired")
         .eq("email", email.toLowerCase().trim())
         .maybeSingle()
 
       if (!user?.password) return null
+      const suspensionActive = user.status === "SUSPENDED"
+        && (!user.suspendedUntil || new Date(user.suspendedUntil) > new Date())
+      if (suspensionActive) return null
       const valid = await bcrypt.compare(password, user.password)
       if (!valid) return null
 
@@ -61,11 +64,12 @@ const nextAuth = NextAuth({
       if (account?.provider !== "credentials") {
         const { data: existing } = await supabaseAdmin
           .from("User")
-          .select("role")
+          .select("role, status, suspendedUntil")
           .eq("email", user.email)
           .maybeSingle()
         // 판매자 계정은 이메일/비밀번호 로그인만 허용한다.
         if (existing?.role === "SELLER") return false
+        if (existing?.status === "SUSPENDED" && (!existing.suspendedUntil || new Date(existing.suspendedUntil) > new Date())) return false
       }
       await supabaseAdmin.from("User").upsert(
         { id: user.id ?? user.email, email: user.email, name: user.name, image: user.image },
@@ -83,13 +87,15 @@ const nextAuth = NextAuth({
       if (token.email) {
         const { data } = await supabaseAdmin
           .from("User")
-          .select("id, isAdmin, role, Seller(status)")
+          .select("id, isAdmin, role, status, suspendedUntil, passwordResetRequired, Seller(status)")
           .eq("email", token.email as string)
           .maybeSingle()
         const seller = Array.isArray(data?.Seller) ? data?.Seller[0] : data?.Seller
         token.role = data?.role ?? (data?.isAdmin ? "ADMIN" : "CUSTOMER")
         token.sellerStatus = seller?.status ?? null
         token.isAdmin = token.role === "ADMIN"
+        token.accountStatus = data?.status ?? "ACTIVE"
+        token.passwordResetRequired = data?.passwordResetRequired ?? false
         if (!token.id && data?.id) token.id = data.id
       }
       return token
@@ -102,6 +108,8 @@ const nextAuth = NextAuth({
         role: (token.role as string) ?? "CUSTOMER",
         sellerStatus: (token.sellerStatus as string | null) ?? null,
         isAdmin: token.role === "ADMIN",
+        accountStatus: (token.accountStatus as string) ?? "ACTIVE",
+        passwordResetRequired: Boolean(token.passwordResetRequired),
       },
     }),
   },

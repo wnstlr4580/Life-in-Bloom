@@ -113,14 +113,19 @@ function CustomContent() {
     const flowersParam = searchParams.get("flowers")
     if (!flowersParam || postId || editId || loadedFlowersRef.current) return
     loadedFlowersRef.current = true
+    const requestedSize = SIZES.find((item) => item.id === searchParams.get("size"))
+    const requestedWrapping = WRAPPING.find((item) => item.id === searchParams.get("wrapping"))
     const ids = flowersParam.split(",").filter((id) => FLOWERS.some((f) => f.id === id))
     if (ids.length === 0) return
     const [first, ...rest] = ids
+    if (requestedSize) setSize(requestedSize)
+    if (requestedWrapping) setWrapping(requestedWrapping)
     setMainFlowerId(first)
-    setAdditionalFlowerIds(new Set(rest.slice(0, size.maxAdditional)))
+    setAdditionalFlowerIds(new Set(rest.slice(0, requestedSize?.maxAdditional ?? size.maxAdditional)))
   }, [searchParams, size.maxAdditional])
 
   const isFromCompat = !!searchParams.get("flowers") && !searchParams.get("post") && !searchParams.get("edit")
+  const isFromDiy = searchParams.get("source") === "diy"
 
   // 수정 저장 — 현재 화면의 조합과 한마디로 후기를 갱신
   const handleEditSave = async () => {
@@ -517,6 +522,11 @@ function CustomContent() {
         {isFromCompat && (
           <div className="mt-3 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3 text-sm text-rose-700">
             💕 <span className="font-semibold">궁합에서 추천된 꽃</span>이 자동으로 선택됐어요. 원하는 대로 바꿀 수 있어요!
+          </div>
+        )}
+        {isFromDiy && (
+          <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-700">
+            ✂️ DIY에서 고른 <span className="font-semibold">꽃과 크기, 포장</span>을 그대로 가져왔어요. 꽃집 제작비가 포함되어 DIY 예상가격과 다를 수 있어요.
           </div>
         )}
       </div>

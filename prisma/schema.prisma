@@ -26,6 +26,11 @@ model User {
   city         String?
   ohaengType        String?
   lackingOhaengType String?
+  status             String    @default("ACTIVE")
+  suspendedAt        DateTime?
+  suspendedUntil     DateTime?
+  suspendedReason    String?
+  passwordResetRequired Boolean @default(false)
   createdAt         DateTime  @default(now())
 
   accounts      Account[]
@@ -36,6 +41,7 @@ model User {
   subscriptions Subscription[]
   seller        Seller?
   sellerReviews SellerReview[] @relation("SellerReviewer")
+  adminAuditLogs AdminAuditLog[] @relation("AdminAuditActor")
 }
 
 enum UserRole {
@@ -320,6 +326,9 @@ model Review {
   rating    Int
   content   String
   images    String[]
+  isHidden  Boolean  @default(false)
+  moderationReason String?
+  moderatedAt DateTime?
   createdAt DateTime @default(now())
 
   user    User    @relation(fields: [userId], references: [id])
@@ -385,7 +394,27 @@ model BouquetPost {
   composition       Json // { sizeId, mainFlowerId, additionalFlowerIds, wrappingId }
   content           String?
   derivedOrderCount Int      @default(0) // 이 조합 그대로 구매된 횟수 — 늘어날 때마다 글쓴이 포인트 적립
+  isHidden          Boolean  @default(false)
+  moderationReason  String?
+  moderatedAt       DateTime?
   createdAt         DateTime @default(now())
+}
+
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  action     String
+  targetType String
+  targetId   String
+  reason     String?
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now())
+
+  actor User @relation("AdminAuditActor", fields: [actorId], references: [id])
+
+  @@index([createdAt])
+  @@index([targetType, targetId])
 }
 
 // ─── 오행 포토부스 (키오스크) ─────────────────────────

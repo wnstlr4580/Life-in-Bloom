@@ -10,11 +10,12 @@ export async function getCurrentActor() {
 
   const { data: user } = await supabaseAdmin
     .from("User")
-    .select("id, email, role, isAdmin, Seller(id, status)")
+    .select("id, email, role, isAdmin, status, suspendedUntil, Seller(id, status)")
     .eq("email", session.user.email)
     .maybeSingle()
 
   if (!user) return null
+  if (user.status === "SUSPENDED" && (!user.suspendedUntil || new Date(user.suspendedUntil) > new Date())) return null
   const seller = Array.isArray(user.Seller) ? user.Seller[0] : user.Seller
 
   return {

@@ -36,6 +36,13 @@ export async function PATCH(req: Request) {
   if (!actor) return NextResponse.json({ error: "판매자 로그인이 필요해요" }, { status: 403 })
   const sellerId = actor.seller!.id
   const body = await req.json()
+  const { data: currentSeller } = await supabaseAdmin.from("Seller").select("status, sellsFinishedProducts, offersCustomBouquet, offersDiyFlowers").eq("id", sellerId).single()
+  const serviceChanged = Boolean(currentSeller) && (
+    Boolean(body.sellsFinishedProducts) !== currentSeller?.sellsFinishedProducts ||
+    Boolean(body.offersCustomBouquet) !== currentSeller?.offersCustomBouquet ||
+    Boolean(body.offersDiyFlowers) !== currentSeller?.offersDiyFlowers
+  )
+  if (currentSeller?.status !== "APPROVED" && serviceChanged) return NextResponse.json({ error: "심사 중에는 제공 서비스 설정을 변경할 수 없어요" }, { status: 409 })
   const managerPhone = String(body.managerPhone ?? "").replace(/\D/g, "")
   const publicPhone = String(body.publicPhone ?? "").replace(/\D/g, "")
   const postalCode = String(body.postalCode ?? "").trim()

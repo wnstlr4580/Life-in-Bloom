@@ -10,6 +10,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
     .from("BouquetPost")
     .select("id, authorName, imageUrl, composition, content, derivedOrderCount")
     .eq("id", id)
+    .eq("isHidden", false)
     .maybeSingle()
 
   if (!data) return NextResponse.json({ error: "후기를 찾을 수 없어요" }, { status: 404 })
