@@ -83,7 +83,7 @@ export default function GalleryPage() {
           손님들이 만든 꽃다발 모음 · 마음에 드는 조합 그대로 만들 수 있어요
         </p>
         <Link
-          href="/custom"
+          href="/diy"
           className="inline-block px-6 py-2.5 rounded-full bg-rose-400 hover:bg-rose-500 text-white text-sm font-semibold transition-colors"
         >
           💐 나만의 꽃다발 만들기

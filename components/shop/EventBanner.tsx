@@ -19,7 +19,7 @@ const EVENTS = [
     title: "나만의 꽃다발 만들기",
     desc: "40가지 꽃으로 조합하고, AI 미리보기로 먼저 확인하세요",
     badge: "NEW",
-    href: "/custom",
+    href: "/diy",
     img: "/flowers/pink_rose.jpg",
     bg: "from-amber-50 to-rose-50",
   },

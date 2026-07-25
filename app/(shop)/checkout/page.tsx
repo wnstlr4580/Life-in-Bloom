@@ -9,14 +9,15 @@ import { Label } from "@/components/ui/label"
 import { Truck, Gift, CreditCard } from "lucide-react"
 import Link from "next/link"
 import { nanoid } from "nanoid"
+import { useSession } from "next-auth/react"
 
 type DeliveryType = "standard" | "express" | "pickup"
 
 export default function CheckoutPage() {
   const router = useRouter()
+  const { data: session, status } = useSession()
   const { items, totalPrice, clear } = useCartStore()
   const total = totalPrice()
-  const shippingFee = total >= 50000 ? 0 : 3000
 
   const [form, setForm] = useState({
     ordererName: "", ordererPhone: "",
@@ -27,6 +28,12 @@ export default function CheckoutPage() {
   const [deliveryType, setDeliveryType] = useState<DeliveryType>("standard")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const bouquetFulfillment = items.find((item) => item.fulfillment)?.fulfillment
+  const pickupOnly = items.some((item) => item.fulfillment?.orderMode === "diy")
+  const pickupStoreName = bouquetFulfillment?.sellerName
+
+  const selectedDeliveryType: DeliveryType = pickupOnly ? "pickup" : deliveryType
+  const shippingFee = selectedDeliveryType === "pickup" || total >= 50000 ? 0 : 3000
 
   // 받는 날짜 최소값 (오늘)
   const todayStr = new Date().toLocaleDateString("sv-SE")
@@ -70,6 +77,21 @@ export default function CheckoutPage() {
     }
   }, [postcodeOpen])
 
+  if (status === "loading") {
+    return <div className="mx-auto max-w-6xl px-6 py-32 text-center text-stone-400">회원 정보를 확인하고 있어요...</div>
+  }
+  if (!session?.user) {
+    return (
+      <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-6 py-32">
+        <p className="font-semibold text-stone-700">주문하려면 일반회원으로 로그인해 주세요.</p>
+        <Link href="/login"><Button className="bg-rose-400 text-white hover:bg-rose-500">로그인하기</Button></Link>
+      </div>
+    )
+  }
+  if (session.user.role !== "CUSTOMER") {
+    return <div className="mx-auto max-w-6xl px-6 py-32 text-center font-semibold text-stone-600">판매자와 관리자는 꽃을 구매할 수 없어요.</div>
+  }
+
   if (items.length === 0) {
     return (
       <div className="max-w-6xl mx-auto px-6 py-32 flex flex-col items-center gap-4">
@@ -80,7 +102,7 @@ export default function CheckoutPage() {
   }
 
   const giftFee = form.giftWrapping ? 2000 : 0
-  const expressFee = deliveryType === "express" ? 5000 : 0
+  const expressFee = selectedDeliveryType === "express" ? 5000 : 0
   const grandTotal = total + shippingFee + giftFee + expressFee
 
   const validate = () => {
@@ -92,7 +114,7 @@ export default function CheckoutPage() {
       setError("받는 분의 이름과 연락처를 입력해주세요")
       return false
     }
-    if (deliveryType !== "pickup" && !form.address) {
+    if (selectedDeliveryType !== "pickup" && !form.address) {
       setError("배송 주소를 입력해주세요")
       return false
     }
@@ -111,7 +133,7 @@ export default function CheckoutPage() {
         items: items.map((i) => ({ productId: i.productId, quantity: i.quantity, price: i.product.price, name: i.product.name, images: i.product.images, composition: i.composition ?? null })),
         totalAmount: grandTotal,
         shippingFee: shippingFee + expressFee,
-        deliveryType,
+        deliveryType: selectedDeliveryType,
         shippingAddr: {
           name: form.name, phone: form.phone, address: form.address, addressDetail: form.addressDetail,
           ordererName: form.ordererName, ordererPhone: form.ordererPhone,
@@ -188,13 +210,15 @@ export default function CheckoutPage() {
             <h2 className="font-semibold text-stone-800 mb-4 flex items-center gap-2"><Truck size={16} /> 배송 방법</h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {([
-                { value: "standard", label: "일반배송", sub: "3~5일 소요 · 무료(5만원↑)" },
-                { value: "express", label: "당일배송", sub: "오전 11시 이전 주문 · +5,000원" },
-                { value: "pickup", label: "매장 픽업", sub: "서울 성수점 · 무료" },
-              ] as const).map(({ value, label, sub }) => (
-                <label key={value} className={`flex flex-col gap-1 p-4 rounded-xl border-2 cursor-pointer transition-colors ${deliveryType === value ? "border-rose-400 bg-rose-50" : "border-stone-100 hover:border-stone-200"}`}>
+                ...(!pickupOnly ? [
+                  { value: "standard" as const, label: bouquetFulfillment ? "배달" : "일반배송", sub: "배송비 3,000원 · 5만원 이상 무료" },
+                  { value: "express" as const, label: "당일 배달", sub: "오전 11시 이전 주문 · +5,000원" },
+                ] : []),
+                { value: "pickup" as const, label: "매장 픽업", sub: `${pickupStoreName ?? "선택 매장"} · 무료` },
+              ]).map(({ value, label, sub }) => (
+                <label key={value} className={`flex flex-col gap-1 p-4 rounded-xl border-2 cursor-pointer transition-colors ${selectedDeliveryType === value ? "border-rose-400 bg-rose-50" : "border-stone-100 hover:border-stone-200"}`}>
                   <div className="flex items-center gap-2">
-                    <input type="radio" name="delivery" value={value} checked={deliveryType === value} onChange={() => setDeliveryType(value)} className="accent-rose-400" />
+                    <input type="radio" name="delivery" value={value} checked={selectedDeliveryType === value} onChange={() => setDeliveryType(value)} className="accent-rose-400" />
                     <span className="text-sm font-semibold text-stone-800">{label}</span>
                   </div>
                   <p className="text-xs text-stone-400 pl-5">{sub}</p>
@@ -240,7 +264,7 @@ export default function CheckoutPage() {
                 <Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="010-0000-0000" className="rounded-xl border-stone-200" />
               </div>
             </div>
-            {deliveryType !== "pickup" && (
+            {selectedDeliveryType !== "pickup" && (
               <div className="space-y-1.5">
                 <Label className="text-xs text-stone-500">주소 *</Label>
                 <div className="flex gap-2">
@@ -255,7 +279,7 @@ export default function CheckoutPage() {
           {/* 받는 날짜 */}
           <section className="bg-white rounded-2xl p-6 border border-stone-100 space-y-4">
             <h2 className="font-semibold text-stone-800">
-              {deliveryType === "pickup" ? "픽업 날짜" : "받는 날짜"}
+              {selectedDeliveryType === "pickup" ? "픽업 날짜" : "받는 날짜"}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">

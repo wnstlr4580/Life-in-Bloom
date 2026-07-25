@@ -67,7 +67,7 @@ export function BouquetGallery({ limit = 8, showViewAll = false }: { limit?: num
           <p className="text-stone-500 text-sm mb-6">
             첫 후기의 주인공이 되어보세요. 다른 분이 내 조합 그대로 구매하면 500포인트를 드려요!
           </p>
-          <Link href="/custom" className="inline-block px-6 py-3 rounded-full bg-rose-400 hover:bg-rose-500 text-white text-sm font-semibold transition-colors">
+          <Link href="/diy" className="inline-block px-6 py-3 rounded-full bg-rose-400 hover:bg-rose-500 text-white text-sm font-semibold transition-colors">
             💐 꽃다발 만들러 가기
           </Link>
         </div>

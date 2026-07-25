@@ -4,11 +4,28 @@ import { useCartStore } from "@/store/cartStore"
 import { Button } from "@/components/ui/button"
 import { Trash2, ShoppingBag } from "lucide-react"
 import Link from "next/link"
+import { useSession } from "next-auth/react"
 
 export default function CartPage() {
+  const { data: session, status } = useSession()
   const { items, updateQuantity, removeItem, totalPrice } = useCartStore()
   const total = totalPrice()
-  const shippingFee = total >= 50000 ? 0 : 3000
+
+  if (status === "loading") {
+    return <div className="mx-auto max-w-6xl px-6 py-32 text-center text-stone-400">회원 정보를 확인하고 있어요...</div>
+  }
+  if (!session?.user) {
+    return (
+      <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-6 py-32">
+        <span className="text-5xl">🔐</span>
+        <p className="font-semibold text-stone-700">장바구니는 로그인한 일반회원만 볼 수 있어요.</p>
+        <Link href="/login"><Button className="bg-rose-400 text-white hover:bg-rose-500">로그인하기</Button></Link>
+      </div>
+    )
+  }
+  if (session.user.role !== "CUSTOMER") {
+    return <div className="mx-auto max-w-6xl px-6 py-32 text-center font-semibold text-stone-600">판매자와 관리자는 장바구니 및 꽃 구매를 이용할 수 없어요.</div>
+  }
 
   if (items.length === 0) {
     return (
@@ -81,18 +98,13 @@ export default function CartPage() {
                 <span>{total.toLocaleString()}원</span>
               </div>
               <div className="flex justify-between">
-                <span>배송비</span>
-                <span className={shippingFee === 0 ? "text-rose-400 font-medium" : ""}>
-                  {shippingFee === 0 ? "무료" : `${shippingFee.toLocaleString()}원`}
-                </span>
+                <span>수령 방법</span>
+                <span className="text-stone-400">결제 단계에서 선택</span>
               </div>
-              {shippingFee > 0 && (
-                <p className="text-xs text-stone-400">5만원 이상 구매 시 무료 배송</p>
-              )}
             </div>
             <div className="border-t border-stone-100 pt-4 flex justify-between font-bold text-stone-800">
               <span>총 결제금액</span>
-              <span className="text-rose-500 text-lg">{(total + shippingFee).toLocaleString()}원</span>
+              <span className="text-rose-500 text-lg">{total.toLocaleString()}원</span>
             </div>
             <Link href="/checkout" className="block">
               <Button className="w-full h-12 bg-rose-400 hover:bg-rose-500 text-white font-semibold text-base">

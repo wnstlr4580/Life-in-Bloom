@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { ShoppingBag, ArrowLeft, Heart, Star, BadgeCheck, ExternalLink, Store } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -31,6 +31,7 @@ const CATEGORY_LABEL: Record<string, string> = { bouquet: "꽃다발", basket: "
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const router = useRouter()
   const { data: session } = useSession()
   const [product, setProduct] = useState<Product | null>(null)
   const [selectedImage, setSelectedImage] = useState(0)
@@ -115,6 +116,14 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = () => {
     if (!product) return
+    if (!session?.user) {
+      router.push("/login")
+      return
+    }
+    if (session.user.role !== "CUSTOMER") {
+      window.alert("꽃 구매와 장바구니는 일반회원만 이용할 수 있어요.")
+      return
+    }
     addItem({
       id: crypto.randomUUID(),
       productId: product.id,
@@ -222,7 +231,11 @@ export default function ProductDetailPage() {
 
             {/* 버튼 */}
             <div className="flex gap-3">
-              {external ? <a href={product.externalUrl!} target="_blank" rel="noopener noreferrer" className="flex h-12 flex-1 items-center justify-center gap-2 rounded-md bg-gradient-to-r from-amber-500 to-yellow-600 text-base font-semibold text-white hover:from-amber-600 hover:to-yellow-700"><ExternalLink size={18} />케이플라워에서 구매하기</a> : <Button
+              {external ? <button type="button" onClick={() => {
+                if (!session?.user) { router.push("/login"); return }
+                if (session.user.role !== "CUSTOMER") { window.alert("꽃 구매는 일반회원만 이용할 수 있어요."); return }
+                window.open(product.externalUrl!, "_blank", "noopener,noreferrer")
+              }} className="flex h-12 flex-1 items-center justify-center gap-2 rounded-md bg-gradient-to-r from-amber-500 to-yellow-600 text-base font-semibold text-white hover:from-amber-600 hover:to-yellow-700"><ExternalLink size={18} />케이플라워에서 구매하기</button> : <Button
                 onClick={handleAddToCart}
                 disabled={unavailable}
                 className="flex-1 h-12 bg-rose-400 hover:bg-rose-500 text-white font-semibold text-base gap-2 disabled:opacity-50"

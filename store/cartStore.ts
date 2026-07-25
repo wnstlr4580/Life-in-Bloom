@@ -11,6 +11,13 @@ export interface CartItem {
     additionalFlowerIds: string[]
     wrappingId: string
   }
+  fulfillment?: {
+    sellerId: string
+    sellerName: string
+    orderMode: "diy" | "custom"
+    supportsPickup: boolean
+    supportsDelivery: boolean
+  }
   product: {
     id: string
     name: string
@@ -22,6 +29,9 @@ export interface CartItem {
 
 interface CartStore {
   items: CartItem[]
+  activeUserId: string | null
+  savedCarts: Record<string, CartItem[]>
+  setActiveUser: (userId: string | null) => void
   setItems: (items: CartItem[]) => void
   addItem: (item: CartItem) => void
   updateQuantity: (id: string, quantity: number) => void
@@ -35,6 +45,19 @@ export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
       items: [],
+      activeUserId: null,
+      savedCarts: {},
+
+      setActiveUser: (userId) => set((state) => {
+        if (state.activeUserId === userId) return state
+        const savedCarts = { ...state.savedCarts }
+        if (state.activeUserId) savedCarts[state.activeUserId] = state.items
+        return {
+          activeUserId: userId,
+          savedCarts,
+          items: userId ? (savedCarts[userId] ?? []) : [],
+        }
+      }),
 
       setItems: (items) => set({ items }),
 
@@ -68,6 +91,6 @@ export const useCartStore = create<CartStore>()(
       totalPrice: () =>
         get().items.reduce((sum, i) => sum + i.product.price * i.quantity, 0),
     }),
-    { name: "cart" }
+    { name: "cart", version: 2 }
   )
 )

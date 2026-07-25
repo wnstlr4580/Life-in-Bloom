@@ -44,10 +44,9 @@ const NAV: NavItem[] = [
     ],
   },
   {
-    href: "/custom", label: "꽃다발 만들기",
+    href: "/diy", label: "꽃다발 만들기",
     children: [
-      { href: "/custom", label: "💐 만들러 가기" },
-      { href: "/diy", label: "✂️ 직접 만들어보기 DIY" },
+      { href: "/diy", label: "💐 만들기·주문 통합" },
       { href: "/#bouquet-gallery", label: "📸 손님들의 꽃다발" },
     ],
   },
@@ -57,10 +56,15 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
   const pathname = usePathname()
   const router = useRouter()
   const totalCount = useCartStore((s) => s.totalCount())
-  const { data: session } = useSession()
+  const setActiveCartUser = useCartStore((s) => s.setActiveUser)
+  const { data: session, status } = useSession()
   const [query, setQuery] = useState("")
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
+  useEffect(() => {
+    if (status === "loading") return
+    setActiveCartUser(session?.user?.role === "CUSTOMER" ? session.user.id : null)
+  }, [session?.user?.id, session?.user?.role, setActiveCartUser, status])
+
+  const canUseCart = !session?.user || session.user.role === "CUSTOMER"
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -133,7 +137,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
               />
             </form>
 
-            <Link href="/cart">
+            {canUseCart && <Link href="/cart">
               <Button
                 variant="ghost"
                 size="sm"
@@ -141,13 +145,13 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
               >
                 <ShoppingCart size={18} />
                 <span className="text-sm">장바구니</span>
-                {mounted && totalCount > 0 && (
+                {session?.user?.role === "CUSTOMER" && totalCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 bg-rose-400 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-0.5">
                     {totalCount > 99 ? "99+" : totalCount}
                   </span>
                 )}
               </Button>
-            </Link>
+            </Link>}
 
             {(session?.user?.role === "ADMIN" || session?.user?.isAdmin === true) && (
               <Link href="/admin">
@@ -232,8 +236,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
               <div className="flex flex-col gap-2 text-sm text-stone-500">
                 <Link href="/saju" className="hover:text-rose-500 transition-colors">나의 꽃 찾기</Link>
                 <Link href="/compat" className="hover:text-rose-500 transition-colors">궁합 보기</Link>
-                <Link href="/custom" className="hover:text-rose-500 transition-colors">꽃다발 만들기</Link>
-                <Link href="/diy" className="hover:text-rose-500 transition-colors">꽃다발 DIY</Link>
+                <Link href="/diy" className="hover:text-rose-500 transition-colors">꽃다발 만들기·주문</Link>
                 <Link href="/products" className="hover:text-rose-500 transition-colors">꽃 & 식물</Link>
                 <Link href="/orders/lookup" className="hover:text-rose-500 transition-colors">주문 조회</Link>
               </div>
