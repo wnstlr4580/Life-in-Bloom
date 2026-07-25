@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase"
+import { SIZES } from "@/lib/customFlowers"
 
 type RequestedFlower = { id: string; quantity: number }
 type SellerRow = {
@@ -12,6 +13,8 @@ type SellerRow = {
   latitude: number | string | null
   longitude: number | string | null
   isOpen: boolean
+  offersCustomBouquet: boolean
+  offersDiyFlowers: boolean
 }
 type StockRow = {
   sellerId: string
@@ -20,6 +23,8 @@ type StockRow = {
   quantity: number
   unitPrice: number
   unit: string
+  availableForDiy: boolean
+  availableForCustom: boolean
 }
 type MatchItem = {
   id: string
@@ -59,6 +64,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "꽃과 송이 수를 확인해주세요." }, { status: 400 })
   }
 
+  const size = SIZES.find((item) => item.id === body?.sizeId)
+  const totalStems = flowers.reduce((sum, flower) => sum + flower.quantity, 0)
+  if (!size || totalStems > size.stems || flowers.length > size.maxVarieties) {
+    return NextResponse.json(
+      { error: size ? `${size.name} 크기는 최대 ${size.stems}송이, ${size.maxVarieties}종까지 선택할 수 있어요.` : "꽃다발 크기를 확인해주세요." },
+      { status: 400 },
+    )
+  }
+
   const latitude = Number(body?.latitude)
   const longitude = Number(body?.longitude)
   const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude)
@@ -70,9 +84,9 @@ export async function POST(req: Request) {
 
   const { data: stockData, error: stockError } = await supabaseAdmin
     .from("SellerStock")
-    .select("sellerId, flowerCode, flowerName, quantity, unitPrice, unit")
+    .select("sellerId, flowerCode, flowerName, quantity, unitPrice, unit, availableForDiy, availableForCustom")
     .in("flowerCode", flowerIds)
-    .eq("availableForDiy", true)
+    .or("availableForDiy.eq.true,availableForCustom.eq.true")
     .eq("isVisible", true)
     .eq("isActive", true)
     .gt("quantity", 0)
@@ -89,10 +103,9 @@ export async function POST(req: Request) {
 
   const { data: sellerData, error: sellerError } = await supabaseAdmin
     .from("Seller")
-    .select("id, marketName, sellerType, roadAddress, detailAddress, publicPhone, latitude, longitude, isOpen")
+    .select("id, marketName, sellerType, roadAddress, detailAddress, publicPhone, latitude, longitude, isOpen, offersCustomBouquet, offersDiyFlowers")
     .in("id", sellerIds)
     .eq("status", "APPROVED")
-    .eq("offersDiyFlowers", true)
     .eq("isOpen", true)
 
   if (sellerError) {
@@ -102,9 +115,10 @@ export async function POST(req: Request) {
   const sellers = (sellerData ?? []) as SellerRow[]
   const matches = sellers.map((seller) => {
     const sellerStocks = stocks.filter((stock) => stock.sellerId === seller.id)
-    const items: MatchItem[] = flowers.map((requested: RequestedFlower) => {
+    const buildItems = (mode: "diy" | "custom"): MatchItem[] => flowers.map((requested: RequestedFlower) => {
       const candidates = sellerStocks
         .filter((stock) => stock.flowerCode === requested.id && stock.unit === "STEM")
+        .filter((stock) => mode === "diy" ? stock.availableForDiy : stock.availableForCustom)
         .sort((a, b) => a.unitPrice - b.unitPrice)
       const stock = candidates[0]
       const available = Math.min(stock?.quantity ?? 0, requested.quantity)
@@ -117,16 +131,22 @@ export async function POST(req: Request) {
         subtotal: stock ? stock.unitPrice * requested.quantity : null,
       }
     })
+    const diyItems = buildItems("diy")
+    const customItems = buildItems("custom")
     const sellerLat = Number(seller.latitude)
     const sellerLng = Number(seller.longitude)
     const hasSellerCoordinates = Number.isFinite(sellerLat) && Number.isFinite(sellerLng)
     const distance = hasCoordinates && hasSellerCoordinates
       ? distanceKm(latitude, longitude, sellerLat, sellerLng)
       : null
-    const fulfilledCount = items.filter((item) => item.available >= item.requested).length
-    const complete = fulfilledCount === flowers.length
-    const totalPrice = complete
-      ? items.reduce((sum, item) => sum + (item.subtotal ?? 0), 0)
+    const diyFulfilledCount = diyItems.filter((item) => item.available >= item.requested).length
+    const customFulfilledCount = customItems.filter((item) => item.available >= item.requested).length
+    const withinRadius = distance === null || distance <= radiusKm
+    const diyComplete = seller.offersDiyFlowers && withinRadius && diyFulfilledCount === flowers.length
+    const customComplete = seller.offersCustomBouquet && customFulfilledCount === flowers.length
+    const diyPrice = diyComplete ? diyItems.reduce((sum, item) => sum + (item.subtotal ?? 0), 0) : null
+    const customPrice = customComplete
+      ? customItems.reduce((sum, item) => sum + (item.subtotal ?? 0), 0) + 10000
       : null
     return {
       sellerId: seller.id,
@@ -136,16 +156,23 @@ export async function POST(req: Request) {
       detailAddress: seller.detailAddress,
       publicPhone: seller.publicPhone,
       distanceKm: distance === null ? null : Math.round(distance * 10) / 10,
+      latitude: hasSellerCoordinates ? sellerLat : null,
+      longitude: hasSellerCoordinates ? sellerLng : null,
       addressScore: address ? addressScore(address, seller.roadAddress) : 0,
-      complete,
-      fulfilledCount,
+      complete: diyComplete || customComplete,
+      fulfilledCount: Math.max(diyFulfilledCount, customFulfilledCount),
       requestedCount: flowers.length,
-      totalPrice,
-      items,
+      totalPrice: diyPrice ?? customPrice,
+      items: diyComplete ? diyItems : customItems,
+      diyComplete,
+      customComplete,
+      diyPrice,
+      customPrice,
+      withinRadius,
     }
-  }).filter((match) => !hasCoordinates || match.distanceKm === null || match.distanceKm <= radiusKm)
+  }).filter((match) => match.diyComplete || match.customComplete)
     .sort((a, b) => {
-      if (a.complete !== b.complete) return a.complete ? -1 : 1
+      if (a.diyComplete !== b.diyComplete) return a.diyComplete ? -1 : 1
       if (hasCoordinates) return (a.distanceKm ?? 9999) - (b.distanceKm ?? 9999)
       if (a.addressScore !== b.addressScore) return b.addressScore - a.addressScore
       return b.fulfilledCount - a.fulfilledCount

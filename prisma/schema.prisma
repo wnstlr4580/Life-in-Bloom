@@ -42,6 +42,20 @@ model User {
   seller        Seller?
   sellerReviews SellerReview[] @relation("SellerReviewer")
   adminAuditLogs AdminAuditLog[] @relation("AdminAuditActor")
+  specialDates   UserSpecialDate[]
+}
+
+model UserSpecialDate {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  label     String
+  monthDay  String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, monthDay])
 }
 
 enum UserRole {

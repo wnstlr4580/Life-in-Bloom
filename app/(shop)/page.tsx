@@ -73,7 +73,7 @@ export default function HomePage() {
             {[
               { href: "/saju", emoji: "🔮", title: "나의 꽃 찾기", desc: "생년월일로 알아보는 나의 오행과 꽃" },
               { href: "/compat", emoji: "💞", title: "궁합 보기", desc: "둘의 기운은 얼마나 잘 맞을까요?" },
-              { href: "/custom", emoji: "💐", title: "꽃다발 만들기", desc: "원하는 꽃으로 나만의 꽃다발 완성" },
+              { href: "/diy", emoji: "💐", title: "꽃다발 만들기", desc: "직접 만들거나 꽃집에 제작 주문" },
               { href: "/products", emoji: "🌷", title: "꽃 & 식물", desc: "꽃다발부터 화분까지 한눈에" },
             ].map(({ href, emoji, title, desc }) => (
               <Link

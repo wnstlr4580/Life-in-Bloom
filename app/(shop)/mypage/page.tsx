@@ -16,6 +16,7 @@ interface SajuProfile {
   name: string; gender: string; birthDate: string
   calendarType: string; birthHour: string; city: string
 }
+interface SpecialDate { id: string; type: "birthday" | "anniversary"; label: string; monthDay: string }
 
 const STATUS_LABEL: Record<string, string> = {
   PENDING: "결제 대기", PAID: "결제 완료", PREPARING: "준비 중",
@@ -49,6 +50,10 @@ export default function MyPage() {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [points, setPoints] = useState<number | null>(null)
+  const [specialDates, setSpecialDates] = useState<SpecialDate[]>([])
+  const [dateLabel, setDateLabel] = useState("")
+  const [dateMonthDay, setDateMonthDay] = useState("")
+  const [dateMessage, setDateMessage] = useState("")
 
   // 받은 꽃다발 후기 올리기
   const [reviewingOrderId, setReviewingOrderId] = useState<string | null>(null)
@@ -114,13 +119,31 @@ export default function MyPage() {
     return fetch("/api/saju/profile").then((r) => r.json()).then((d) => setSajuProfile(d)).finally(() => setLoadingSaju(false))
   }, [])
 
+  const loadSpecialDates = useCallback(() => {
+    fetch("/api/account/special-dates").then((r) => r.json()).then((d) => setSpecialDates(d.dates ?? [])).catch(() => {})
+  }, [])
+
   useEffect(() => {
     if (!session?.user) return
     setLoadingOrders(true)
     fetch("/api/orders").then((r) => r.json()).then((d) => setOrders(d.orders ?? [])).finally(() => setLoadingOrders(false))
     fetch("/api/me").then((r) => r.json()).then((d) => setPoints(d?.points ?? 0)).catch(() => {})
     loadSajuProfile()
-  }, [session, loadSajuProfile])
+    loadSpecialDates()
+  }, [session, loadSajuProfile, loadSpecialDates])
+
+  const addSpecialDate = async () => {
+    setDateMessage("")
+    const response = await fetch("/api/account/special-dates", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "anniversary", label: dateLabel, monthDay: dateMonthDay }) })
+    const data = await response.json()
+    if (!response.ok) { setDateMessage(data.error ?? "저장하지 못했어요."); return }
+    setDateLabel(""); setDateMonthDay(""); loadSpecialDates()
+  }
+
+  const deleteSpecialDate = async (id: string) => {
+    await fetch(`/api/account/special-dates?id=${id}`, { method: "DELETE" })
+    loadSpecialDates()
+  }
 
   const handleSaveProfile = async (data: {
     name: string; gender: string; birthDate: string; birthHour: string; city: string; calendarType: string
@@ -336,6 +359,27 @@ export default function MyPage() {
                 </div>
               </div>
             )}
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border border-stone-100 bg-white">
+            <div className="border-b border-stone-50 px-6 py-4">
+              <h2 className="font-semibold text-stone-800">🎁 꽃 추천 일정</h2>
+              <p className="mt-1 text-xs text-stone-400">생일은 위 생년월일에서 자동 사용하고, 기념일은 연도 없이 월·일만 저장해요.</p>
+            </div>
+            <div className="space-y-3 p-6">
+              {specialDates.map((date) => (
+                <div key={date.id} className="flex items-center justify-between rounded-xl bg-rose-50 px-4 py-3 text-sm">
+                  <span><strong className="text-stone-800">{date.label}</strong> <span className="ml-2 text-rose-500">{date.monthDay.replace("-", "월 ")}일</span></span>
+                  <button onClick={() => deleteSpecialDate(date.id)} className="text-xs text-stone-400 hover:text-red-500">삭제</button>
+                </div>
+              ))}
+              <div className="grid gap-2 sm:grid-cols-[1fr_140px_auto]">
+                <input value={dateLabel} onChange={(event) => setDateLabel(event.target.value)} placeholder="예: 결혼기념일" className="h-10 rounded-xl border border-stone-200 px-3 text-sm" />
+                <input value={dateMonthDay} onChange={(event) => setDateMonthDay(event.target.value)} placeholder="MM-DD" pattern="(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])" className="h-10 rounded-xl border border-stone-200 px-3 text-sm" />
+                <Button onClick={addSpecialDate} className="h-10 bg-rose-400 text-white hover:bg-rose-500">추가</Button>
+              </div>
+              {dateMessage && <p className="text-xs text-red-500">{dateMessage}</p>}
+            </div>
           </div>
 
           {/* 주문 내역 */}

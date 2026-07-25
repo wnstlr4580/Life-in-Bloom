@@ -13,9 +13,11 @@ interface OrderItemInput {
 }
 
 export async function POST(req: Request) {
-  // 로그인 없이도 주문할 수 있다 — 비회원 주문은 userId 없이 저장되고,
-  // /orders/lookup(주문번호 + 연락처)으로 조회한다.
   const session = await auth()
+  if (!session?.user?.id) return NextResponse.json({ error: "로그인이 필요합니다" }, { status: 401 })
+  if (session.user.role !== "CUSTOMER") {
+    return NextResponse.json({ error: "꽃 구매는 일반회원만 이용할 수 있습니다" }, { status: 403 })
+  }
 
   const { items, totalAmount, shippingFee, deliveryType, shippingAddr, giftMessage, giftWrapping, paymentId, sourcePostId } = await req.json()
 
@@ -29,7 +31,7 @@ export async function POST(req: Request) {
     .from("Order")
     .insert({
       id: orderId,
-      userId: session?.user?.id ?? null,
+      userId: session.user.id,
       totalAmount,
       shippingFee: shippingFee ?? 0,
       deliveryType,

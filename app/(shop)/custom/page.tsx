@@ -384,6 +384,14 @@ function CustomContent() {
 
   const handleOrder = () => {
     if (!hasSelection) return
+    if (!session?.user) {
+      router.push("/login")
+      return
+    }
+    if (session.user.role !== "CUSTOMER") {
+      window.alert("꽃 구매와 장바구니는 일반회원만 이용할 수 있어요.")
+      return
+    }
     const allItems = [
       ...(mainFlowerId ? [mainFlowerId] : []),
       ...[...additionalFlowerIds].filter((id) => (stemDist[id] ?? 0) > 0),

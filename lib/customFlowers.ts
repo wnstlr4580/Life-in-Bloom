@@ -1,9 +1,9 @@
 // 커스텀 꽃다발 구성 데이터 — 커스텀 페이지와 후기 갤러리가 함께 사용
 export const SIZES = [
-  { id: "mini",  name: "미니",  emoji: "🌷", stems: 7,  mainStems: 4,  maxAdditional: 3,  desc: "약 7송이",  engVolume: "tiny petite hand-tied bouquet with only a few stems, minimal and delicate, small enough to hold in one hand" },
-  { id: "basic", name: "기본",  emoji: "💐", stems: 12, mainStems: 6,  maxAdditional: 6,  desc: "약 12송이", engVolume: "medium-sized hand-tied bouquet with moderate fullness, classic everyday bouquet size" },
-  { id: "full",  name: "풍성",  emoji: "🌸", stems: 18, mainStems: 9,  maxAdditional: 9,  desc: "약 18송이", engVolume: "large lush full bouquet with abundant blooms densely packed, voluminous and impressive" },
-  { id: "large", name: "대형",  emoji: "🌺", stems: 25, mainStems: 12, maxAdditional: 13, desc: "약 25송이", engVolume: "grand oversized premium bouquet with dramatic volume, extremely full and lavish with blooms overflowing" },
+  { id: "mini",  name: "미니",  emoji: "🌷", stems: 7,  mainStems: 4,  maxAdditional: 3,  maxVarieties: 2, widthCm: "15~20", desc: "폭 15~20cm · 최대 약 7대",  engVolume: "tiny petite hand-tied bouquet with only a few stems, minimal and delicate, small enough to hold in one hand" },
+  { id: "basic", name: "기본",  emoji: "💐", stems: 12, mainStems: 6,  maxAdditional: 6,  maxVarieties: 3, widthCm: "20~25", desc: "폭 20~25cm · 최대 약 12대", engVolume: "medium-sized hand-tied bouquet with moderate fullness, classic everyday bouquet size" },
+  { id: "full",  name: "풍성",  emoji: "🌸", stems: 18, mainStems: 9,  maxAdditional: 9,  maxVarieties: 4, widthCm: "25~32", desc: "폭 25~32cm · 최대 약 18대", engVolume: "large lush full bouquet with abundant blooms densely packed, voluminous and impressive" },
+  { id: "large", name: "대형",  emoji: "🌺", stems: 25, mainStems: 12, maxAdditional: 13, maxVarieties: 5, widthCm: "32~40", desc: "폭 32~40cm · 최대 약 25대", engVolume: "grand oversized premium bouquet with dramatic volume, extremely full and lavish with blooms overflowing" },
 ]
 
 export const FLOWERS = [

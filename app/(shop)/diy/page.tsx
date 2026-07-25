@@ -1,13 +1,16 @@
 "use client"
 
 import Image from "next/image"
-import Link from "next/link"
 import { useMemo, useRef, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Check, ChevronRight, LocateFixed, MapPin, Minus, Plus, RefreshCw, RotateCcw, Search, Scissors, Sparkles, Store } from "lucide-react"
+import { useSession } from "next-auth/react"
+import { nanoid } from "nanoid"
+import { Check, LocateFixed, MapPin, Minus, Plus, RefreshCw, RotateCcw, Search, Scissors, Sparkles, Store } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { COLOR_FILTER, COLOR_LABEL, FLOWERS, SIZES, WRAPPING } from "@/lib/customFlowers"
 import { birthFlowerSelection, flowerBirthDates, flowerMeaning, flowerMonths, flowerOccasions, isMonthFlower, isOccasionFlower, OCCASIONS } from "@/lib/diyFlowerTags"
+import { useCartStore } from "@/store/cartStore"
+import { SellerMap } from "@/components/shop/SellerMap"
 
 type LocationState = {
   address: string
@@ -31,17 +34,39 @@ type Match = {
   detailAddress: string
   publicPhone: string | null
   distanceKm: number | null
+  latitude: number | null
+  longitude: number | null
   complete: boolean
   fulfilledCount: number
   requestedCount: number
   totalPrice: number | null
   items: MatchItem[]
+  diyComplete: boolean
+  customComplete: boolean
+  diyPrice: number | null
+  customPrice: number | null
 }
 type FilterMode = "all" | "ohaeng" | "color" | "meaning" | "month" | "birth" | "occasion"
 type GpsStatus = "idle" | "checking" | "success" | "error"
+type SpecialDate = { id: string; type: string; label: string; monthDay: string }
+
+const OHAENG_STYLE: Record<string, { active: string; idle: string; dot: string }> = {
+  목: { active: "border-emerald-500 bg-emerald-50 text-emerald-700", idle: "border-emerald-100 bg-emerald-50/40 text-emerald-700", dot: "bg-emerald-500" },
+  화: { active: "border-rose-500 bg-rose-50 text-rose-700", idle: "border-rose-100 bg-rose-50/40 text-rose-700", dot: "bg-rose-500" },
+  토: { active: "border-amber-500 bg-amber-50 text-amber-800", idle: "border-amber-100 bg-amber-50/40 text-amber-800", dot: "bg-amber-500" },
+  금: { active: "border-slate-500 bg-slate-50 text-slate-700", idle: "border-slate-200 bg-slate-50 text-slate-700", dot: "bg-slate-400" },
+  수: { active: "border-blue-500 bg-blue-50 text-blue-700", idle: "border-blue-100 bg-blue-50/40 text-blue-700", dot: "bg-blue-500" },
+}
 
 export default function DiyPage() {
   const router = useRouter()
+  const { data: session } = useSession()
+  const addItem = useCartStore((state) => state.addItem)
+  const [userEnergy, setUserEnergy] = useState<{ ohaeng: string | null; lacking: string | null } | null>(null)
+  const [availableFlowerIds, setAvailableFlowerIds] = useState<Set<string> | null>(null)
+  const [availabilityError, setAvailabilityError] = useState("")
+  const [selectionMessage, setSelectionMessage] = useState("")
+  const [specialDates, setSpecialDates] = useState<SpecialDate[]>([])
   const [size, setSize] = useState(SIZES[1])
   const [quantities, setQuantities] = useState<Record<string, number>>({})
   const [wrappingId, setWrappingId] = useState(WRAPPING[0].id)
@@ -72,9 +97,10 @@ export default function DiyPage() {
     [quantities],
   )
   const selectedCount = selected.reduce((sum, [, quantity]) => sum + quantity, 0)
-  const monthDay = birthDate ? birthDate.slice(5) : ""
+  const monthDay = birthDate
   const birthSelection = monthDay ? birthFlowerSelection(monthDay) : null
   const filteredFlowers = FLOWERS.filter((flower) => {
+    if (availableFlowerIds && !availableFlowerIds.has(flower.id)) return false
     const meaning = flowerMeaning(flower.name, flower.group)
     const keyword = query.trim().toLowerCase()
     if (keyword && !`${flower.name} ${flower.group} ${meaning}`.toLowerCase().includes(keyword)) return false
@@ -91,6 +117,32 @@ export default function DiyPage() {
     const flower = FLOWERS.find((item) => item.id === id)
     return sum + (flower?.price ?? 0) * quantity
   }, wrapping.price)
+
+  useEffect(() => {
+    fetch("/api/diy/available")
+      .then(async (response) => {
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error)
+        setAvailableFlowerIds(new Set(data.flowerIds ?? []))
+      })
+      .catch((error) => setAvailabilityError(error instanceof Error ? error.message : "재고를 확인하지 못했어요."))
+  }, [])
+
+  useEffect(() => {
+    if (!session?.user) return
+    fetch("/api/saju/profile")
+      .then((response) => response.ok ? response.json() : null)
+      .then((profile) => {
+        if (!profile) return
+        setUserEnergy({ ohaeng: profile.ohaengType, lacking: profile.lackingOhaengType })
+        if (profile.birthDate) setBirthDate((current) => current || profile.birthDate.slice(5))
+      })
+      .catch(() => {})
+    fetch("/api/account/special-dates")
+      .then((response) => response.json())
+      .then((data) => setSpecialDates(data.dates ?? []))
+      .catch(() => {})
+  }, [session])
 
   useEffect(() => {
     if (!postcodeOpen) return
@@ -134,6 +186,12 @@ export default function DiyPage() {
   }, [postcodeOpen])
 
   const updateQuantity = (id: string, delta: number) => {
+    const addingNewVariety = delta > 0 && (quantities[id] ?? 0) === 0
+    if (addingNewVariety && selected.length >= size.maxVarieties) {
+      setSelectionMessage(`${size.name} 크기는 꽃·소재를 최대 ${size.maxVarieties}종까지 고를 수 있어요.`)
+      return
+    }
+    setSelectionMessage("")
     setQuantities((current) => {
       const next = Math.max(0, Math.min(size.stems, (current[id] ?? 0) + delta))
       const currentTotal = Object.values(current).reduce((sum, value) => sum + value, 0)
@@ -178,7 +236,9 @@ export default function DiyPage() {
     setLocationMessage("")
     navigator.geolocation.getCurrentPosition(
       async ({ coords }) => {
-        const coordinateLabel = `위도 ${coords.latitude.toFixed(5)}, 경도 ${coords.longitude.toFixed(5)}`
+        const accuracyLabel = coords.accuracy >= 1000
+          ? `오차 약 ${(coords.accuracy / 1000).toFixed(1)}km`
+          : `오차 약 ${Math.round(coords.accuracy)}m`
         setLocation({
           address: "주소 확인 중...",
           latitude: coords.latitude,
@@ -186,17 +246,17 @@ export default function DiyPage() {
           source: "gps",
         })
         setGpsStatus("success")
-        setLocationMessage(`현재 위치를 확인했어요 · ${coordinateLabel}`)
+        setLocationMessage(`브라우저가 추정한 위치예요 (${accuracyLabel}). 주소가 다르면 직접 수정해 주세요.`)
         setMatches(null)
         try {
           const response = await fetch(`/api/location/reverse-geocode?lat=${coords.latitude}&lng=${coords.longitude}`)
           const data = await response.json()
           if (!response.ok) throw new Error(data.error)
           setLocation((current) => ({ ...current, address: data.address }))
-          setLocationMessage(`${data.address} · ${coordinateLabel}`)
+          setLocationMessage(`${data.address} · 브라우저 추정 위치 (${accuracyLabel})`)
         } catch {
           setLocation((current) => ({ ...current, address: "GPS로 확인한 현재 위치" }))
-          setLocationMessage(`좌표는 확인했지만 도로명주소를 찾지 못했어요 · ${coordinateLabel}`)
+          setLocationMessage(`위치는 확인했지만 주소를 찾지 못했어요 (${accuracyLabel}). 도로명주소를 입력해 주세요.`)
         }
       },
       (error) => {
@@ -227,13 +287,13 @@ export default function DiyPage() {
       return `${quantity}x ${flower.engDesc} (color: ${flower.color})`
     })
     const prompt = [
-      "Professional florist bouquet photograph, pure white seamless background,",
+      "Premium Korean flower shop catalog photograph of one finished hand-tied bouquet,",
       "EXACT FLOWERS ONLY - strictly no other flowers:",
       flowerLines.join(", "),
       wrapping.engStyle,
-      `${size.engVolume}, top-down flat lay, studio lighting, sharp focus, photorealistic, 8k`,
+      `${size.engVolume}. Upright front-facing three-quarter view, bouquet centered vertically, flower heads forming a natural rounded dome, stems gathered tightly into one handle, wrapping paper forming a neat florist cone, ribbon tied cleanly around the lower stems. Soft warm beige or pale gray seamless studio background, gentle diffused daylight, subtle grounded shadow, realistic petal texture, elegant restrained Korean florist styling, premium ecommerce product photography, sharp focus, photorealistic.`,
     ].join(" ")
-    const negative = "cartoon, illustration, painting, text, watermark, people, hands, vase, blurry, any flowers not listed, extra unlisted blooms, wrong colors, oversaturated, low quality"
+    const negative = "top-down, flat lay, overhead view, flowers spread radially, wreath shape, horizontal bouquet, floating bouquet, loose scattered stems, basket, box, vase, cartoon, illustration, painting, text, watermark, people, hands, blurry, any flowers not listed, extra unlisted blooms, wrong colors, oversaturated, plastic flowers, malformed stems, low quality"
     const key = `${size.id}|${selected.map(([id, quantity]) => `${id}:${quantity}`).join(",")}|${wrappingId}`
     try {
       const response = await fetch("/api/custom/generate-image", {
@@ -276,6 +336,7 @@ export default function DiyPage() {
           latitude: location.latitude,
           longitude: location.longitude,
           radiusKm,
+          sizeId: size.id,
         }),
       })
       const data = await response.json()
@@ -288,15 +349,33 @@ export default function DiyPage() {
     }
   }
 
-  const orderWithComposition = () => {
+  const chooseSeller = (match: Match, mode: "diy" | "custom") => {
+    if (!session?.user) {
+      router.push("/login")
+      return
+    }
+    if (session.user.role !== "CUSTOMER") {
+      setMatchError("꽃 구매와 장바구니는 일반회원만 이용할 수 있어요.")
+      return
+    }
+    const basePrice = mode === "diy" ? match.diyPrice : match.customPrice
+    if (basePrice === null) return
+    const price = basePrice + wrapping.price
     const flowerIds = selected.map(([id]) => id)
-    const params = new URLSearchParams({
-      flowers: flowerIds.join(","),
-      size: size.id,
-      wrapping: wrappingId,
-      source: "diy",
+    const productId = `${mode}_${match.sellerId}_${nanoid(6)}`
+    addItem({
+      id: nanoid(), productId, quantity: 1,
+      composition: { sizeId: size.id, mainFlowerId: flowerIds[0] ?? null, additionalFlowerIds: flowerIds.slice(1), wrappingId },
+      fulfillment: { sellerId: match.sellerId, sellerName: match.marketName, orderMode: mode, supportsPickup: true, supportsDelivery: mode === "custom" },
+      product: {
+        id: productId,
+        name: `${match.marketName} · ${mode === "diy" ? "직접 만들기 재료" : "꽃다발 제작 주문"}`,
+        price,
+        images: generatedImageUrl ? [generatedImageUrl] : [],
+        stock: 1,
+      },
     })
-    router.push(`/custom?${params.toString()}`)
+    router.push("/cart")
   }
 
   const completeMatches = matches?.filter((match) => match.complete) ?? []
@@ -311,9 +390,9 @@ export default function DiyPage() {
             </div>
             <div>
               <p className="mb-1 text-sm font-bold text-emerald-700">FLOWER BOUQUET DIY</p>
-              <h1 className="text-2xl font-bold tracking-tight text-stone-900 sm:text-3xl">직접 만드는 나만의 꽃다발</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-stone-900 sm:text-3xl">나만의 꽃다발 만들기·주문</h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-500 sm:text-base">
-                원하는 꽃을 먼저 고르세요. 내 주변 DIY 재고와 실제 송이 단가를 확인해 예상 재료비를 알려드릴게요.
+                직접 만들 재료를 찾거나 같은 화면에서 꽃집 제작을 주문하세요. 현재 판매 가능한 꽃만 보여드려요.
               </p>
             </div>
           </div>
@@ -328,7 +407,7 @@ export default function DiyPage() {
           <div className="space-y-6">
             <section className="rounded-2xl border border-stone-200 bg-white p-5 sm:p-6">
               <h2 className="font-bold text-stone-900">① 꽃다발 크기</h2>
-              <p className="mt-1 text-sm text-stone-500">크기에 따라 담을 수 있는 총 송이 수가 달라져요.</p>
+              <p className="mt-1 text-sm text-stone-500">완성 폭을 기준으로 하고, 꽃 크기가 달라 송이 수는 최대 참고치로 안내해요.</p>
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {SIZES.map((item) => (
                   <button
@@ -341,6 +420,7 @@ export default function DiyPage() {
                     <span className="block text-2xl">{item.emoji}</span>
                     <span className="mt-1 block text-sm font-bold text-stone-800">{item.name}</span>
                     <span className="text-xs text-stone-400">{item.desc}</span>
+                    <span className="mt-1 block text-[10px] font-medium text-emerald-700">최대 {item.maxVarieties}종</span>
                   </button>
                 ))}
               </div>
@@ -350,7 +430,7 @@ export default function DiyPage() {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <h2 className="font-bold text-stone-900">② 원하는 꽃 선택</h2>
-                  <p className="mt-1 text-sm text-stone-500">재고와 관계없이 원하는 꽃을 자유롭게 골라보세요.</p>
+                  <p className="mt-1 text-sm text-stone-500">현재 판매처에 재고가 있는 꽃만 골라볼 수 있어요.</p>
                 </div>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={15} />
@@ -362,12 +442,20 @@ export default function DiyPage() {
                   />
                 </div>
               </div>
+              {availabilityError && <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700">{availabilityError} 임시 목록을 표시합니다.</p>}
+              {specialDates.length > 0 && (
+                <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                  <span className="font-semibold">저장한 기념일 추천</span>
+                  {specialDates.map((date) => <button key={date.id} onClick={() => { setFilterMode("occasion"); setOccasionFilter("anniversary") }} className="rounded-full bg-white px-2.5 py-1">{date.label} · {date.monthDay.replace("-", "/")}</button>)}
+                </div>
+              )}
               <div className="mt-4 flex items-center justify-between rounded-xl bg-stone-50 px-4 py-3 text-sm">
                 <span className="text-stone-500">선택한 꽃</span>
                 <strong className={selectedCount === size.stems ? "text-emerald-700" : "text-stone-800"}>
-                  {selectedCount} / {size.stems}송이
+                  {selectedCount} / 최대 {size.stems}송이{selectedCount === size.stems ? " · 선택 완료" : ""}
                 </strong>
               </div>
+              {selectionMessage && <p className="mt-2 text-xs font-medium text-amber-700">{selectionMessage}</p>}
               <div className="mt-4 flex gap-1 overflow-x-auto rounded-xl bg-stone-100 p-1">
                 {([
                   ["all", "전체"],
@@ -392,7 +480,10 @@ export default function DiyPage() {
               {filterMode === "ohaeng" && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {["전체", "목", "화", "토", "금", "수"].map((item) => (
-                    <button key={item} onClick={() => setOhaengFilter(item)} className={`rounded-full border px-3 py-1.5 text-xs ${ohaengFilter === item ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-stone-200 text-stone-500"}`}>{item}</button>
+                    <button key={item} onClick={() => setOhaengFilter(item)} className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm transition ${item === "전체" ? (ohaengFilter === item ? "border-stone-500 bg-stone-800 text-white" : "border-stone-200 bg-white text-stone-600") : (ohaengFilter === item ? OHAENG_STYLE[item].active : OHAENG_STYLE[item].idle)}`}>
+                      {item !== "전체" && <span className={`h-1.5 w-1.5 rounded-full ${OHAENG_STYLE[item].dot}`} />}
+                      {item}{item !== "전체" && item === userEnergy?.ohaeng ? " · 나의 기운" : item !== "전체" && item === userEnergy?.lacking ? " · 채움 추천" : ""}
+                    </button>
                   ))}
                 </div>
               )}
@@ -418,8 +509,15 @@ export default function DiyPage() {
               {filterMode === "birth" && (
                 <div className="mt-3">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <label htmlFor="diy-birth-date" className="text-xs font-semibold text-stone-600">생일을 선택하면 탄생화와 구매 가능한 유사 꽃을 보여드려요</label>
-                    <input id="diy-birth-date" type="date" value={birthDate} onChange={(event) => setBirthDate(event.target.value)} className="h-10 rounded-xl border border-stone-200 px-3 text-sm" />
+                    <label className="text-xs font-semibold text-stone-600">탄생화 추천에는 태어난 연도 없이 월·일만 필요해요</label>
+                    <div className="flex items-center gap-1">
+                      <select aria-label="생일 월" value={birthDate.slice(0, 2)} onChange={(event) => setBirthDate(`${event.target.value}-${birthDate.slice(3, 5) || "01"}`)} className="h-10 rounded-xl border border-stone-200 bg-white px-3 text-sm">
+                        <option value="">월</option>{Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, "0")).map((month) => <option key={month} value={month}>{Number(month)}월</option>)}
+                      </select>
+                      <select aria-label="생일 일" value={birthDate.slice(3, 5)} onChange={(event) => setBirthDate(`${birthDate.slice(0, 2) || "01"}-${event.target.value}`)} className="h-10 rounded-xl border border-stone-200 bg-white px-3 text-sm">
+                        <option value="">일</option>{Array.from({ length: 31 }, (_, index) => String(index + 1).padStart(2, "0")).map((day) => <option key={day} value={day}>{Number(day)}일</option>)}
+                      </select>
+                    </div>
                   </div>
                   {birthSelection && (
                     <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
@@ -455,7 +553,10 @@ export default function DiyPage() {
                         <p className="truncate text-sm font-bold text-stone-800">{flower.name}</p>
                         {flowerMeaning(flower.name, flower.group) && <p className="mt-0.5 truncate text-[11px] text-rose-500">{flowerMeaning(flower.name, flower.group)}</p>}
                         <div className="mt-1.5 flex flex-wrap gap-1">
-                          <span className="rounded bg-stone-100 px-1.5 py-0.5 text-[9px] text-stone-500">오행 {flower.ohaeng}</span>
+                          <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-semibold ${OHAENG_STYLE[flower.ohaeng]?.idle ?? "border-stone-200 bg-stone-50 text-stone-600"}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${OHAENG_STYLE[flower.ohaeng]?.dot ?? "bg-stone-400"}`} />
+                            {flower.ohaeng} 기운{flower.ohaeng === userEnergy?.lacking ? " · 채움 추천" : flower.ohaeng === userEnergy?.ohaeng ? " · 나의 기운" : ""}
+                          </span>
                           {flowerMonths(flower.id).map((month) => <span key={month} className="rounded bg-emerald-50 px-1.5 py-0.5 text-[9px] text-emerald-700">{month}월의 꽃</span>)}
                           {flowerBirthDates(flower.id).length > 0 && <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[9px] text-amber-700">탄생화</span>}
                           {flowerOccasions(flower.id).slice(0, 2).map((occasion) => <span key={occasion} className="rounded bg-rose-50 px-1.5 py-0.5 text-[9px] text-rose-600">{occasion}</span>)}
@@ -514,20 +615,25 @@ export default function DiyPage() {
                 {location.source === "address" && <span className="text-xs text-amber-600">주소 입력 시 권역순으로 표시</span>}
               </div>
               <Button onClick={findMatches} disabled={matching} className="mt-5 h-12 w-full gap-2 bg-stone-900 text-white hover:bg-stone-800">
-                <Store size={17} /> {matching ? "DIY 재고 확인 중..." : "DIY 재고와 예상가격 확인"}
+                <Store size={17} /> {matching ? "판매처 재고 확인 중..." : "가능한 판매처·가격 확인"}
               </Button>
               {matchError && <p className="mt-3 text-sm text-rose-600">{matchError}</p>}
             </section>
 
             {matches && (
               <section className="rounded-2xl border border-stone-200 bg-white p-5 sm:p-6">
+                <div className="mb-5">
+                  <h2 className="mb-2 font-bold text-stone-900">판매처 지도</h2>
+                  <SellerMap latitude={location.latitude} longitude={location.longitude} radiusKm={radiusKm} sellers={matches} />
+                  <p className="mt-2 text-[11px] text-stone-400">파란 현재 위치를 중심으로 설정한 반경 안의 판매처만 표시해요. 판매처 마커를 누르면 업체정보와 네이버지도 길찾기를 확인할 수 있어요.</p>
+                </div>
                 {completeMatches.length > 0 ? (
                   <>
                     <div className="flex items-center gap-3">
                       <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"><Check size={20} /></span>
                       <div>
-                        <h2 className="font-bold text-stone-900">선택한 꽃을 모두 살 수 있어요</h2>
-                        <p className="text-sm text-stone-500">한 곳에서 준비 가능한 판매처를 먼저 보여드려요.</p>
+                        <h2 className="font-bold text-stone-900">이 구성이 가능한 판매처</h2>
+                        <p className="text-sm text-stone-500">직접 만들기는 한 판매처에서 전부 살 수 있는 경우에만 표시해요.</p>
                       </div>
                     </div>
                     <div className="mt-5 space-y-3">
@@ -544,7 +650,10 @@ export default function DiyPage() {
                               <p className="mt-1 text-xs text-stone-500">{match.roadAddress}</p>
                               {match.distanceKm !== null && <p className="mt-1 text-xs font-semibold text-emerald-700">현재 위치에서 약 {match.distanceKm}km</p>}
                             </div>
-                            {match.totalPrice !== null && <strong className="shrink-0 text-lg text-stone-900">{match.totalPrice.toLocaleString()}원</strong>}
+                            <div className="shrink-0 text-right text-xs text-stone-500">
+                              {match.diyPrice !== null && <p>DIY 약 <strong className="text-base text-emerald-700">{(match.diyPrice + wrapping.price).toLocaleString()}원</strong></p>}
+                              {match.customPrice !== null && <p>제작 약 <strong className="text-base text-rose-600">{(match.customPrice + wrapping.price).toLocaleString()}원</strong></p>}
+                            </div>
                           </div>
                           <div className="mt-3 flex flex-wrap gap-1.5">
                             {match.items.map((item) => (
@@ -554,6 +663,10 @@ export default function DiyPage() {
                             ))}
                           </div>
                           {match.publicPhone && <p className="mt-3 text-xs text-stone-500">방문 전 재고 확인: {match.publicPhone}</p>}
+                          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                            {match.diyComplete && <Button onClick={() => chooseSeller(match, "diy")} className="h-11 w-full bg-emerald-600 text-white hover:bg-emerald-700">✂️ 여기서 재료 전부 픽업</Button>}
+                            {match.customComplete && <Button onClick={() => chooseSeller(match, "custom")} className="h-11 w-full bg-rose-500 text-white hover:bg-rose-600">💐 이 꽃집에 제작 주문</Button>}
+                          </div>
                         </article>
                       ))}
                     </div>
@@ -561,13 +674,10 @@ export default function DiyPage() {
                 ) : (
                   <div className="rounded-2xl bg-rose-50 p-5 text-center">
                     <p className="text-2xl">💐</p>
-                    <h2 className="mt-2 font-bold text-stone-900">주변에서 재료를 모두 구하기 어려워요</h2>
+                    <h2 className="mt-2 font-bold text-stone-900">이 구성을 한 곳에서 준비할 판매처가 없어요</h2>
                     <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-stone-600">
-                      선택한 조합 그대로 꽃집에 제작을 맡길 수 있어요. 지금 고른 꽃과 크기를 유지해서 주문 화면으로 이동합니다.
+                      꽃 수량을 줄이거나 다른 꽃으로 바꾼 뒤 다시 확인해 주세요.
                     </p>
-                    <Button onClick={orderWithComposition} className="mt-5 gap-2 bg-rose-500 text-white hover:bg-rose-600">
-                      이 구성으로 제작 맡기기 <ChevronRight size={16} />
-                    </Button>
                   </div>
                 )}
               </section>
@@ -624,7 +734,7 @@ export default function DiyPage() {
                   {WRAPPING.map((item) => (
                     <button
                       key={item.id}
-                      onClick={() => { setWrappingId(item.id); setMatches(null); setGeneratedImageUrl(null); setGenerateError("") }}
+                      onClick={() => { setWrappingId(item.id); setGeneratedImageUrl(null); setGenerateError("") }}
                       className={`flex shrink-0 flex-col items-center gap-0.5 rounded-xl border-2 px-2.5 py-2 transition ${
                         wrappingId === item.id ? "border-rose-400 bg-rose-50" : "border-stone-100 hover:border-stone-200"
                       }`}
@@ -665,9 +775,6 @@ export default function DiyPage() {
                   </div>
                   <strong className="text-lg text-rose-500">약 {guidePrice.toLocaleString()}원</strong>
                 </div>
-                <Link href="/custom" className="flex items-center justify-center gap-1 text-xs font-semibold text-stone-500 hover:text-rose-600">
-                  직접 만들기 어렵다면 꽃집에 맡기기 <ChevronRight size={13} />
-                </Link>
               </div>
             </div>
           </aside>
