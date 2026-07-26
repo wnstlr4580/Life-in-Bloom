@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
   const seller = req.nextUrl.searchParams.get("seller")?.trim()
   const sort = req.nextUrl.searchParams.get("sort") ?? "newest"
   let query = supabaseAdmin.from("Product")
-    .select("id, name, price, stock, category, images, useTags, colorTags, seasonTags, saleStatus, isActive, createdAt, seller:Seller(id, marketName, status)")
+    .select("id, name, price, stock, category, images, useTags, colorTags, seasonTags, saleStatus, isActive, isPromoted, exposurePriority, createdAt, seller:Seller(id, marketName, status)")
     .limit(300)
   if (category && category !== "ALL") query = query.eq("category", category)
   if (use && use !== "ALL") query = query.contains("useTags", [use])
@@ -48,13 +48,18 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const admin = await requireAdmin()
   if (!admin) return NextResponse.json({ error: "관리자 권한이 필요해요" }, { status: 403 })
-  const { id, isActive, reason } = await req.json()
-  if (!id || typeof isActive !== "boolean" || (!isActive && !String(reason ?? "").trim())) return NextResponse.json({ error: "노출 중지 사유를 입력해주세요" }, { status: 400 })
+  const { id, isActive, isPromoted, exposurePriority, reason } = await req.json()
+  const changesPromotion = typeof isPromoted === "boolean" || exposurePriority !== undefined
+  if (!id || (!changesPromotion && typeof isActive !== "boolean") || (!changesPromotion && !isActive && !String(reason ?? "").trim())) return NextResponse.json({ error: "변경할 노출 설정을 확인해주세요" }, { status: 400 })
   const { data: before } = await supabaseAdmin.from("Product").select("id, name, isActive, sellerId").eq("id", id).maybeSingle()
   if (!before) return NextResponse.json({ error: "상품을 찾을 수 없어요" }, { status: 404 })
-  const { error } = await supabaseAdmin.from("Product").update({ isActive }).eq("id", id)
+  const update = changesPromotion
+    ? { ...(typeof isPromoted === "boolean" ? { isPromoted } : {}), ...(exposurePriority !== undefined ? { exposurePriority: Math.max(0, Math.min(100, Number(exposurePriority) || 0)) } : {}) }
+    : { isActive }
+  const { error } = await supabaseAdmin.from("Product").update(update).eq("id", id)
   if (error) return NextResponse.json({ error: "상품 노출 상태를 변경하지 못했어요" }, { status: 500 })
-  await writeAdminAudit({ actorId: admin.id, action: isActive ? "RESTORE_PRODUCT" : "HIDE_PRODUCT", targetType: "PRODUCT", targetId: id, reason, before, after: { isActive } })
+  await writeAdminAudit({ actorId: admin.id, action: changesPromotion ? "SET_PRODUCT_EXPOSURE" : isActive ? "RESTORE_PRODUCT" : "HIDE_PRODUCT", targetType: "PRODUCT", targetId: id, reason, before, after: update })
+  if (changesPromotion) return NextResponse.json({ ok: true })
   const { data: seller } = await supabaseAdmin.from("Seller").select("marketName, User(email)").eq("id", before.sellerId).maybeSingle()
   const user = Array.isArray(seller?.User) ? seller.User[0] : seller?.User
   if (user?.email) await sendEmail({

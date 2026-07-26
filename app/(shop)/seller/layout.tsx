@@ -3,8 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
-import { signOut } from "next-auth/react"
-import { BarChart3, Boxes, ChevronRight, ClipboardList, LogOut, Package, Settings, Sparkles, Store } from "lucide-react"
+import { BarChart3, Boxes, ChevronRight, ClipboardList, Package, Settings, Sparkles, Store } from "lucide-react"
 
 const MENUS = [
   { href: "/seller", label: "판매자 홈", icon: Store },
@@ -45,13 +44,6 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
                 : <Link key={href} href={href} className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm transition-colors ${active ? "bg-emerald-50 font-semibold text-emerald-700" : "text-stone-600 hover:bg-stone-50"}`}>{content}</Link>
             })}
           </nav>
-          <button
-            onClick={() => signOut({ callbackUrl: "/" })}
-            className="mt-auto flex w-full items-center gap-3 rounded-lg border-t border-stone-100 px-3 py-4 text-sm text-stone-500 transition-colors hover:bg-rose-50 hover:text-rose-600"
-          >
-            <LogOut size={17} />
-            <span>로그아웃</span>
-          </button>
         </div>
       </aside>
       <main className="min-w-0 flex-1">{children}</main>

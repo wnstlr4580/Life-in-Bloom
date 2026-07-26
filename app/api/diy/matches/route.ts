@@ -15,6 +15,8 @@ type SellerRow = {
   isOpen: boolean
   offersCustomBouquet: boolean
   offersDiyFlowers: boolean
+  customDeliveryScope: string
+  customDeliveryRegions: string[]
 }
 type StockRow = {
   sellerId: string
@@ -75,10 +77,14 @@ export async function POST(req: Request) {
 
   const latitude = Number(body?.latitude)
   const longitude = Number(body?.longitude)
-  const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude)
+  const hasCoordinates = body?.latitude !== null && body?.latitude !== undefined
+    && body?.longitude !== null && body?.longitude !== undefined
+    && Number.isFinite(latitude) && Number.isFinite(longitude)
     && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180
   const address = String(body?.address ?? "").trim().slice(0, 200)
   const radiusKm = Math.min(5, Math.max(1, Number(body?.radiusKm) || 3))
+  const preferredSellerId = typeof body?.preferredSellerId === "string" ? body.preferredSellerId : null
+  const fulfillmentMode = body?.fulfillmentMode === "diy" ? "diy" : "custom"
   const flowerIds = flowers.map((flower: RequestedFlower) => flower.id)
   const now = new Date().toISOString()
 
@@ -98,12 +104,12 @@ export async function POST(req: Request) {
   }
 
   const stocks = (stockData ?? []) as StockRow[]
-  const sellerIds = [...new Set(stocks.map((stock) => stock.sellerId))]
+  const sellerIds = [...new Set([...stocks.map((stock) => stock.sellerId), ...(preferredSellerId ? [preferredSellerId] : [])])]
   if (sellerIds.length === 0) return NextResponse.json({ matches: [], radiusKm })
 
   const { data: sellerData, error: sellerError } = await supabaseAdmin
     .from("Seller")
-    .select("id, marketName, sellerType, roadAddress, detailAddress, publicPhone, latitude, longitude, isOpen, offersCustomBouquet, offersDiyFlowers")
+    .select("id, marketName, sellerType, roadAddress, detailAddress, publicPhone, latitude, longitude, isOpen, offersCustomBouquet, offersDiyFlowers, customDeliveryScope, customDeliveryRegions")
     .in("id", sellerIds)
     .eq("status", "APPROVED")
     .eq("isOpen", true)
@@ -143,7 +149,7 @@ export async function POST(req: Request) {
     const customFulfilledCount = customItems.filter((item) => item.available >= item.requested).length
     const withinRadius = distance === null || distance <= radiusKm
     const diyComplete = seller.offersDiyFlowers && withinRadius && diyFulfilledCount === flowers.length
-    const customComplete = seller.offersCustomBouquet && customFulfilledCount === flowers.length
+    const customComplete = seller.offersCustomBouquet && seller.customDeliveryScope !== "NONE" && customFulfilledCount === flowers.length
     const diyPrice = diyComplete ? diyItems.reduce((sum, item) => sum + (item.subtotal ?? 0), 0) : null
     const customPrice = customComplete
       ? customItems.reduce((sum, item) => sum + (item.subtotal ?? 0), 0) + 10000
@@ -164,14 +170,21 @@ export async function POST(req: Request) {
       requestedCount: flowers.length,
       totalPrice: diyPrice ?? customPrice,
       items: diyComplete ? diyItems : customItems,
+      diyItems,
+      customItems,
       diyComplete,
       customComplete,
       diyPrice,
       customPrice,
       withinRadius,
+      preferred: seller.id === preferredSellerId,
+      customDeliveryScope: seller.customDeliveryScope,
+      customDeliveryRegions: seller.customDeliveryRegions ?? [],
     }
-  }).filter((match) => match.diyComplete || match.customComplete)
+  }).filter((match) => match.diyComplete || match.customComplete || match.preferred)
     .sort((a, b) => {
+      if (fulfillmentMode === "custom" && (a.customDeliveryScope === "NATIONWIDE") !== (b.customDeliveryScope === "NATIONWIDE")) return a.customDeliveryScope === "NATIONWIDE" ? -1 : 1
+      if (a.preferred !== b.preferred) return a.preferred ? -1 : 1
       if (a.diyComplete !== b.diyComplete) return a.diyComplete ? -1 : 1
       if (hasCoordinates) return (a.distanceKm ?? 9999) - (b.distanceKm ?? 9999)
       if (a.addressScore !== b.addressScore) return b.addressScore - a.addressScore

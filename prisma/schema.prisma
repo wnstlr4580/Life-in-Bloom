@@ -10,39 +10,41 @@ datasource db {
 // ─── 사용자 ───────────────────────────────────────────
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  name         String?
-  image        String?
-  password     String? // 이메일/비밀번호 회원가입 시 bcrypt 해시 저장 (소셜 로그인 계정은 null)
-  isAdmin      Boolean   @default(false) // role 전환 기간 호환용 — 마이그레이션 완료 후 제거
-  role         UserRole  @default(CUSTOMER)
-  points       Int       @default(0) // 꽃다발 후기 조합 판매 적립 포인트
-  sajuName     String? // 사주 분석 시 입력한 이름 (계정 이름과 다를 수 있음)
-  gender       String?
-  birthDate    DateTime?
-  calendarType String?   @default("solar")
-  birthHour    String?
-  city         String?
-  ohaengType        String?
-  lackingOhaengType String?
-  status             String    @default("ACTIVE")
-  suspendedAt        DateTime?
-  suspendedUntil     DateTime?
-  suspendedReason    String?
-  passwordResetRequired Boolean @default(false)
-  createdAt         DateTime  @default(now())
+  id                    String    @id @default(cuid())
+  email                 String    @unique
+  name                  String?
+  image                 String?
+  password              String? // 이메일/비밀번호 회원가입 시 bcrypt 해시 저장 (소셜 로그인 계정은 null)
+  isAdmin               Boolean   @default(false) // role 전환 기간 호환용 — 마이그레이션 완료 후 제거
+  role                  UserRole  @default(CUSTOMER)
+  points                Int       @default(0) // 꽃다발 후기 조합 판매 적립 포인트
+  sajuName              String? // 사주 분석 시 입력한 이름 (계정 이름과 다를 수 있음)
+  gender                String?
+  birthDate             DateTime?
+  calendarType          String?   @default("solar")
+  birthHour             String?
+  city                  String?
+  ohaengType            String?
+  lackingOhaengType     String?
+  status                String    @default("ACTIVE")
+  suspendedAt           DateTime?
+  suspendedUntil        DateTime?
+  suspendedReason       String?
+  passwordResetRequired Boolean   @default(false)
+  createdAt             DateTime  @default(now())
 
-  accounts      Account[]
-  orders        Order[]
-  cartItems     CartItem[]
-  wishlist      WishlistItem[]
-  reviews       Review[]
-  subscriptions Subscription[]
-  seller        Seller?
-  sellerReviews SellerReview[] @relation("SellerReviewer")
-  adminAuditLogs AdminAuditLog[] @relation("AdminAuditActor")
-  specialDates   UserSpecialDate[]
+  accounts          Account[]
+  orders            Order[]
+  cartItems         CartItem[]
+  wishlist          WishlistItem[]
+  reviews           Review[]
+  reviewComments    ReviewComment[]
+  subscriptions     Subscription[]
+  seller            Seller?
+  sellerReviews     SellerReview[]     @relation("SellerReviewer")
+  adminAuditLogs    AdminAuditLog[]    @relation("AdminAuditActor")
+  specialDates      UserSpecialDate[]
+  pointTransactions PointTransaction[]
 }
 
 model UserSpecialDate {
@@ -77,48 +79,50 @@ model Account {
 // ─── 상품 ───────────────────────────────────────────
 
 model Product {
-  id            String   @id @default(cuid())
-  name          String
-  description   String
-  composition   String?
-  sizeGuide     String?
+  id                 String    @id @default(cuid())
+  name               String
+  description        String
+  composition        String?
+  sizeGuide          String?
   substitutionNotice String?
-  originInfo    String?
-  deliveryArea  String?
-  sameDayCutoff String?
-  orderNotice   String?
-  careInstructions String?
-  price         Int
-  stock         Int      @default(0)
-  category      String
-  images        String[]
-  detailImages  String[] @default([])
-  noticeImages  String[] @default([])
-  flowerMeaning String?
-  ohaengTags    String[]
-  seasonTags    String[]
-  colorTags     String[]
-  useTags       String[] @default([])
-  deliveryDays  String[] @default([])
-  deliveryStartTime String?
-  deliveryEndTime String?
-  displayStartAt DateTime?
-  displayEndAt   DateTime?
-  saleStatus     String   @default("ON_SALE")
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  sellerId      String?
-  purchaseType  String   @default("INTERNAL")
-  externalUrl   String?
-  partnerName   String?
-  partnerBadge  String?
+  originInfo         String?
+  deliveryArea       String?
+  sameDayCutoff      String?
+  orderNotice        String?
+  careInstructions   String?
+  price              Int
+  stock              Int       @default(0)
+  category           String
+  images             String[]
+  detailImages       String[]  @default([])
+  noticeImages       String[]  @default([])
+  flowerMeaning      String?
+  ohaengTags         String[]
+  seasonTags         String[]
+  colorTags          String[]
+  useTags            String[]  @default([])
+  deliveryDays       String[]  @default([])
+  deliveryStartTime  String?
+  deliveryEndTime    String?
+  displayStartAt     DateTime?
+  displayEndAt       DateTime?
+  saleStatus         String    @default("ON_SALE")
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  sellerId           String?
+  purchaseType       String    @default("INTERNAL")
+  externalUrl        String?
+  partnerName        String?
+  partnerBadge       String?
+  isPromoted         Boolean   @default(false)
+  exposurePriority   Int       @default(0)
 
   cartItems  CartItem[]
   orderItems OrderItem[]
   wishlist   WishlistItem[]
   reviews    Review[]
   customBase CustomBase?
-  seller     Seller? @relation(fields: [sellerId], references: [id])
+  seller     Seller?        @relation(fields: [sellerId], references: [id])
 
   @@index([sellerId, isActive])
 }
@@ -174,14 +178,35 @@ model Seller {
   approvedAt            DateTime?
   createdAt             DateTime     @default(now())
   updatedAt             DateTime     @updatedAt
+  exposureWeight        Int          @default(0)
+  isCoopMember          Boolean      @default(false)
+  customDeliveryScope   String       @default("NATIONWIDE")
+  customDeliveryRegions String[]     @default([])
+  productDeliveryScope  String       @default("NATIONWIDE")
+  productDeliveryRegions String[]    @default([])
 
-  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  reviews  SellerReview[]
-  stocks   SellerStock[]
-  products Product[]
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviews    SellerReview[]
+  stocks     SellerStock[]
+  products   Product[]
   orderItems OrderItem[]
+  restockRequests RestockRequest[]
 
   @@index([status, isOpen])
+}
+
+model RestockRequest {
+  id          String   @id
+  userId      String
+  sellerId    String
+  flowerCodes String[]
+  status      String   @default("WAITING")
+  createdAt   DateTime @default(now())
+
+  seller Seller @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@index([sellerId, status])
+  @@index([userId, createdAt])
 }
 
 model SellerReview {
@@ -201,25 +226,25 @@ model SellerReview {
 }
 
 model SellerStock {
-  id         String   @id @default(cuid())
-  sellerId   String
-  flowerCode String
-  flowerName String
-  flowerMeaning String?
-  color      String?
-  grade      String?
-  unit       String   @default("STEM")
-  quantity   Int
-  unitPrice  Int
-  barcode    String?
-  imageUrl   String?
-  availableForCustom Boolean @default(true)
-  availableForDiy Boolean @default(true)
-  isVisible  Boolean  @default(true)
-  displayStartAt DateTime?
-  displayEndAt DateTime?
-  isActive   Boolean  @default(true)
-  updatedAt  DateTime @updatedAt
+  id                 String    @id @default(cuid())
+  sellerId           String
+  flowerCode         String
+  flowerName         String
+  flowerMeaning      String?
+  color              String?
+  grade              String?
+  unit               String    @default("STEM")
+  quantity           Int
+  unitPrice          Int
+  barcode            String?
+  imageUrl           String?
+  availableForCustom Boolean   @default(true)
+  availableForDiy    Boolean   @default(true)
+  isVisible          Boolean   @default(true)
+  displayStartAt     DateTime?
+  displayEndAt       DateTime?
+  isActive           Boolean   @default(true)
+  updatedAt          DateTime  @updatedAt
 
   seller Seller @relation(fields: [sellerId], references: [id], onDelete: Cascade)
 
@@ -246,10 +271,10 @@ enum SellerType {
 // ─── 장바구니 ────────────────────────────────────────
 
 model CartItem {
-  id        String  @id @default(cuid())
+  id        String @id @default(cuid())
   userId    String
   productId String
-  quantity  Int     @default(1)
+  quantity  Int    @default(1)
   options   Json?
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -290,28 +315,33 @@ enum OrderStatus {
 }
 
 model OrderItem {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   orderId           String
   productId         String
   sellerId          String?
   quantity          Int
   price             Int
-  itemType          String   @default("FINISHED")
-  fulfillmentStatus String   @default("PAID")
+  itemType          String    @default("FINISHED")
+  fulfillmentStatus String    @default("PAID")
   courier           String?
   trackingNumber    String?
   shippedAt         DateTime?
   deliveredAt       DateTime?
-  commissionRate    Int      @default(10)
-  commissionFee     Int      @default(0)
-  settlementAmount  Int      @default(0)
-  settlementStatus  String   @default("WAITING")
+  commissionRate    Int       @default(10)
+  commissionFee     Int       @default(0)
+  settlementAmount  Int       @default(0)
+  settlementStatus  String    @default("WAITING")
   settlementDueAt   DateTime?
   settledAt         DateTime?
+  confirmedAt       DateTime?
+  previewImageUrl   String?
+  composition       Json?
+  bouquetMode       String?
 
   order   Order   @relation(fields: [orderId], references: [id])
   product Product @relation(fields: [productId], references: [id])
   seller  Seller? @relation(fields: [sellerId], references: [id])
+  review  Review?
 
   @@index([sellerId, fulfillmentStatus])
   @@index([sellerId, settlementStatus])
@@ -334,19 +364,59 @@ model WishlistItem {
 // ─── 리뷰 ───────────────────────────────────────────
 
 model Review {
-  id        String   @id @default(cuid())
-  userId    String
-  productId String
-  rating    Int
-  content   String
-  images    String[]
-  isHidden  Boolean  @default(false)
+  id               String    @id @default(cuid())
+  userId           String
+  productId        String
+  rating           Int
+  content          String
+  images           String[]
+  isHidden         Boolean   @default(false)
   moderationReason String?
-  moderatedAt DateTime?
+  moderatedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  orderItemId      String?   @unique
+  previewImageUrl  String?
+  tags             String[]  @default([])
+  orderMode        String?
+  composition      Json?
+  derivedOrderCount Int      @default(0)
+
+  user      User       @relation(fields: [userId], references: [id])
+  product   Product    @relation(fields: [productId], references: [id])
+  orderItem OrderItem? @relation(fields: [orderItemId], references: [id])
+  comments  ReviewComment[]
+}
+
+model ReviewComment {
+  id        String   @id @default(cuid())
+  reviewId  String
+  userId    String
+  content   String
+  parentId  String?
   createdAt DateTime @default(now())
 
-  user    User    @relation(fields: [userId], references: [id])
-  product Product @relation(fields: [productId], references: [id])
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent  ReviewComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies ReviewComment[] @relation("CommentReplies")
+
+  @@index([reviewId, createdAt])
+  @@index([parentId])
+}
+
+model PointTransaction {
+  id            String   @id @default(cuid())
+  userId        String
+  amount        Int
+  reason        String
+  referenceType String
+  referenceId   String
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, reason, referenceType, referenceId])
+  @@index([userId, createdAt])
 }
 
 // ─── 구독 ───────────────────────────────────────────
@@ -401,17 +471,18 @@ model CustomOption {
 // ─── 커스텀 꽃다발 후기 갤러리 ────────────────────────
 
 model BouquetPost {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   userId            String?
   authorName        String?
   imageUrl          String // 손님이 올린 실제 꽃다발 사진 (Vercel Blob)
   composition       Json // { sizeId, mainFlowerId, additionalFlowerIds, wrappingId }
   content           String?
-  derivedOrderCount Int      @default(0) // 이 조합 그대로 구매된 횟수 — 늘어날 때마다 글쓴이 포인트 적립
-  isHidden          Boolean  @default(false)
+  derivedOrderCount Int       @default(0) // 이 조합 그대로 구매된 횟수 — 늘어날 때마다 글쓴이 포인트 적립
+  isHidden          Boolean   @default(false)
   moderationReason  String?
   moderatedAt       DateTime?
-  createdAt         DateTime @default(now())
+  createdAt         DateTime  @default(now())
+  sourceType        String    @default("AI_COMPOSITE")
 }
 
 model AdminAuditLog {

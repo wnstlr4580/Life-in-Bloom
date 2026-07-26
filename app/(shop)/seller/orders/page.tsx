@@ -22,6 +22,7 @@ export default function SellerOrdersPage() {
   const [error, setError] = useState("")
   const [shippingId, setShippingId] = useState<string | null>(null)
   const [shipping, setShipping] = useState({ courier: "", trackingNumber: "" })
+  useEffect(() => { const params = new URLSearchParams(window.location.search); setStatus(params.get("status") ?? ""); setType(params.get("type") ?? "") }, [])
   const load = useCallback(async () => {
     const params = new URLSearchParams()
     if (status) params.set("status", status)

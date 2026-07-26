@@ -105,13 +105,37 @@ function CustomContent() {
       .catch(() => {})
   }, [searchParams])
 
+  // 비교 리뷰의 "이 조합 그대로 따라 만들기" 진입
+  const loadedReviewRef = useRef(false)
+  useEffect(() => {
+    const reviewId = searchParams.get("review")
+    if (!reviewId || loadedReviewRef.current) return
+    loadedReviewRef.current = true
+    fetch(`/api/bouquet-reviews?id=${encodeURIComponent(reviewId)}`)
+      .then((r) => { if (!r.ok) throw new Error(); return r.json() })
+      .then((payload) => {
+        const review = payload.reviews?.[0]
+        const c = review?.composition as Composition | undefined
+        if (!c) return
+        const requestedSize = SIZES.find((item) => item.id === c.sizeId)
+        const requestedWrapping = WRAPPING.find((item) => item.id === c.wrappingId)
+        if (requestedSize) setSize(requestedSize)
+        if (requestedWrapping) setWrapping(requestedWrapping)
+        if (c.mainFlowerId && FLOWERS.some((f) => f.id === c.mainFlowerId)) setMainFlowerId(c.mainFlowerId)
+        setAdditionalFlowerIds(new Set((c.additionalFlowerIds ?? []).filter((id) => FLOWERS.some((f) => f.id === id))))
+        if (review.previewImageUrl) setGeneratedImageUrl(review.previewImageUrl)
+        sessionStorage.setItem("bouquetSourceReview", reviewId)
+      })
+      .catch(() => {})
+  }, [searchParams])
+
   // 궁합 결과에서 진입: ?flowers=id1,id2 → 자동 선택
   const loadedFlowersRef = useRef(false)
   useEffect(() => {
     const postId = searchParams.get("post")
     const editId = searchParams.get("edit")
     const flowersParam = searchParams.get("flowers")
-    if (!flowersParam || postId || editId || loadedFlowersRef.current) return
+    if (!flowersParam || postId || editId || searchParams.get("review") || loadedFlowersRef.current) return
     loadedFlowersRef.current = true
     const requestedSize = SIZES.find((item) => item.id === searchParams.get("size"))
     const requestedWrapping = WRAPPING.find((item) => item.id === searchParams.get("wrapping"))
@@ -141,7 +165,7 @@ function CustomContent() {
       })
       const d = await res.json()
       if (!res.ok) throw new Error(d.error ?? "수정에 실패했어요")
-      router.push("/#bouquet-gallery")
+      router.push("/gallery")
     } catch (e) {
       setPostMessage(e instanceof Error ? e.message : "수정에 실패했어요")
     } finally {
@@ -340,7 +364,7 @@ function CustomContent() {
       .map((id) => ({ flower: FLOWERS.find((f) => f.id === id)!, count: stemDist[id] }))
 
     const accentLines = additionalEntries.map(({ flower, count }) =>
-      `${count}x ${flower.engDesc} (color: ${flower.color})`
+      `EXACTLY ${count} visible and individually countable ${flower.engDesc} flower heads (color: ${flower.color})`
     )
 
     const prompt = [
@@ -348,10 +372,11 @@ function CustomContent() {
       `EXACT FLOWERS ONLY - strictly no other flowers:`,
       `MAIN: ${mainCount}x ${mainFlower.engDesc} (color: ${mainFlower.color}) positioned at center,`,
       accentLines.length > 0 ? `ACCENT: ${accentLines.join(", ")},` : "",
+      `MANDATORY COUNT: exactly ${size.stems} visible flower heads total, matching each requested variety count. No added buds, filler flowers, duplicated heads, or hidden heads. Verify every flower head is countable before rendering.`,
       `${wrapping.engStyle},`,
       `top-down flat lay, studio lighting, sharp focus, photorealistic, 8k`,
     ].filter(Boolean).join(" ")
-    const negative = "cartoon, illustration, painting, text, watermark, people, hands, vase, blurry, any flowers not listed, extra unlisted blooms, wrong colors, oversaturated, low quality"
+    const negative = "incorrect flower count, extra flower heads, hidden blooms, extra buds, filler flowers, cartoon, illustration, painting, text, watermark, people, hands, vase, blurry, any flowers not listed, extra unlisted blooms, wrong colors, oversaturated, low quality"
 
     const compositionKey = [size.id, mainFlowerId, [...additionalFlowerIds].sort().join(","), wrapping.id].join("|")
     const seed = hashCode(compositionKey) + generateCount
@@ -406,6 +431,8 @@ function CustomContent() {
       productId: customId,
       quantity: 1,
       composition: currentComposition(),
+      fulfillment: { sellerId: "auto", sellerName: "주문 가능 판매처", orderMode: "custom", supportsPickup: true, supportsDelivery: true },
+      previewImageUrl: generatedImageUrl ?? undefined,
       product: {
         id: customId,
         name,

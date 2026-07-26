@@ -14,7 +14,10 @@ type Seller = {
   settlementBank: string; settlementAccount: string; settlementHolder: string; isOpen: boolean
   businessLicenseUrl: string | null; status?: string
   sellsFinishedProducts: boolean; offersCustomBouquet: boolean; offersDiyFlowers: boolean
+  customDeliveryScope: "NONE" | "NATIONWIDE" | "REGIONAL"; customDeliveryRegions: string[]
+  productDeliveryScope: "NONE" | "NATIONWIDE" | "REGIONAL"; productDeliveryRegions: string[]
 }
+const DELIVERY_REGIONS = ["서울", "경기", "인천", "강원", "대전", "세종", "충북", "충남", "광주", "전북", "전남", "대구", "경북", "부산", "울산", "경남", "제주"]
 
 export default function SellerSettingsPage() {
   const [seller, setSeller] = useState<Seller | null>(null)
@@ -83,6 +86,13 @@ export default function SellerSettingsPage() {
           <Service checked={seller.offersDiyFlowers} onChange={(v) => set("offersDiyFlowers", v)} label="개별 꽃·소재 판매" />
         </div>
       </Section>
+      <Section title="배송 가능 지역" icon={<MapPin size={18} />}>
+        <p className="mb-4 text-sm text-stone-500">주문제작 꽃다발과 완제품의 배송 범위를 각각 설정하세요. 지역 제한을 선택하면 고객 결제 주소도 해당 지역인지 확인합니다.</p>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <DeliveryScope title="나만의 꽃다발 주문제작" scope={seller.customDeliveryScope ?? "NATIONWIDE"} regions={seller.customDeliveryRegions ?? []} onScope={(value) => set("customDeliveryScope", value)} onRegions={(value) => set("customDeliveryRegions", value)} disabled={!seller.offersCustomBouquet}/>
+          <DeliveryScope title="완제품 꽃다발" scope={seller.productDeliveryScope ?? "NATIONWIDE"} regions={seller.productDeliveryRegions ?? []} onScope={(value) => set("productDeliveryScope", value)} onRegions={(value) => set("productDeliveryRegions", value)} disabled={!seller.sellsFinishedProducts}/>
+        </div>
+      </Section>
       <Section title="심사·정산 정보" icon={<LockKeyhole size={18} />}>
         <p className="mb-4 text-xs text-amber-700">아래 정보를 변경하면 즉시 반영되지 않고 관리자 재심사를 거칩니다.</p>
         <div className="grid sm:grid-cols-3 gap-4">
@@ -109,3 +119,7 @@ export default function SellerSettingsPage() {
 function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) { return <section className="rounded-2xl border border-stone-200 bg-white p-6"><h2 className="mb-5 flex items-center gap-2 font-bold text-stone-800"><span className="text-emerald-700">{icon}</span>{title}</h2>{children}</section> }
 function Field({ label, className = "", children }: { label: string; className?: string; children: React.ReactNode }) { return <div className={className}><Label className="mb-1.5 block text-xs text-stone-600">{label}</Label>{children}</div> }
 function Service({ checked, onChange, label }: { checked: boolean; onChange: (value: boolean) => void; label: string }) { return <label className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 text-sm ${checked ? "border-emerald-500 bg-emerald-50 font-semibold text-emerald-800" : "border-stone-200"}`}><input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="accent-emerald-700" />{label}</label> }
+function DeliveryScope({ title, scope, regions, onScope, onRegions, disabled }: { title: string; scope: "NONE" | "NATIONWIDE" | "REGIONAL"; regions: string[]; onScope: (value: "NONE" | "NATIONWIDE" | "REGIONAL") => void; onRegions: (value: string[]) => void; disabled: boolean }) {
+  const toggle = (region: string) => onRegions(regions.includes(region) ? regions.filter((item) => item !== region) : [...regions, region])
+  return <div className={`rounded-2xl border bg-stone-50 p-4 ${disabled ? "opacity-45" : ""}`}><h3 className="text-sm font-bold">{title}</h3>{disabled && <p className="mt-1 text-xs text-stone-400">제공 서비스를 먼저 켜주세요.</p>}<div className="mt-3 grid grid-cols-3 gap-2">{([["NATIONWIDE", "전국 배송"], ["REGIONAL", "지역 제한"], ["NONE", "배송 안 함"]] as const).map(([value, label]) => <button type="button" disabled={disabled} key={value} onClick={() => onScope(value)} className={`rounded-xl border px-2 py-2 text-xs font-semibold ${scope === value ? "border-emerald-500 bg-white text-emerald-700" : "border-stone-200 text-stone-500"}`}>{label}</button>)}</div>{scope === "REGIONAL" && !disabled && <div className="mt-3 flex flex-wrap gap-2">{DELIVERY_REGIONS.map((region) => <button type="button" key={region} onClick={() => toggle(region)} className={`rounded-full px-3 py-1.5 text-xs ${regions.includes(region) ? "bg-emerald-600 text-white" : "border bg-white text-stone-600"}`}>{region}</button>)}</div>}</div>
+}

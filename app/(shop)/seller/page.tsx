@@ -97,10 +97,10 @@ export default function SellerPage() {
             <h2 className="font-bold text-stone-800">오늘의 운영 현황</h2>
             <p className="mt-1 text-xs text-stone-400">처리가 필요한 항목부터 확인하세요.</p>
             <div className="mt-4 grid grid-cols-2 xl:grid-cols-4 gap-4">
-              <Metric icon={<ShoppingBag />} label="신규 주문" value={dashboard?.newOrders ?? 0} tone="emerald" />
-              <Metric icon={<Clock3 />} label="제작·배송 준비" value={dashboard?.preparingOrders ?? 0} tone="blue" />
-              <Metric icon={<AlertTriangle />} label="품절 상품" value={dashboard?.soldOutProducts ?? 0} tone="red" />
-              <Metric icon={<CalendarClock />} label="7일 내 노출 종료" value={dashboard?.endingSoonProducts ?? 0} tone="amber" />
+              <Metric href="/seller/orders?status=PAID" icon={<ShoppingBag />} label="신규 주문" value={dashboard?.newOrders ?? 0} tone="emerald" />
+              <Metric href="/seller/orders?status=PREPARING" icon={<Clock3 />} label="제작·배송 준비" value={dashboard?.preparingOrders ?? 0} tone="blue" />
+              <Metric href="/seller/products?stock=soldout" icon={<AlertTriangle />} label="품절 상품" value={dashboard?.soldOutProducts ?? 0} tone="red" />
+              <Metric href="/seller/products?ending=7" icon={<CalendarClock />} label="7일 내 노출 종료" value={dashboard?.endingSoonProducts ?? 0} tone="amber" />
             </div>
           </div>
           <div className="grid lg:grid-cols-[1fr_360px] gap-6">
@@ -138,7 +138,7 @@ function ServiceSettings({ seller, toggle, save, saving, disabled = false }: { s
     <Button onClick={save} disabled={saving || disabled} className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white">{disabled ? "심사 완료 후 변경 가능" : saving ? "저장 중..." : "설정 저장"}</Button>
   </Card>
 }
-function Metric({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: number; tone: "emerald" | "blue" | "red" | "amber" }) {
+function Metric({ icon, label, value, tone, href }: { icon: React.ReactNode; label: string; value: number; tone: "emerald" | "blue" | "red" | "amber"; href: string }) {
   const colors = { emerald: "bg-emerald-50 text-emerald-700", blue: "bg-blue-50 text-blue-700", red: "bg-red-50 text-red-600", amber: "bg-amber-50 text-amber-700" }
-  return <div className="rounded-2xl border border-stone-200 bg-white p-5"><span className={`inline-grid h-9 w-9 place-items-center rounded-xl ${colors[tone]}`}>{icon}</span><p className="mt-4 text-xs text-stone-500">{label}</p><p className="mt-1 text-2xl font-bold text-stone-900">{value}<span className="ml-1 text-sm font-normal text-stone-400">건</span></p></div>
+  return <Link href={href} className="rounded-2xl border border-stone-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md"><span className={`inline-grid h-9 w-9 place-items-center rounded-xl ${colors[tone]}`}>{icon}</span><p className="mt-4 text-xs text-stone-500">{label}</p><p className="mt-1 text-2xl font-bold text-stone-900">{value}<span className="ml-1 text-sm font-normal text-stone-400">건</span></p><p className="mt-2 text-[10px] font-medium text-emerald-700">관련 내역 보기 →</p></Link>
 }

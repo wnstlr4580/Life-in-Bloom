@@ -12,6 +12,9 @@ type MapSeller = {
   longitude: number | null
   diyComplete: boolean
   customComplete: boolean
+  marketType?: string
+  expectedPrice?: number | null
+  isNonghyup?: boolean
 }
 
 type NaverLatLng = object
@@ -41,13 +44,13 @@ function createInfoContent(seller: MapSeller) {
   content.style.cssText = "min-width:220px;max-width:280px;padding:14px;font-family:system-ui,sans-serif;color:#292524"
 
   const title = document.createElement("strong")
-  title.textContent = seller.marketName
-  title.style.cssText = "display:block;font-size:14px;margin-bottom:6px"
+  title.textContent = `${seller.isNonghyup ? "🌾 " : ""}${seller.marketName}`
+  title.style.cssText = `display:block;font-size:14px;margin-bottom:6px;${seller.isNonghyup ? "color:#047857" : ""}`
   content.appendChild(title)
 
   const details = document.createElement("p")
-  const modes = [seller.diyComplete ? "직접 만들기" : "", seller.customComplete ? "제작 주문" : ""].filter(Boolean).join(" · ")
-  details.textContent = [seller.roadAddress, seller.publicPhone, seller.distanceKm != null ? `현재 위치에서 약 ${seller.distanceKm}km` : "", modes].filter(Boolean).join("\n")
+  const modes = seller.marketType ?? [seller.diyComplete ? "직접 만들기" : "", seller.customComplete ? "제작 주문" : ""].filter(Boolean).join(" · ")
+  details.textContent = [seller.roadAddress, seller.publicPhone, seller.distanceKm != null ? `현재 위치에서 약 ${seller.distanceKm}km` : "", modes, seller.expectedPrice ? `선택한 구성 오늘 예상가 약 ${seller.expectedPrice.toLocaleString()}원` : ""].filter(Boolean).join("\n")
   details.style.cssText = "margin:0 0 10px;white-space:pre-line;font-size:12px;line-height:1.55;color:#78716c"
   content.appendChild(details)
 
@@ -59,14 +62,6 @@ function createInfoContent(seller: MapSeller) {
   link.style.cssText = "display:block;padding:9px 10px;border-radius:8px;background:#03c75a;color:white;text-align:center;font-size:12px;font-weight:700;text-decoration:none"
   content.appendChild(link)
   return content
-}
-
-function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number) {
-  const radians = (value: number) => value * Math.PI / 180
-  const dLat = radians(lat2 - lat1)
-  const dLng = radians(lng2 - lng1)
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(radians(lat1)) * Math.cos(radians(lat2)) * Math.sin(dLng / 2) ** 2
-  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
 export function SellerMap({ latitude, longitude, radiusKm, sellers }: { latitude: number | null; longitude: number | null; radiusKm: number; sellers: MapSeller[] }) {
@@ -85,8 +80,11 @@ export function SellerMap({ latitude, longitude, radiusKm, sellers }: { latitude
       setError("")
       const maps = window.naver.maps
       const currentPosition = new maps.LatLng(latitude, longitude)
-      const zoom = radiusKm <= 1 ? 15 : radiusKm <= 2 ? 14 : radiusKm <= 3 ? 13 : 12
-      const map = new maps.Map(containerRef.current, { center: currentPosition, zoom })
+      const locatedSellers = sellers.filter((seller) => seller.latitude !== null && seller.longitude !== null)
+      const centerLatitude = (latitude + locatedSellers.reduce((sum, seller) => sum + Number(seller.latitude), 0)) / (locatedSellers.length + 1)
+      const centerLongitude = (longitude + locatedSellers.reduce((sum, seller) => sum + Number(seller.longitude), 0)) / (locatedSellers.length + 1)
+      const zoom = locatedSellers.length > 0 ? 11 : radiusKm <= 1 ? 15 : radiusKm <= 2 ? 14 : radiusKm <= 3 ? 13 : 12
+      const map = new maps.Map(containerRef.current, { center: new maps.LatLng(centerLatitude, centerLongitude), zoom })
 
       new maps.Circle({
         map,
@@ -110,12 +108,18 @@ export function SellerMap({ latitude, longitude, radiusKm, sellers }: { latitude
       })
 
       let openedInfo: { close: () => void } | null = null
-      sellers.filter((seller) => seller.latitude !== null && seller.longitude !== null
-        && distanceKm(latitude, longitude, seller.latitude, seller.longitude) <= radiusKm)
-        .forEach((seller) => {
+      sellers.filter((seller) => seller.latitude !== null && seller.longitude !== null).forEach((seller) => {
         if (seller.latitude === null || seller.longitude === null) return
         const position = new maps.LatLng(seller.latitude, seller.longitude)
-        const marker = new maps.Marker({ map, position, title: seller.marketName })
+        const marker = new maps.Marker({
+          map,
+          position,
+          title: seller.marketName,
+          ...(seller.marketType ? { icon: {
+            content: `<div style="display:flex;flex-direction:column;align-items:center;white-space:nowrap;transform:translate(-50%,-50%)"><span style="display:flex;align-items:center;gap:5px;padding:5px 9px;border:2px solid white;border-radius:13px;background:${seller.isNonghyup ? "#047857" : "#0284c7"};color:#fff;font:700 11px system-ui;box-shadow:0 2px 8px ${seller.isNonghyup ? "#065f4666" : "#0369a166"}">${seller.isNonghyup ? '<svg width="15" height="17" viewBox="0 0 64 72" aria-hidden="true"><path fill="#fbbf24" d="M32 0 43 19l17-8-9 22 13 8-20 4a20 20 0 1 1-24 0L0 41l13-8-9-22 17 8L32 0Zm0 40a13 13 0 1 0 0 26 13 13 0 0 0 0-26Z"/></svg>' : ""}<span>${seller.marketName}</span></span><span style="width:15px;height:15px;margin-top:3px;border:4px solid white;border-radius:50%;background:${seller.isNonghyup ? "#fbbf24" : "#0284c7"};box-shadow:0 1px 6px ${seller.isNonghyup ? "#065f46" : "#0369a1"}"></span></div>`,
+            anchor: new maps.Point(0, 0),
+          } } : {}),
+        })
         const info = new maps.InfoWindow({
           content: createInfoContent(seller),
           borderWidth: 0,

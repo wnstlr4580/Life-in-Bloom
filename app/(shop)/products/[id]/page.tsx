@@ -307,7 +307,8 @@ export default function ProductDetailPage() {
         )}
 
         {/* 작성 폼 */}
-        <div className="bg-white rounded-2xl border border-stone-100 p-5 mb-6">
+        <div className="mb-6 flex flex-col items-start justify-between gap-3 rounded-2xl border border-rose-100 bg-rose-50 p-5 sm:flex-row sm:items-center"><div><p className="font-bold text-stone-800">이 상품을 구매하셨나요?</p><p className="mt-1 text-xs text-stone-500">구매확정한 내역을 불러와 사진·별점·태그 리뷰를 작성할 수 있어요.</p></div><Link href={`/gallery?write=1&productId=${id}`} className="shrink-0 rounded-xl bg-rose-500 px-5 py-3 text-sm font-bold text-white">구매내역 불러와 리뷰쓰기</Link></div>
+        <div className="hidden bg-white rounded-2xl border border-stone-100 p-5 mb-6">
           {session?.user ? (
             <div className="space-y-3">
               <div className="flex items-center gap-2">

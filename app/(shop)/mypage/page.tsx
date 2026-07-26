@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
-import { useSession, signIn, signOut } from "next-auth/react"
+import { useSession, signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Package, LogOut, User, ChevronRight, Sparkles, Pencil, Camera } from "lucide-react"
+import { Package, User, ChevronRight, Sparkles, Pencil, Camera } from "lucide-react"
 import Image from "next/image"
 import { BirthDateForm } from "@/components/saju/BirthDateForm"
+import { BouquetReviewComposer } from "@/components/shop/BouquetReviewComposer"
 
 const GENDER_LABEL: Record<string, string> = { male: "남성", female: "여성" }
 const CALENDAR_LABEL: Record<string, string> = { solar: "양력", lunar: "음력" }
@@ -30,6 +31,8 @@ const STATUS_COLOR: Record<string, string> = {
 
 interface OrderItem {
   id: string; quantity: number; price: number
+  fulfillmentStatus: string; confirmedAt: string | null; bouquetMode: string | null; previewImageUrl: string | null
+  review?: { id: string } | { id: string }[] | null
   product: { id: string; name: string; images: string[]; flowerMeaning?: string | null }
 }
 interface Order {
@@ -61,6 +64,16 @@ export default function MyPage() {
   const [reviewContent, setReviewContent] = useState("")
   const [reviewSaving, setReviewSaving] = useState(false)
   const [reviewMessage, setReviewMessage] = useState("")
+  const [reviewingItemId, setReviewingItemId] = useState<string | null>(null)
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null)
+
+  const confirmPurchase = async (itemId: string) => {
+    if (!confirm("상품을 잘 받으셨나요? 구매확정 후 리뷰를 작성할 수 있어요.")) return
+    const response = await fetch(`/api/orders/items/${itemId}/confirm`, { method: "POST" })
+    const data = await response.json()
+    if (!response.ok) return alert(data.error ?? "구매확정에 실패했어요")
+    setOrders((current) => current.map((order) => ({ ...order, items: order.items.map((item) => item.id === itemId ? { ...item, confirmedAt: data.confirmedAt, fulfillmentStatus: "PURCHASE_CONFIRMED" } : item) })))
+  }
 
   const handleReviewSubmit = async (orderId: string) => {
     if (!reviewFile) { setReviewMessage("꽃다발 사진을 골라주세요"); return }
@@ -191,6 +204,7 @@ export default function MyPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10">
+      <BouquetReviewComposer open={!!reviewingItemId} initialOrderItemId={reviewingItemId} onClose={() => setReviewingItemId(null)} onSaved={() => { setReviewingItemId(null); window.location.reload() }} />
       <h1 className="text-2xl font-bold text-stone-800 mb-8">마이페이지</h1>
 
       <div className="flex flex-col lg:flex-row gap-8">
@@ -247,9 +261,6 @@ export default function MyPage() {
                 <span className="text-sm font-bold text-rose-500">{points.toLocaleString()}P</span>
               </div>
             )}
-            <Button variant="outline" size="sm" onClick={() => signOut({ callbackUrl: "/" })} className="w-full gap-2 text-stone-500">
-              <LogOut size={14} /> 로그아웃
-            </Button>
           </div>
 
           {/* 관리자 메뉴 */}
@@ -419,17 +430,19 @@ export default function MyPage() {
                           <span className="text-sm text-stone-700 flex-1 line-clamp-1">{item.product.name}</span>
                           <span className="text-sm text-stone-400">×{item.quantity}</span>
                           <span className="text-sm font-medium text-stone-800">{(item.price * item.quantity).toLocaleString()}원</span>
+                          {order.status !== "PENDING" && order.status !== "CANCELLED" && <div className="ml-2 flex shrink-0 gap-1">{!item.confirmedAt ? <button onClick={() => confirmPurchase(item.id)} className="rounded-lg border border-emerald-200 px-2 py-1 text-[10px] font-bold text-emerald-700">구매확정</button> : (Array.isArray(item.review) ? item.review.length === 0 : !item.review) ? <button onClick={() => setReviewingItemId(item.id)} className="rounded-lg bg-rose-500 px-2 py-1 text-[10px] font-bold text-white">리뷰쓰기</button> : <span className="rounded-lg bg-stone-100 px-2 py-1 text-[10px] text-stone-500">리뷰완료</span>}</div>}
                         </div>
                       ))}
                       {order.items.length > 2 && <p className="text-xs text-stone-400 pl-13">외 {order.items.length - 2}개</p>}
                     </div>
                     <div className="mt-3 flex items-center justify-between">
                       <span className="font-bold text-stone-800">총 {order.totalAmount.toLocaleString()}원</span>
-                      <button className="text-sm text-rose-400 hover:text-rose-500 flex items-center gap-1">
-                        상세보기 <ChevronRight size={14} />
+                      <button onClick={() => setExpandedOrderId((current) => current === order.id ? null : order.id)} className="text-sm text-rose-400 hover:text-rose-500 flex items-center gap-1">
+                        {expandedOrderId === order.id ? "접기" : "상세보기"} <ChevronRight size={14} className={expandedOrderId === order.id ? "rotate-90" : ""} />
                       </button>
                     </div>
-                    {order.status !== "CANCELLED" && order.status !== "PENDING" && (
+                    {expandedOrderId === order.id && <div className="mt-4 rounded-2xl bg-stone-50 p-4 text-sm"><div className="flex justify-between border-b border-stone-200 pb-3"><span className="text-stone-500">주문번호</span><span className="font-mono text-xs text-stone-700">{order.id}</span></div><div className="mt-3 space-y-3">{order.items.map((item) => <div key={item.id} className="flex items-center justify-between gap-4"><div><p className="font-medium text-stone-800">{item.product.name}</p><p className="mt-1 text-xs text-stone-400">{item.bouquetMode === "diy" ? "직접 만들기" : item.bouquetMode === "custom" ? "주문제작" : "완제품"} · {item.quantity}개</p></div><span className="shrink-0 font-semibold">{(item.price * item.quantity).toLocaleString()}원</span></div>)}</div><div className="mt-4 flex justify-between border-t border-stone-200 pt-3"><span className="text-stone-500">주문 상태</span><span className={`rounded-full px-2 py-1 text-xs ${STATUS_COLOR[order.status]}`}>{STATUS_LABEL[order.status]}</span></div></div>}
+                    {false && order.status !== "CANCELLED" && order.status !== "PENDING" && (
                       <div className="mt-3 border-t border-stone-100 pt-3">
                         {reviewingOrderId !== order.id ? (
                           <button

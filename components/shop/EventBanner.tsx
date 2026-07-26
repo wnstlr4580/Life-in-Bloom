@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowRight } from "lucide-react"
+import { ArrowLeft, ArrowRight } from "lucide-react"
 
 // 진행 중인 기획전 — 시즌마다 이 배열만 바꾸면 된다
 const EVENTS = [
@@ -77,6 +77,8 @@ export function EventBanner() {
               />
             ))}
           </div>
+          <button type="button" aria-label="이전 기획전" onClick={(e) => { e.preventDefault(); setIdx((idx - 1 + EVENTS.length) % EVENTS.length) }} className="absolute left-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-stone-700 shadow-md transition hover:bg-white"><ArrowLeft size={19}/></button>
+          <button type="button" aria-label="다음 기획전" onClick={(e) => { e.preventDefault(); setIdx((idx + 1) % EVENTS.length) }} className="absolute right-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-stone-700 shadow-md transition hover:bg-white"><ArrowRight size={19}/></button>
         </Link>
       </div>
     </section>

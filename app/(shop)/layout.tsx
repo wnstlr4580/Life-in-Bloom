@@ -4,8 +4,8 @@ import Link from "next/link"
 import { useState, useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { useCartStore } from "@/store/cartStore"
-import { useSession } from "next-auth/react"
-import { ShoppingCart, Flower2, User, LogIn, Search, Shield, Store } from "lucide-react"
+import { signOut, useSession } from "next-auth/react"
+import { ShoppingCart, Flower2, User, LogIn, LogOut, Search, Shield, Store } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface NavChild { href: string; label: string }
@@ -46,8 +46,8 @@ const NAV: NavItem[] = [
   {
     href: "/diy", label: "꽃다발 만들기",
     children: [
-      { href: "/diy", label: "💐 만들기·주문 통합" },
-      { href: "/#bouquet-gallery", label: "📸 손님들의 꽃다발" },
+      { href: "/diy", label: "💐 나만의 꽃다발 만들기" },
+      { href: "/gallery", label: "📸 손님들의 꽃다발" },
     ],
   },
 ]
@@ -170,6 +170,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
             )}
 
             {session?.user ? (
+              <div className="flex items-center">
               <Link href={session.user.role === "SELLER" ? "/seller" : session.user.role === "ADMIN" ? "/admin" : "/mypage"}>
                 <Button variant="ghost" size="sm" className="gap-1.5 text-stone-600">
                   <User size={18} />
@@ -178,6 +179,10 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
                   </span>
                 </Button>
               </Link>
+              <Button variant="ghost" size="icon" title="로그아웃" aria-label="로그아웃" onClick={() => signOut({ callbackUrl: "/" })} className="h-9 w-9 text-stone-500 hover:bg-rose-50 hover:text-rose-600">
+                <LogOut size={18} />
+              </Button>
+              </div>
             ) : (
               <Link href="/login">
                 <Button

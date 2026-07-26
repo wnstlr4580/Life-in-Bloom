@@ -82,6 +82,16 @@ function SajuPageContent() {
   const kioskAutoSubmitted = useRef(false)
   const resultRef = useRef<HTMLDivElement>(null)
 
+  useEffect(() => {
+    if (kioskBirthDate) return
+    try {
+      const cached = sessionStorage.getItem("lifeInBloomSajuState")
+      if (!cached) return
+      const state = JSON.parse(cached) as { input: SavedProfile; result: AnalyzeResult; birthYear: number; userName: string }
+      setSavedProfile(state.input); setResult(state.result); setBirthYear(state.birthYear); setUserName(state.userName); setLoadKey((key) => key + 1)
+    } catch { sessionStorage.removeItem("lifeInBloomSajuState") }
+  }, [kioskBirthDate])
+
   // 분석 완료 시 결과로 부드럽게 스크롤
   useEffect(() => {
     if (result) resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
@@ -121,6 +131,7 @@ function SajuPageContent() {
       if (!res.ok) throw new Error()
       const analyzed = await res.json()
       setResult(analyzed)
+      sessionStorage.setItem("lifeInBloomSajuState", JSON.stringify({ input: data, result: analyzed, birthYear: new Date(data.birthDate).getFullYear(), userName: data.name }))
 
       // 로그인 상태이면 자동 저장
       if (session?.user) {
