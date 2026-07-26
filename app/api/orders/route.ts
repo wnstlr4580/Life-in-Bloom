@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase"
 import { auth } from "@/lib/auth"
 import { nanoid } from "nanoid"
+import { grantPointsOnce, POINT_POLICY } from "@/lib/points"
 
 interface OrderItemInput {
   productId: string
@@ -10,6 +11,8 @@ interface OrderItemInput {
   name?: string
   images?: string[]
   composition?: unknown
+  previewImageUrl?: string | null
+  fulfillment?: { orderMode?: "diy" | "custom" }
 }
 
 export async function POST(req: Request) {
@@ -19,7 +22,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "꽃 구매는 일반회원만 이용할 수 있습니다" }, { status: 403 })
   }
 
-  const { items, totalAmount, shippingFee, deliveryType, shippingAddr, giftMessage, giftWrapping, paymentId, sourcePostId } = await req.json()
+  const { items, totalAmount, shippingFee, deliveryType, shippingAddr, giftMessage, giftWrapping, paymentId, sourcePostId, sourceReviewId } = await req.json()
 
   if (!items?.length || !totalAmount || !deliveryType || !shippingAddr) {
     return NextResponse.json({ error: "필수 정보가 누락되었습니다" }, { status: 400 })
@@ -46,7 +49,7 @@ export async function POST(req: Request) {
   if (orderError) return NextResponse.json({ error: orderError.message }, { status: 500 })
 
   // 커스텀 꽃다발은 클라이언트에서 생성한 임시 ID라 Product 테이블에 없음 — 먼저 upsert
-  const customItems = (items as OrderItemInput[]).filter((i) => i.productId.startsWith("custom_"))
+  const customItems = (items as OrderItemInput[]).filter((i) => i.productId.startsWith("custom_") || i.productId.startsWith("diy_"))
   if (customItems.length > 0) {
     const { data: customSeller } = await supabaseAdmin
       .from("Seller").select("id").eq("status", "APPROVED").eq("isOpen", true).eq("offersCustomBouquet", true)
@@ -62,7 +65,7 @@ export async function POST(req: Request) {
         description: "커스텀 꽃다발",
         price: i.price,
         stock: 0,
-        category: "custom",
+        category: i.productId.startsWith("diy_") ? "diy" : "custom",
         images: (i.images ?? []).map((img) => img.startsWith("data:") ? "" : img).filter(Boolean),
         flowerMeaning: i.composition ? JSON.stringify(i.composition) : null,
         ohaengTags: [],
@@ -97,6 +100,9 @@ export async function POST(req: Request) {
           fulfillmentStatus: paymentId ? "PAID" : "PENDING",
           commissionRate: COMMISSION_RATE, commissionFee, settlementAmount: gross - commissionFee,
           settlementStatus: "WAITING",
+          previewImageUrl: item.previewImageUrl?.startsWith("data:") ? null : item.previewImageUrl ?? null,
+          composition: item.composition ?? null,
+          bouquetMode: item.fulfillment?.orderMode ?? (product?.category === "custom" ? "custom" : null),
         }
       })
     )
@@ -108,7 +114,6 @@ export async function POST(req: Request) {
 
   // 후기 갤러리의 조합을 그대로 구매한 경우 — 구매 횟수 증가 + 글쓴이 포인트 적립
   if (sourcePostId && typeof sourcePostId === "string") {
-    const POINT_PER_ORDER = 500
     const { data: post } = await supabaseAdmin
       .from("BouquetPost")
       .select("id, userId, derivedOrderCount")
@@ -120,19 +125,23 @@ export async function POST(req: Request) {
         .update({ derivedOrderCount: (post.derivedOrderCount ?? 0) + 1 })
         .eq("id", post.id)
       if (post.userId && post.userId !== session?.user?.id) {
-        const { data: author } = await supabaseAdmin
-          .from("User")
-          .select("points")
-          .eq("id", post.userId)
-          .maybeSingle()
-        if (author) {
-          await supabaseAdmin
-            .from("User")
-            .update({ points: (author.points ?? 0) + POINT_PER_ORDER })
-            .eq("id", post.userId)
-        }
+        await grantPointsOnce({ userId: post.userId, amount: POINT_POLICY.REMAKE_SALE, reason: "REMAKE_SALE", referenceType: "Order", referenceId: orderId })
       }
     }
+  }
+
+  if (sourceReviewId && typeof sourceReviewId === "string") {
+    const { data: review } = await supabaseAdmin.from("Review").select("id, userId, derivedOrderCount").eq("id", sourceReviewId).maybeSingle()
+    if (review) {
+      await supabaseAdmin.from("Review").update({ derivedOrderCount: (review.derivedOrderCount ?? 0) + 1 }).eq("id", review.id)
+      if (review.userId && review.userId !== session.user.id) {
+        await grantPointsOnce({ userId: review.userId, amount: POINT_POLICY.REMAKE_SALE, reason: "REMAKE_SALE", referenceType: "Order", referenceId: orderId })
+      }
+    }
+  }
+
+  if (paymentId) {
+    await grantPointsOnce({ userId: session.user.id, amount: POINT_POLICY.PURCHASE, reason: "PURCHASE", referenceType: "Order", referenceId: orderId })
   }
 
   return NextResponse.json({ orderId }, { status: 201 })
@@ -148,6 +157,8 @@ export async function GET() {
       id, status, totalAmount, createdAt,
       items:OrderItem(
         id, quantity, price,
+        fulfillmentStatus, confirmedAt, previewImageUrl, composition, bouquetMode,
+        review:Review(id),
         product:Product(id, name, images, price, flowerMeaning)
       )
     `)

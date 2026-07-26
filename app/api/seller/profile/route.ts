@@ -7,6 +7,7 @@ const FIELDS = [
   "marketName", "sellerType", "managerName", "managerPhone", "publicPhone",
   "introduction", "postalCode", "roadAddress", "detailAddress", "approvedAt",
   "submittedAt", "sellsFinishedProducts", "offersCustomBouquet", "offersDiyFlowers",
+  "customDeliveryScope", "customDeliveryRegions", "productDeliveryScope", "productDeliveryRegions",
   "isOpen", "businessHours", "settlementBank", "settlementAccount", "settlementHolder",
   "businessLicensePath",
 ].join(",")
@@ -58,11 +59,22 @@ export async function PATCH(req: Request) {
   if (!/^\d{5}$/.test(postalCode) || !roadAddress) return NextResponse.json({ error: "도로명주소 검색으로 주소를 선택해주세요" }, { status: 400 })
   if (introduction.length > 500) return NextResponse.json({ error: "판매처 소개는 500자 이하로 입력해주세요" }, { status: 400 })
   if (![body.sellsFinishedProducts, body.offersCustomBouquet, body.offersDiyFlowers].some(Boolean)) return NextResponse.json({ error: "제공 서비스를 한 개 이상 선택해주세요" }, { status: 400 })
+  const scopes = ["NONE", "NATIONWIDE", "REGIONAL"]
+  const customDeliveryScope = String(body.customDeliveryScope ?? "NATIONWIDE")
+  const productDeliveryScope = String(body.productDeliveryScope ?? "NATIONWIDE")
+  const cleanRegions = (value: unknown) => [...new Set((Array.isArray(value) ? value : []).map(String).map((region) => region.trim()).filter(Boolean))].slice(0, 20)
+  const customDeliveryRegions = cleanRegions(body.customDeliveryRegions)
+  const productDeliveryRegions = cleanRegions(body.productDeliveryRegions)
+  if (!scopes.includes(customDeliveryScope) || !scopes.includes(productDeliveryScope)) return NextResponse.json({ error: "배송 범위를 확인해주세요" }, { status: 400 })
+  if (body.offersCustomBouquet && customDeliveryScope === "REGIONAL" && customDeliveryRegions.length === 0) return NextResponse.json({ error: "주문제작 배송 가능 지역을 선택해주세요" }, { status: 400 })
+  if (body.sellsFinishedProducts && productDeliveryScope === "REGIONAL" && productDeliveryRegions.length === 0) return NextResponse.json({ error: "완제품 배송 가능 지역을 선택해주세요" }, { status: 400 })
   const update = {
     marketName, managerName, managerPhone, publicPhone, postalCode, roadAddress, detailAddress, introduction,
     sellsFinishedProducts: Boolean(body.sellsFinishedProducts),
     offersCustomBouquet: Boolean(body.offersCustomBouquet),
     offersDiyFlowers: Boolean(body.offersDiyFlowers),
+    customDeliveryScope, customDeliveryRegions: customDeliveryScope === "REGIONAL" ? customDeliveryRegions : [],
+    productDeliveryScope, productDeliveryRegions: productDeliveryScope === "REGIONAL" ? productDeliveryRegions : [],
     isOpen: body.isOpen !== false,
     businessHours: body.businessHours ?? null,
     updatedAt: new Date().toISOString(),

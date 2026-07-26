@@ -2,8 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { signOut } from "next-auth/react"
-import { Activity, Boxes, ChevronRight, ClipboardList, FileClock, LayoutDashboard, LogOut, MessageSquareWarning, Store, Users } from "lucide-react"
+import { Activity, Boxes, ChevronRight, ClipboardList, FileClock, LayoutDashboard, MessageSquareWarning, Store, Users } from "lucide-react"
 
 const MENUS = [
   { href: "/admin", label: "운영 대시보드", icon: LayoutDashboard },
@@ -29,7 +28,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 return <Link key={href} href={href} className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm transition-colors ${active ? "bg-rose-50 font-semibold text-rose-600" : "text-stone-600 hover:bg-stone-50"}`}><Icon size={17} /><span className="flex-1">{label}</span><ChevronRight size={13} /></Link>
               })}
             </nav>
-            <button onClick={() => signOut({ callbackUrl: "/" })} className="mt-auto flex items-center gap-3 border-t border-stone-100 px-3 py-4 text-sm text-stone-500 hover:bg-rose-50 hover:text-rose-600"><LogOut size={17} />로그아웃</button>
           </div>
         </aside>
         <main className="min-w-0 flex-1">{children}</main>

@@ -49,6 +49,7 @@ export default function SellerProductsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const [message, setMessage] = useState("")
+  const [suggestedNames, setSuggestedNames] = useState<string[]>([])
 
   const load = useCallback(async () => {
     const response = await fetch("/api/seller/products")
@@ -84,6 +85,12 @@ export default function SellerProductsPage() {
     setSaving(false)
   }
 
+  const suggestNames = async () => {
+    const response = await fetch("/api/seller/products/suggest", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) })
+    const data = await response.json()
+    if (response.ok) setSuggestedNames(data.names ?? [])
+  }
+
   const updateProduct = async (id: string, update: Partial<Product>) => {
     const response = await fetch("/api/seller/products", {
       method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, ...update }),
@@ -117,7 +124,7 @@ export default function SellerProductsPage() {
             <div className="space-y-5">
               <Section number="01" title="노출 상품명과 카테고리" description="고객이 검색 결과에서 가장 먼저 보는 정보입니다.">
                 <div className="grid sm:grid-cols-3 gap-4">
-                  <Field label="상품명 *" className="sm:col-span-2"><Input value={form.name} maxLength={100} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="예: 계절 장미를 담은 핑크 꽃다발" className="h-11 border-stone-200" /></Field>
+                  <Field label="상품명 *" className="sm:col-span-2"><div className="flex gap-2"><Input value={form.name} maxLength={100} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="예: 계절 장미를 담은 핑크 꽃다발" className="h-11 border-stone-200" /><Button type="button" variant="outline" onClick={suggestNames} className="h-11 shrink-0">이름 추천</Button></div>{suggestedNames.length > 0 && <div className="mt-2 flex flex-wrap gap-2">{suggestedNames.map((name) => <button type="button" key={name} onClick={() => setForm({ ...form, name })} className="rounded-full bg-emerald-50 px-3 py-1 text-xs text-emerald-700 hover:bg-emerald-100">{name}</button>)}</div>}</Field>
                   <Field label="카테고리 *"><select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full h-11 rounded-lg border border-stone-200 bg-white px-3 text-sm">{CATEGORIES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field>
                 </div>
               </Section>

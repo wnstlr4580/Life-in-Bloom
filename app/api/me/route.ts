@@ -21,11 +21,14 @@ export async function GET(req: NextRequest) {
 
   const { data } = await supabaseAdmin
     .from("User")
-    .select("name, points")
+    .select("id, name, points")
     .eq("email", email)
     .maybeSingle()
 
-  return NextResponse.json({ name: data?.name ?? null, points: data?.points ?? 0 })
+  const { data: pointTransactions } = await supabaseAdmin.from("PointTransaction")
+    .select("id, amount, reason, referenceType, createdAt").eq("userId", data?.id ?? "")
+    .order("createdAt", { ascending: false }).limit(20)
+  return NextResponse.json({ name: data?.name ?? null, points: data?.points ?? 0, pointTransactions: pointTransactions ?? [] })
 }
 
 // 닉네임 변경 — 중복 불가

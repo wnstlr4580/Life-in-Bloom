@@ -17,7 +17,10 @@ export interface CartItem {
     orderMode: "diy" | "custom"
     supportsPickup: boolean
     supportsDelivery: boolean
+    deliveryScope?: "NONE" | "NATIONWIDE" | "REGIONAL"
+    deliveryRegions?: string[]
   }
+  previewImageUrl?: string
   product: {
     id: string
     name: string

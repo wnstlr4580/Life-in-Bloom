@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getToken } from "next-auth/jwt"
 import { nanoid } from "nanoid"
 import { supabaseAdmin } from "@/lib/supabase"
+import { grantPointsOnce, POINT_POLICY } from "@/lib/points"
 
 async function getEmail(req: NextRequest): Promise<string | null> {
   const token = await getToken({
@@ -53,5 +54,6 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ error: "리뷰 저장에 실패했어요" }, { status: 500 })
-  return NextResponse.json(data, { status: 201 })
+  const pointsGranted = await grantPointsOnce({ userId: user.id, amount: POINT_POLICY.REVIEW, reason: "REVIEW", referenceType: "Review", referenceId: data.id })
+  return NextResponse.json({ ...data, pointsGranted: pointsGranted ? POINT_POLICY.REVIEW : 0 }, { status: 201 })
 }

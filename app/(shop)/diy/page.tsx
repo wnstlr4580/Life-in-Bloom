@@ -5,7 +5,7 @@ import { useMemo, useRef, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { nanoid } from "nanoid"
-import { Check, LocateFixed, MapPin, Minus, Plus, RefreshCw, RotateCcw, Search, Scissors, Sparkles, Store } from "lucide-react"
+import { Check, ExternalLink, LocateFixed, MapPin, Minus, Plus, RefreshCw, RotateCcw, Search, Scissors, Sparkles, Store } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { COLOR_FILTER, COLOR_LABEL, FLOWERS, SIZES, WRAPPING } from "@/lib/customFlowers"
 import { birthFlowerSelection, flowerBirthDates, flowerMeaning, flowerMonths, flowerOccasions, isMonthFlower, isOccasionFlower, OCCASIONS } from "@/lib/diyFlowerTags"
@@ -41,14 +41,52 @@ type Match = {
   requestedCount: number
   totalPrice: number | null
   items: MatchItem[]
+  diyItems: MatchItem[]
+  customItems: MatchItem[]
   diyComplete: boolean
   customComplete: boolean
   diyPrice: number | null
   customPrice: number | null
+  preferred?: boolean
+  customDeliveryScope: "NONE" | "NATIONWIDE" | "REGIONAL"
+  customDeliveryRegions: string[]
+}
+type PublicMarket = {
+  id: string
+  sellerId: string
+  marketName: string
+  marketType: string
+  roadAddress: string
+  publicPhone: string
+  latitude: number
+  longitude: number
+  distanceKm: number | null
+  diyComplete: boolean
+  customComplete: boolean
+  sourceName: string
+  sourceUrl: string
+  dailyDataUrl?: string | null
+  isNonghyup?: boolean
+  flowers: { id: string; name: string; group?: string; quantity: number; bundleCount?: number; stemsPerBundle?: number | null; unitNote?: string; averageBundlePrice?: number | null; latestDate?: string | null; tradeCount?: number }[]
+  checkedAt: string
+  liveTradeCount: number
+  expectedPrice: number | null
+  minPrice: number | null
+  maxPrice: number | null
+  priceBasis: string
+  basisDate?: string | null
+  priceScope?: "TODAY_ONLY"
+  todayDataAvailable?: boolean
 }
 type FilterMode = "all" | "ohaeng" | "color" | "meaning" | "month" | "birth" | "occasion"
 type GpsStatus = "idle" | "checking" | "success" | "error"
 type SpecialDate = { id: string; type: string; label: string; monthDay: string }
+
+function NonghyupEmblem({ className = "h-7 w-7" }: { className?: string }) {
+  return <svg viewBox="0 0 64 72" className={className} role="img" aria-label="농협">
+    <path fill="#fbbf24" d="M32 0 43 19l17-8-9 22 13 8-20 4a20 20 0 1 1-24 0L0 41l13-8-9-22 17 8L32 0Zm0 40a13 13 0 1 0 0 26 13 13 0 0 0 0-26Z"/>
+  </svg>
+}
 
 const OHAENG_STYLE: Record<string, { active: string; idle: string; dot: string }> = {
   목: { active: "border-emerald-500 bg-emerald-50 text-emerald-700", idle: "border-emerald-100 bg-emerald-50/40 text-emerald-700", dot: "bg-emerald-500" },
@@ -85,12 +123,16 @@ export default function DiyPage() {
   const postcodeRef = useRef<HTMLDivElement>(null)
   const [radiusKm, setRadiusKm] = useState(3)
   const [matches, setMatches] = useState<Match[] | null>(null)
+  const [publicMarkets, setPublicMarkets] = useState<PublicMarket[]>([])
   const [matching, setMatching] = useState(false)
   const [matchError, setMatchError] = useState("")
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
   const [generateError, setGenerateError] = useState("")
   const [generateCount, setGenerateCount] = useState(0)
+  const loadedReviewRef = useRef(false)
+  const [preferredSellerId, setPreferredSellerId] = useState<string | null>(null)
+  const [fulfillmentMode, setFulfillmentMode] = useState<"diy" | "custom">("custom")
 
   const selected = useMemo(
     () => Object.entries(quantities).filter(([, quantity]) => quantity > 0),
@@ -117,6 +159,43 @@ export default function DiyPage() {
     const flower = FLOWERS.find((item) => item.id === id)
     return sum + (flower?.price ?? 0) * quantity
   }, wrapping.price)
+
+  useEffect(() => {
+    const reviewId = new URLSearchParams(window.location.search).get("review")
+    if (!reviewId || loadedReviewRef.current) return
+    loadedReviewRef.current = true
+    fetch(`/api/bouquet-reviews?id=${encodeURIComponent(reviewId)}`, { cache: "no-store" })
+      .then(async (response) => {
+        const payload = await response.json()
+        if (!response.ok || !payload.reviews?.[0]) throw new Error("리뷰 조합을 불러오지 못했어요.")
+        return payload.reviews[0]
+      })
+      .then((review) => {
+        const composition = review.composition as { sizeId?: string; mainFlowerId?: string | null; additionalFlowerIds?: string[]; wrappingId?: string; flowers?: { id: string; quantity: number }[] }
+        const reviewSize = SIZES.find((item) => item.id === composition?.sizeId) ?? SIZES[1]
+        const validFlowers = Array.isArray(composition?.flowers)
+          ? composition.flowers.filter((item) => FLOWERS.some((flower) => flower.id === item.id) && item.quantity > 0)
+          : [composition?.mainFlowerId, ...(composition?.additionalFlowerIds ?? [])]
+              .filter((id): id is string => Boolean(id) && FLOWERS.some((flower) => flower.id === id))
+              .map((id, index, all) => ({ id, quantity: all.length === 1 ? reviewSize.stems : index === 0 ? reviewSize.mainStems : Math.floor((reviewSize.stems - reviewSize.mainStems) / (all.length - 1)) }))
+        const nextQuantities: Record<string, number> = {}
+        validFlowers.forEach((item) => { nextQuantities[item.id] = item.quantity })
+        const assigned = Object.values(nextQuantities).reduce((sum, count) => sum + count, 0)
+        if (validFlowers.length > 1 && assigned < reviewSize.stems) nextQuantities[validFlowers[1].id] += reviewSize.stems - assigned
+        setSize(reviewSize)
+        setQuantities(nextQuantities)
+        if (WRAPPING.some((item) => item.id === composition?.wrappingId)) setWrappingId(composition.wrappingId!)
+        if (review.previewImageUrl) setGeneratedImageUrl(review.previewImageUrl)
+        const product = Array.isArray(review.product) ? review.product[0] : review.product
+        const orderItem = Array.isArray(review.orderItem) ? review.orderItem[0] : review.orderItem
+        const productSeller = product && (Array.isArray(product.seller) ? product.seller[0] : product.seller)
+        const itemSeller = orderItem && (Array.isArray(orderItem.seller) ? orderItem.seller[0] : orderItem.seller)
+        setPreferredSellerId(productSeller?.id ?? itemSeller?.id ?? null)
+        setSelectionMessage("리뷰의 꽃·송이 수·포장 조합을 불러왔어요.")
+        sessionStorage.setItem("bouquetSourceReview", reviewId)
+      })
+      .catch((error) => setSelectionMessage(error instanceof Error ? error.message : "리뷰 조합을 불러오지 못했어요."))
+  }, [])
 
   useEffect(() => {
     fetch("/api/diy/available")
@@ -284,16 +363,18 @@ export default function DiyPage() {
     setGenerateError("")
     const flowerLines = selected.map(([id, quantity]) => {
       const flower = FLOWERS.find((item) => item.id === id)!
-      return `${quantity}x ${flower.engDesc} (color: ${flower.color})`
+      return `EXACTLY ${quantity} visible, individually countable ${flower.engDesc} flower heads (color: ${flower.color}; no buds hidden behind other flowers)`
     })
+    const exactStemTotal = selected.reduce((sum, [, quantity]) => sum + quantity, 0)
     const prompt = [
       "Premium Korean flower shop catalog photograph of one finished hand-tied bouquet,",
       "EXACT FLOWERS ONLY - strictly no other flowers:",
       flowerLines.join(", "),
+      `MANDATORY COUNT: the finished bouquet contains exactly ${exactStemTotal} visible flower heads total. Every head must be fully visible and countable. Do not add buds, filler flowers, duplicate heads, or partially hidden flowers. Verify the count before rendering.`,
       wrapping.engStyle,
       `${size.engVolume}. Upright front-facing three-quarter view, bouquet centered vertically, flower heads forming a natural rounded dome, stems gathered tightly into one handle, wrapping paper forming a neat florist cone, ribbon tied cleanly around the lower stems. Soft warm beige or pale gray seamless studio background, gentle diffused daylight, subtle grounded shadow, realistic petal texture, elegant restrained Korean florist styling, premium ecommerce product photography, sharp focus, photorealistic.`,
     ].join(" ")
-    const negative = "top-down, flat lay, overhead view, flowers spread radially, wreath shape, horizontal bouquet, floating bouquet, loose scattered stems, basket, box, vase, cartoon, illustration, painting, text, watermark, people, hands, blurry, any flowers not listed, extra unlisted blooms, wrong colors, oversaturated, plastic flowers, malformed stems, low quality"
+    const negative = "incorrect flower count, extra flower heads, extra buds, hidden flower heads, filler flowers, top-down, flat lay, overhead view, flowers spread radially, wreath shape, horizontal bouquet, floating bouquet, loose scattered stems, basket, box, vase, cartoon, illustration, painting, text, watermark, people, hands, blurry, any flowers not listed, extra unlisted blooms, wrong colors, oversaturated, plastic flowers, malformed stems, low quality"
     const key = `${size.id}|${selected.map(([id, quantity]) => `${id}:${quantity}`).join(",")}|${wrappingId}`
     try {
       const response = await fetch("/api/custom/generate-image", {
@@ -320,14 +401,14 @@ export default function DiyPage() {
       setMatchError("먼저 원하는 꽃과 송이 수를 골라주세요.")
       return
     }
-    if (!location.source) {
+    if (fulfillmentMode === "diy" && !location.source) {
       setMatchError("현재 위치를 확인하거나 도로명주소를 입력해주세요.")
       return
     }
     setMatching(true)
     setMatchError("")
     try {
-      const response = await fetch("/api/diy/matches", {
+      const matchesRequest = fetch("/api/diy/matches", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -336,12 +417,24 @@ export default function DiyPage() {
           latitude: location.latitude,
           longitude: location.longitude,
           radiusKm,
+          preferredSellerId,
+          fulfillmentMode,
           sizeId: size.id,
         }),
       })
+      const publicRequest = fulfillmentMode === "diy"
+        ? fetch("/api/diy/public-markets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ flowers: selected.map(([id, quantity]) => ({ id, quantity })), latitude: location.latitude, longitude: location.longitude }) })
+        : Promise.resolve(null)
+      const [response, publicResponse] = await Promise.all([matchesRequest, publicRequest])
       const data = await response.json()
       if (!response.ok) throw new Error(data.error ?? "재고를 확인하지 못했어요.")
       setMatches(data.matches)
+      if (publicResponse?.ok) {
+        const publicData = await publicResponse.json()
+        setPublicMarkets(publicData.markets ?? [])
+      } else {
+        setPublicMarkets([])
+      }
     } catch (error) {
       setMatchError(error instanceof Error ? error.message : "재고를 확인하지 못했어요.")
     } finally {
@@ -366,7 +459,8 @@ export default function DiyPage() {
     addItem({
       id: nanoid(), productId, quantity: 1,
       composition: { sizeId: size.id, mainFlowerId: flowerIds[0] ?? null, additionalFlowerIds: flowerIds.slice(1), wrappingId },
-      fulfillment: { sellerId: match.sellerId, sellerName: match.marketName, orderMode: mode, supportsPickup: true, supportsDelivery: mode === "custom" },
+      fulfillment: { sellerId: match.sellerId, sellerName: match.marketName, orderMode: mode, supportsPickup: true, supportsDelivery: mode === "custom", deliveryScope: mode === "custom" ? match.customDeliveryScope : "NONE", deliveryRegions: mode === "custom" ? match.customDeliveryRegions : [] },
+      previewImageUrl: generatedImageUrl ?? undefined,
       product: {
         id: productId,
         name: `${match.marketName} · ${mode === "diy" ? "직접 만들기 재료" : "꽃다발 제작 주문"}`,
@@ -378,7 +472,17 @@ export default function DiyPage() {
     router.push("/cart")
   }
 
-  const completeMatches = matches?.filter((match) => match.complete) ?? []
+  const requestRestock = async (match: Match) => {
+    if (!session?.user) { router.push(`/login?callbackUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`); return }
+    if (session.user.role !== "CUSTOMER") { setMatchError("재입고 알림은 일반회원만 신청할 수 있어요."); return }
+    const modeItems = fulfillmentMode === "diy" ? match.diyItems : match.customItems
+    const missing = modeItems.filter((item) => item.available < item.requested).map((item) => item.id)
+    const response = await fetch("/api/restock-requests", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sellerId: match.sellerId, flowerCodes: missing }) })
+    const data = await response.json(); if (response.ok) alert(data.duplicate ? "이미 재입고 알림을 신청한 조합이에요." : "재입고 알림을 신청했어요."); else setMatchError(data.error ?? "재입고 알림 신청에 실패했어요.")
+  }
+
+  const visibleMatches = matches?.filter((match) => fulfillmentMode === "diy" ? match.diyComplete || match.preferred : match.customComplete || match.preferred) ?? []
+  const completeMatches = visibleMatches.filter((match) => fulfillmentMode === "diy" ? match.diyComplete : match.customComplete)
 
   return (
     <div className="min-h-screen bg-[#fbfaf7]">
@@ -456,6 +560,7 @@ export default function DiyPage() {
                 </strong>
               </div>
               {selectionMessage && <p className="mt-2 text-xs font-medium text-amber-700">{selectionMessage}</p>}
+              {selected.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{selected.map(([id, quantity]) => <span key={id} className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">{FLOWERS.find((flower) => flower.id === id)?.name ?? id} × {quantity}송이</span>)}<span className="rounded-full border border-violet-100 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700">포장 · {wrapping.name}</span></div>}
               <div className="mt-4 flex gap-1 overflow-x-auto rounded-xl bg-stone-100 p-1">
                 {([
                   ["all", "전체"],
@@ -582,9 +687,13 @@ export default function DiyPage() {
             </section>
 
             <section className="rounded-2xl border border-stone-200 bg-white p-5 sm:p-6">
-              <h2 className="font-bold text-stone-900">③ 내 주변에서 재료 찾기</h2>
-              <p className="mt-1 text-sm text-stone-500">GPS로 찾은 뒤 도로명주소로 위치를 바꿀 수도 있어요.</p>
-              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+              <h2 className="font-bold text-stone-900">③ 수령 방법과 판매처 찾기</h2>
+              <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl bg-stone-100 p-1.5">
+                <button onClick={() => { setFulfillmentMode("custom"); setMatches(null); setMatchError("") }} className={`rounded-xl px-3 py-3 text-sm font-bold transition ${fulfillmentMode === "custom" ? "bg-white text-rose-600 shadow-sm" : "text-stone-500"}`}>🚚 주문제작·전국 배송</button>
+                <button onClick={() => { setFulfillmentMode("diy"); setMatches(null); setMatchError("") }} className={`rounded-xl px-3 py-3 text-sm font-bold transition ${fulfillmentMode === "diy" ? "bg-white text-emerald-700 shadow-sm" : "text-stone-500"}`}>✂️ 직접 만들기·근처 픽업</button>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-stone-500">{fulfillmentMode === "diy" ? "직접 만들기는 방문 가능한 거리 안에서 모든 꽃을 픽업할 수 있는 판매처를 찾아요." : "주문제작은 거리와 관계없이 전국 배송 가능한 판매처의 제작 재고를 확인해요."}</p>
+              {fulfillmentMode === "diy" && <><div className="mt-4 flex flex-col gap-3 sm:flex-row">
                 <Button onClick={useGps} disabled={gpsStatus === "checking"} className="h-11 gap-2 bg-emerald-600 text-white hover:bg-emerald-700">
                   {gpsStatus === "checking" ? <RefreshCw size={17} className="animate-spin" /> : <LocateFixed size={17} />}
                   {gpsStatus === "checking" ? "현재 위치 확인 중..." : gpsStatus === "success" ? "현재 위치 다시 확인" : "현재 위치 사용"}
@@ -613,7 +722,7 @@ export default function DiyPage() {
                   <option value={5}>5km</option>
                 </select>
                 {location.source === "address" && <span className="text-xs text-amber-600">주소 입력 시 권역순으로 표시</span>}
-              </div>
+              </div></>}
               <Button onClick={findMatches} disabled={matching} className="mt-5 h-12 w-full gap-2 bg-stone-900 text-white hover:bg-stone-800">
                 <Store size={17} /> {matching ? "판매처 재고 확인 중..." : "가능한 판매처·가격 확인"}
               </Button>
@@ -623,31 +732,34 @@ export default function DiyPage() {
             {matches && (
               <section className="rounded-2xl border border-stone-200 bg-white p-5 sm:p-6">
                 <div className="mb-5">
-                  <h2 className="mb-2 font-bold text-stone-900">판매처 지도</h2>
-                  <SellerMap latitude={location.latitude} longitude={location.longitude} radiusKm={radiusKm} sellers={matches} />
-                  <p className="mt-2 text-[11px] text-stone-400">파란 현재 위치를 중심으로 설정한 반경 안의 판매처만 표시해요. 판매처 마커를 누르면 업체정보와 네이버지도 길찾기를 확인할 수 있어요.</p>
+                  {fulfillmentMode === "diy" ? <><h2 className="mb-2 font-bold text-stone-900">근처 꽃집·도매시장·공판장 지도</h2><SellerMap latitude={location.latitude} longitude={location.longitude} radiusKm={radiusKm} sellers={[...visibleMatches, ...publicMarkets]} /><p className="mt-2 text-[11px] text-stone-400">등록 판매처뿐 아니라 방문 가능한 화훼공판장과 꽃 도매시장도 함께 표시해요.</p></> : <div className="rounded-2xl bg-rose-50 p-4"><h2 className="font-bold text-rose-700">🚚 전국 배송 제작처</h2><p className="mt-1 text-sm text-stone-600">거리순이 아닌 제작 가능 여부와 원 리뷰 판매처를 우선으로 보여드려요.</p></div>}
                 </div>
-                {completeMatches.length > 0 ? (
+                {visibleMatches.length > 0 ? (
                   <>
                     <div className="flex items-center gap-3">
                       <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"><Check size={20} /></span>
                       <div>
-                        <h2 className="font-bold text-stone-900">이 구성이 가능한 판매처</h2>
-                        <p className="text-sm text-stone-500">직접 만들기는 한 판매처에서 전부 살 수 있는 경우에만 표시해요.</p>
+                        <h2 className="font-bold text-stone-900">{completeMatches.length > 0 ? "이 구성이 가능한 판매처" : "원 리뷰 판매처에 재고를 요청해보세요"}</h2>
+                        <p className="text-sm text-stone-500">{fulfillmentMode === "diy" ? "직접 만들기는 반경 안 한 판매처에서 전부 픽업할 수 있어야 해요." : "주문제작은 전국 배송 가능한 꽃집을 거리 제한 없이 확인해요."}</p>
                       </div>
                     </div>
                     <div className="mt-5 space-y-3">
-                      {matches.slice(0, 5).map((match) => (
-                        <article key={match.sellerId} className={`rounded-2xl border p-4 ${match.complete ? "border-emerald-200 bg-emerald-50/40" : "border-stone-200"}`}>
+                      {visibleMatches.slice(0, 8).map((match) => {
+                        const modeComplete = fulfillmentMode === "diy" ? match.diyComplete : match.customComplete
+                        const modeItems = fulfillmentMode === "diy" ? match.diyItems : match.customItems
+                        const hasMissing = modeItems.some((item) => item.available < item.requested)
+                        return (
+                        <article key={match.sellerId} className={`rounded-2xl border p-4 ${modeComplete ? "border-emerald-200 bg-emerald-50/40" : match.preferred ? "border-violet-200 bg-violet-50/30" : "border-stone-200"}`}>
                           <div className="flex items-start justify-between gap-3">
                             <div>
                               <div className="flex flex-wrap items-center gap-2">
-                                <h3 className="font-bold text-stone-900">{match.marketName}</h3>
-                                <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${match.complete ? "bg-emerald-600 text-white" : "bg-stone-100 text-stone-500"}`}>
-                                  {match.complete ? "전부 구매 가능" : `${match.fulfilledCount}/${match.requestedCount}종`}
+                                <h3 className="font-bold text-stone-900">{match.marketName}</h3>{match.preferred && <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-bold text-violet-700">리뷰 구매처 · 우선 확인</span>}
+                                <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${modeComplete ? "bg-emerald-600 text-white" : "bg-stone-100 text-stone-500"}`}>
+                                  {modeComplete ? (fulfillmentMode === "diy" ? "전부 픽업 가능" : "전국 배송 제작 가능") : "재고 부족"}
                                 </span>
                               </div>
                               <p className="mt-1 text-xs text-stone-500">{match.roadAddress}</p>
+                              {fulfillmentMode === "custom" && <p className={`mt-1 text-xs font-semibold ${match.customDeliveryScope === "NATIONWIDE" ? "text-rose-600" : "text-amber-700"}`}>{match.customDeliveryScope === "NATIONWIDE" ? "🚚 전국 배송 가능" : match.customDeliveryScope === "REGIONAL" ? `🚚 배송 가능 지역 · ${match.customDeliveryRegions.join(", ") || "판매처 문의"}` : "배송 불가"}</p>}
                               {match.distanceKm !== null && <p className="mt-1 text-xs font-semibold text-emerald-700">현재 위치에서 약 {match.distanceKm}km</p>}
                             </div>
                             <div className="shrink-0 text-right text-xs text-stone-500">
@@ -656,7 +768,7 @@ export default function DiyPage() {
                             </div>
                           </div>
                           <div className="mt-3 flex flex-wrap gap-1.5">
-                            {match.items.map((item) => (
+                            {modeItems.map((item) => (
                               <span key={item.id} className={`rounded-full px-2 py-1 text-[11px] ${item.available >= item.requested ? "bg-white text-stone-600" : "bg-rose-50 text-rose-600"}`}>
                                 {FLOWERS.find((flower) => flower.id === item.id)?.name ?? item.name} {item.requested}송이
                               </span>
@@ -664,11 +776,13 @@ export default function DiyPage() {
                           </div>
                           {match.publicPhone && <p className="mt-3 text-xs text-stone-500">방문 전 재고 확인: {match.publicPhone}</p>}
                           <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                            {match.diyComplete && <Button onClick={() => chooseSeller(match, "diy")} className="h-11 w-full bg-emerald-600 text-white hover:bg-emerald-700">✂️ 여기서 재료 전부 픽업</Button>}
-                            {match.customComplete && <Button onClick={() => chooseSeller(match, "custom")} className="h-11 w-full bg-rose-500 text-white hover:bg-rose-600">💐 이 꽃집에 제작 주문</Button>}
+                            {fulfillmentMode === "diy" && match.diyComplete && <Button onClick={() => chooseSeller(match, "diy")} className="h-11 w-full bg-emerald-600 text-white hover:bg-emerald-700">✂️ 여기서 재료 전부 픽업</Button>}
+                            {fulfillmentMode === "custom" && match.customComplete && <Button onClick={() => chooseSeller(match, "custom")} className="h-11 w-full bg-rose-500 text-white hover:bg-rose-600">💐 이 꽃집에 전국배송 주문</Button>}
+                            {!modeComplete && match.preferred && hasMissing && <Button onClick={() => requestRestock(match)} variant="outline" className="h-11 w-full border-violet-200 text-violet-700 hover:bg-violet-50">🔔 이 판매처에 재입고 알림 신청</Button>}
+                            {!modeComplete && match.preferred && !hasMissing && fulfillmentMode === "diy" && <p className="self-center text-xs text-stone-500">재고는 있지만 설정한 픽업 반경 밖이에요. 주문제작·전국 배송을 확인해보세요.</p>}
                           </div>
                         </article>
-                      ))}
+                      )})}
                     </div>
                   </>
                 ) : (
@@ -676,10 +790,28 @@ export default function DiyPage() {
                     <p className="text-2xl">💐</p>
                     <h2 className="mt-2 font-bold text-stone-900">이 구성을 한 곳에서 준비할 판매처가 없어요</h2>
                     <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-stone-600">
-                      꽃 수량을 줄이거나 다른 꽃으로 바꾼 뒤 다시 확인해 주세요.
+                      {preferredSellerId ? "원 리뷰 판매처 정보를 확인하지 못했어요. 잠시 후 다시 시도해주세요." : "꽃 수량을 줄이거나 다른 꽃으로 바꾼 뒤 다시 확인해 주세요."}
                     </p>
                   </div>
                 )}
+                {fulfillmentMode === "diy" && publicMarkets.length > 0 && <div className="mt-6 border-t border-stone-200 pt-6">
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-700">🏛️</span>
+                    <div><h2 className="font-bold text-stone-900">방문 가능한 도매시장·화훼공판장</h2><p className="mt-1 text-sm text-stone-500">오늘 공개된 절화 경매 실거래가 있을 때만 구매 참고가를 보여드려요.</p></div>
+                  </div>
+                  <details className="mt-3 rounded-xl border border-sky-100 bg-white px-4 py-3 text-xs text-stone-600">
+                    <summary className="cursor-pointer font-bold text-sky-800">‘속’이란 무엇인가요?</summary>
+                    <p className="mt-2 leading-5">속은 절화를 묶어 경매·유통하는 포장 단위예요. 품목·품종·등급·시장에 따라 한 속의 본수가 달라 고정된 송이 단위는 아닙니다. 화면의 본수 환산은 일반적인 거래 관행을 적용한 참고치이며, 실제 포장 규격을 우선해 주세요.</p>
+                    <a href="https://www.naqs.go.kr/hp/contents/contents.do?menuId=MN40332" target="_blank" rel="noreferrer" className="mt-2 inline-flex font-bold text-sky-700 underline">농산물 표준규격 확인</a>
+                  </details>
+                  <div className="mt-4 space-y-3">{publicMarkets.map((market) => <article key={market.id} className={`rounded-2xl border p-4 ${market.isNonghyup ? "border-emerald-300 bg-gradient-to-br from-emerald-50 to-yellow-50 ring-1 ring-emerald-100" : "border-sky-200 bg-sky-50/40"}`}>
+                    <div className="flex items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2">{market.isNonghyup && <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-700 shadow-sm"><NonghyupEmblem className="h-7 w-7"/></span>}<h3 className="font-bold text-stone-900">{market.marketName}</h3><span className={`rounded-full px-2 py-0.5 text-[11px] font-bold text-white ${market.isNonghyup ? "bg-emerald-700" : "bg-sky-600"}`}>{market.marketType}</span>{market.liveTradeCount > 0 && <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-sky-700">오늘 실거래 {market.liveTradeCount}건</span>}</div><p className="mt-1 text-xs text-stone-500">{market.roadAddress}{market.distanceKm !== null ? ` · 약 ${market.distanceKm}km` : ""}</p></div><div className="shrink-0 text-right"><p className="text-[11px] text-stone-400">{market.basisDate ? `${market.basisDate} 당일 기준` : "오늘 실거래 기준"}</p>{market.expectedPrice !== null ? <><strong className="text-lg text-sky-700">약 {market.expectedPrice.toLocaleString()}원</strong>{market.minPrice !== null && market.maxPrice !== null && <p className="text-[10px] text-stone-400">{market.minPrice.toLocaleString()}~{market.maxPrice.toLocaleString()}원</p>}</> : <strong className={`block text-sm ${market.isNonghyup ? "text-emerald-700" : "text-stone-400"}`}>{market.id === "at-yangjae" ? "오늘 거래 없음" : "당일 자료 자동 연계 준비 중"}</strong>}</div></div>
+                    <div className="mt-3 flex flex-wrap gap-1.5">{market.flowers.map((flower) => <span key={flower.id} className="rounded-full bg-white px-2 py-1 text-[11px] text-stone-600">{flower.name} {flower.quantity}송이 → 약 {flower.bundleCount ?? 1}속 ({flower.unitNote ?? "포장 규격 확인 필요"}){flower.averageBundlePrice ? ` · 1속 평균 ${Math.round(flower.averageBundlePrice).toLocaleString()}원` : ""}</span>)}</div>
+                    <p className="mt-3 text-[11px] leading-5 text-stone-500">{market.priceBasis}. 실제 등급·포장단위·당일 물량에 따라 달라질 수 있어요.</p>
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p className="text-[11px] text-stone-400">방문 전 문의 {market.publicPhone || "공판장 확인"} · {market.sourceName}</p><div className="flex flex-wrap gap-2">{market.dailyDataUrl && <a href={market.dailyDataUrl} target="_blank" rel="noreferrer" className={`inline-flex items-center gap-1 rounded-xl border bg-white px-3 py-2 text-xs font-bold ${market.isNonghyup ? "border-emerald-300 text-emerald-700 hover:bg-emerald-50" : "border-sky-200 text-sky-700 hover:bg-sky-50"}`}>공식 일일 경매자료 <ExternalLink size={13}/></a>}<a href={market.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-xl border border-sky-200 bg-white px-3 py-2 text-xs font-bold text-sky-700 hover:bg-sky-50">실시간 시세·시장정보 <ExternalLink size={13}/></a></div></div>
+                  </article>)}</div>
+                  <p className="mt-3 text-[11px] leading-5 text-stone-400">가격은 aT 공식 API의 오늘 양재 절화 경매값만 사용하며 과거값·임시 추정가·타 시장 복제값은 사용하지 않습니다. 경매가는 소매 판매가가 아니고, 본수 환산은 참고치이므로 실제 포장 규격과 방문 구매 가능 여부를 시장에 확인해 주세요.</p>
+                </div>}
               </section>
             )}
           </div>

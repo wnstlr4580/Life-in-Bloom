@@ -3,6 +3,7 @@ import { getToken } from "next-auth/jwt"
 import { put } from "@vercel/blob"
 import { nanoid } from "nanoid"
 import { supabaseAdmin } from "@/lib/supabase"
+import { grantPointsOnce, POINT_POLICY } from "@/lib/points"
 
 async function getUser(req: NextRequest) {
   const token = await getToken({
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from("BouquetPost")
-    .select("id, userId, authorName, imageUrl, composition, content, derivedOrderCount, createdAt")
+    .select("id, userId, authorName, imageUrl, composition, content, derivedOrderCount, sourceType, createdAt")
     .eq("isHidden", false)
     .order("createdAt", { ascending: false })
     .range(offset, offset + limit - 1)
@@ -107,6 +108,7 @@ export async function POST(req: NextRequest) {
         imageUrl: blobUrl,
         composition,
         content: String(content ?? "").trim() || null,
+        sourceType: isGalleryShare ? "AI_COMPOSITE" : "BUYER_REVIEW",
       })
       .select("id")
       .single()
@@ -116,7 +118,8 @@ export async function POST(req: NextRequest) {
       const msg = error?.message ?? "insert failed"
       return NextResponse.json({ error: `DB 저장 실패: ${msg}` }, { status: 500 })
     }
-    return NextResponse.json({ id: data.id }, { status: 201 })
+    const pointsGranted = !isGalleryShare && await grantPointsOnce({ userId: user.id, amount: POINT_POLICY.REVIEW, reason: "REVIEW", referenceType: "BouquetPost", referenceId: data.id })
+    return NextResponse.json({ id: data.id, pointsGranted: pointsGranted ? POINT_POLICY.REVIEW : 0 }, { status: 201 })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error("BouquetPost DB insert error:", err)

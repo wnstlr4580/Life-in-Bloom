@@ -118,6 +118,10 @@ export default function CheckoutPage() {
       setError("배송 주소를 입력해주세요")
       return false
     }
+    if (selectedDeliveryType !== "pickup" && bouquetFulfillment?.deliveryScope === "REGIONAL" && !(bouquetFulfillment.deliveryRegions ?? []).some((region) => form.address.includes(region))) {
+      setError(`${bouquetFulfillment.sellerName}의 배송 가능 지역은 ${(bouquetFulfillment.deliveryRegions ?? []).join(", ")}입니다. 주소를 다시 확인해주세요.`)
+      return false
+    }
     if (!form.deliveryDate) {
       setError("받는 날짜를 선택해주세요")
       return false
@@ -126,11 +130,21 @@ export default function CheckoutPage() {
   }
 
   const createOrder = async (paymentId?: string) => {
+    const orderItems = await Promise.all(items.map(async (i) => {
+      let previewImageUrl = i.previewImageUrl ?? i.product.images[0] ?? null
+      if (previewImageUrl?.startsWith("blob:") || previewImageUrl?.startsWith("data:")) {
+        const imageBlob = await fetch(previewImageUrl).then((response) => response.blob())
+        const previewForm = new FormData(); previewForm.append("file", new File([imageBlob], "ai-bouquet.jpg", { type: imageBlob.type || "image/jpeg" }))
+        const uploaded = await fetch("/api/custom/store-preview", { method: "POST", body: previewForm })
+        if (uploaded.ok) previewImageUrl = (await uploaded.json()).url
+      }
+      return { productId: i.productId, quantity: i.quantity, price: i.product.price, name: i.product.name, images: i.product.images, composition: i.composition ?? null, fulfillment: i.fulfillment ?? null, previewImageUrl }
+    }))
     const res = await fetch("/api/orders", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        items: items.map((i) => ({ productId: i.productId, quantity: i.quantity, price: i.product.price, name: i.product.name, images: i.product.images, composition: i.composition ?? null })),
+        items: orderItems,
         totalAmount: grandTotal,
         shippingFee: shippingFee + expressFee,
         deliveryType: selectedDeliveryType,
@@ -144,6 +158,7 @@ export default function CheckoutPage() {
         paymentId: paymentId ?? null,
         // 후기 갤러리의 조합 그대로 만든 주문이면 글쓴이 포인트 적립용으로 전달
         sourcePostId: typeof window !== "undefined" ? sessionStorage.getItem("bouquetSourcePost") : null,
+        sourceReviewId: typeof window !== "undefined" ? sessionStorage.getItem("bouquetSourceReview") : null,
       }),
     })
     if (!res.ok) {
@@ -151,6 +166,7 @@ export default function CheckoutPage() {
       throw new Error(d.error ?? "주문에 실패했습니다")
     }
     sessionStorage.removeItem("bouquetSourcePost")
+    sessionStorage.removeItem("bouquetSourceReview")
     return res.json()
   }
 

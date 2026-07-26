@@ -97,6 +97,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "이미지 업로드에 실패했어요" }, { status: 400 })
   }
   const colorTags = jsonArray(form.get("colorTags"))
+  const seasonTags = jsonArray(form.get("seasonTags"))
+  const useTags = jsonArray(form.get("useTags"))
   const displayStartAt = String(form.get("displayStartAt") ?? "") || null
   const displayEndAt = String(form.get("displayEndAt") ?? "") || null
   const deliveryDays = jsonArray(form.get("deliveryDays"))
@@ -118,8 +120,8 @@ export async function POST(req: NextRequest) {
     id: productId, sellerId: actor.seller.id, name, description, composition, sizeGuide, substitutionNotice, originInfo,
     deliveryArea, sameDayCutoff, orderNotice, careInstructions, category, price, stock, images, detailImages, noticeImages,
     flowerMeaning: null,
-    ohaengTags: classifyProductOhaeng({ name, description, category, colorTags }),
-    seasonTags: jsonArray(form.get("seasonTags")), colorTags, useTags: jsonArray(form.get("useTags")),
+    ohaengTags: classifyProductOhaeng({ name, description, category, colorTags, seasonTags, useTags }),
+    seasonTags, colorTags, useTags,
     deliveryDays, deliveryStartTime, deliveryEndTime,
     displayStartAt, displayEndAt, saleStatus: stock === 0 ? "SOLD_OUT" : "ON_SALE", isActive: true,
   }
@@ -148,7 +150,7 @@ export async function PATCH(req: NextRequest) {
   if (update.category !== undefined && !CATEGORIES.has(String(update.category))) return NextResponse.json({ error: "올바른 카테고리를 선택해주세요" }, { status: 400 })
   if (update.saleStatus !== undefined && !["ON_SALE", "SOLD_OUT", "PAUSED", "HIDDEN"].includes(String(update.saleStatus))) return NextResponse.json({ error: "올바른 판매 상태를 선택해주세요" }, { status: 400 })
   const { data: currentProduct } = await supabaseAdmin
-    .from("Product").select("stock, saleStatus").eq("id", id).eq("sellerId", actor.seller.id).maybeSingle()
+    .from("Product").select("stock, saleStatus, name, description, category, flowerMeaning, colorTags, seasonTags, useTags").eq("id", id).eq("sellerId", actor.seller.id).maybeSingle()
   if (!currentProduct) return NextResponse.json({ error: "상품을 찾을 수 없어요" }, { status: 404 })
   const nextStock = update.stock === undefined ? Number(currentProduct.stock) : Number(update.stock)
   const requestedStatus = String(update.saleStatus ?? currentProduct.saleStatus)
@@ -162,7 +164,7 @@ export async function PATCH(req: NextRequest) {
   if (!validDate(update.displayStartAt ? String(update.displayStartAt) : null) || !validDate(update.displayEndAt ? String(update.displayEndAt) : null)) return NextResponse.json({ error: "상품 노출 일시 형식이 올바르지 않아요" }, { status: 400 })
   if (update.displayStartAt && update.displayEndAt && new Date(String(update.displayStartAt)) >= new Date(String(update.displayEndAt))) return NextResponse.json({ error: "노출 종료일은 시작일보다 뒤여야 해요" }, { status: 400 })
   if (body.name || body.description || body.category || body.flowerMeaning || body.colorTags) {
-    update.ohaengTags = classifyProductOhaeng(body)
+    update.ohaengTags = classifyProductOhaeng({ ...currentProduct, ...body })
   }
   const { data, error } = await supabaseAdmin
     .from("Product").update(update).eq("id", id).eq("sellerId", actor.seller.id).select(FIELDS).maybeSingle()

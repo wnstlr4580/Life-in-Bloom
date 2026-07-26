@@ -1,6 +1,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { BadgeCheck, ExternalLink, Store } from "lucide-react"
+import { WishlistButton } from "@/components/shop/WishlistButton"
 
 interface Props {
   id: string
@@ -12,7 +13,7 @@ interface Props {
   stock?: number
   ratingAvg?: number | null
   reviewCount?: number
-  seller?: { marketName: string } | { marketName: string }[] | null
+  seller?: { marketName: string; productDeliveryScope?: string; productDeliveryRegions?: string[] } | { marketName: string; productDeliveryScope?: string; productDeliveryRegions?: string[] }[] | null
   purchaseType?: string
   externalUrl?: string | null
   partnerName?: string | null
@@ -35,7 +36,9 @@ export function ProductCard({ id, name, price, images, flowerMeaning, category, 
   const external = purchaseType === "EXTERNAL" && Boolean(externalUrl)
   const marketName = external ? partnerName : sellerInfo?.marketName
   return (
-    <Link href={external ? externalUrl! : `/products/${id}`} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined} className="group">
+    <div className="group relative">
+      {!external && <WishlistButton productId={id} />}
+      <Link href={external ? externalUrl! : `/products/${id}`} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined}>
       <div className="bg-white rounded-2xl overflow-hidden border border-stone-100 hover:border-rose-200 hover:shadow-lg transition-all duration-300">
         <div className="aspect-square bg-stone-50 relative overflow-hidden">
           {images[0] ? (external ? (
@@ -82,6 +85,7 @@ export function ProductCard({ id, name, price, images, flowerMeaning, category, 
               {external && <ExternalLink size={11} className="shrink-0 text-amber-600" />}
             </div>
           )}
+          {!external && sellerInfo?.productDeliveryScope && <p className={`mt-1.5 text-[10px] font-semibold ${sellerInfo.productDeliveryScope === "NATIONWIDE" ? "text-rose-600" : "text-amber-700"}`}>{sellerInfo.productDeliveryScope === "NATIONWIDE" ? "🚚 전국 배송" : sellerInfo.productDeliveryScope === "REGIONAL" ? `🚚 ${sellerInfo.productDeliveryRegions?.join(" · ") || "지역 배송"}` : "🏬 방문 수령"}</p>}
           {flowerMeaning && (
             <p className="text-xs text-stone-400 mt-0.5 line-clamp-1">{flowerMeaning}</p>
           )}
@@ -96,6 +100,7 @@ export function ProductCard({ id, name, price, images, flowerMeaning, category, 
           </p>
         </div>
       </div>
-    </Link>
+      </Link>
+    </div>
   )
 }

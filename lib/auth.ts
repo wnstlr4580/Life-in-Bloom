@@ -62,19 +62,23 @@ const nextAuth = NextAuth({
     signIn: async ({ user, account }) => {
       if (!user.email || !supabaseAdmin) return true
       if (account?.provider !== "credentials") {
+        const normalizedEmail = user.email.toLowerCase().trim()
         const { data: existing } = await supabaseAdmin
           .from("User")
-          .select("role, status, suspendedUntil")
-          .eq("email", user.email)
+          .select("id, role, status, suspendedUntil")
+          .eq("email", normalizedEmail)
           .maybeSingle()
         // 판매자 계정은 이메일/비밀번호 로그인만 허용한다.
         if (existing?.role === "SELLER") return false
         if (existing?.status === "SUSPENDED" && (!existing.suspendedUntil || new Date(existing.suspendedUntil) > new Date())) return false
+        if (existing) {
+          // 소셜 공급자의 id로 기존 사용자 PK를 덮어쓰면 주문·리뷰 관계가 깨질 수 있다.
+          await supabaseAdmin.from("User").update({ name: user.name, image: user.image }).eq("id", existing.id)
+          user.id = existing.id
+        } else {
+          await supabaseAdmin.from("User").insert({ id: user.id ?? normalizedEmail, email: normalizedEmail, name: user.name, image: user.image })
+        }
       }
-      await supabaseAdmin.from("User").upsert(
-        { id: user.id ?? user.email, email: user.email, name: user.name, image: user.image },
-        { onConflict: "email", ignoreDuplicates: false }
-      )
       return true
     },
     jwt: async ({ token, user, trigger, session }) => {
