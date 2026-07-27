@@ -206,7 +206,12 @@ export default function CheckoutPage() {
         totalAmount: grandTotal,
         currency: "CURRENCY_KRW",
         payMethod: "CARD",
-        customer: { fullName: form.ordererName, phoneNumber: form.ordererPhone },
+        customer: {
+          fullName: form.ordererName,
+          phoneNumber: form.ordererPhone,
+          email: session.user.email ?? undefined,
+        },
+        windowType: { pc: "IFRAME", mobile: "REDIRECTION" },
         redirectUrl: `${window.location.origin}/checkout/complete`,
       })
 
