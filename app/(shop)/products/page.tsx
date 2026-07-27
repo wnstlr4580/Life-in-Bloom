@@ -66,19 +66,28 @@ function ProductsContent() {
   const pathname = usePathname()
   const router = useRouter()
 
+  // 이 페이지는 정적으로 미리 만들어져서, 새로고침 직후에는 서버가 만든
+  // "URL 쿼리가 없는" 정적 HTML을 먼저 보여준다. 마운트되기 전까지 URL 값을
+  // 그대로 읽어버리면, 실제 쿼리가 있는 URL로 들어왔을 때 서버가 그린 결과와
+  // 클라이언트가 그리려는 결과가 달라져(하이드레이션 불일치) 리액트가 그 부분
+  // DOM을 통째로 새로 그리면서 버튼 이벤트가 조용히 떨어져 나가는 문제가 있었다.
+  // 마운트 전까지는 항상 서버와 똑같이 "빈 필터"로 그려서 이 불일치 자체를 없앤다.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+
   // URL을 유일한 출처(source of truth)로 삼는다 — 필터를 별도 state로 미러링해서
   // 서로 되먹이던 예전 구조가 레이스 컨디션(메뉴 이동이 먹히지 않는 문제)의 근본 원인이었다.
-  const q = searchParams.get("q") ?? ""
-  const ohaeng = searchParams.get("ohaeng") ?? ""
-  const category = searchParams.get("category") ?? ""
-  const uses = searchParams.getAll("use")
-  const color = searchParams.get("color") ?? ""
-  const seller = searchParams.get("seller") ?? ""
-  const minPrice = searchParams.get("minPrice") ?? ""
-  const maxPrice = searchParams.get("maxPrice") ?? ""
-  const inStock = searchParams.get("inStock") === "true"
-  const sort = searchParams.get("sort") ?? "latest"
-  const page = Number(searchParams.get("page") ?? "1")
+  const q = mounted ? searchParams.get("q") ?? "" : ""
+  const ohaeng = mounted ? searchParams.get("ohaeng") ?? "" : ""
+  const category = mounted ? searchParams.get("category") ?? "" : ""
+  const uses = mounted ? searchParams.getAll("use") : []
+  const color = mounted ? searchParams.get("color") ?? "" : ""
+  const seller = mounted ? searchParams.get("seller") ?? "" : ""
+  const minPrice = mounted ? searchParams.get("minPrice") ?? "" : ""
+  const maxPrice = mounted ? searchParams.get("maxPrice") ?? "" : ""
+  const inStock = mounted ? searchParams.get("inStock") === "true" : false
+  const sort = mounted ? searchParams.get("sort") ?? "latest" : "latest"
+  const page = mounted ? Number(searchParams.get("page") ?? "1") : 1
 
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -114,6 +123,7 @@ function ProductsContent() {
   const clearKeyword = () => updateParams((p) => p.delete("q"), false)
 
   useEffect(() => {
+    if (!mounted) return
     const controller = new AbortController()
     if (!hasLoaded.current) setLoading(true)
     const params = new URLSearchParams(searchParams.toString())
@@ -136,7 +146,7 @@ function ProductsContent() {
         if (!controller.signal.aborted) setLoading(false)
       })
     return () => controller.abort()
-  }, [searchParams])
+  }, [mounted, searchParams])
 
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
