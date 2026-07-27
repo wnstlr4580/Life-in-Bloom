@@ -28,6 +28,8 @@ export default function CheckoutPage() {
   const [deliveryType, setDeliveryType] = useState<DeliveryType>("standard")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  // 결제 모듈 테스트 중에는 체크 시 실제 결제 없이 바로 주문 완료 처리
+  const [skipPayment, setSkipPayment] = useState(false)
   const bouquetFulfillment = items.find((item) => item.fulfillment)?.fulfillment
   const pickupOnly = items.some((item) => item.fulfillment?.orderMode === "diy")
   const pickupStoreName = bouquetFulfillment?.sellerName
@@ -177,8 +179,54 @@ export default function CheckoutPage() {
     setError("")
 
     try {
-      // 테스트용: 결제 모듈 없이 바로 주문 완료 처리
-      const paymentId = `test_${nanoid()}`
+      if (skipPayment) {
+        // 결제 테스트 건너뛰기 — 실제 결제 없이 바로 주문 완료 처리
+        const paymentId = `test_${nanoid()}`
+        const { orderId } = await createOrder(paymentId)
+        clear()
+        router.push(`/checkout/complete?orderId=${orderId}`)
+        return
+      }
+
+      const channelKey = process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY
+      if (!channelKey) {
+        setError("결제 설정이 아직 완료되지 않았어요. 관리자에게 문의하거나 '결제 건너뛰기'를 이용해주세요.")
+        return
+      }
+
+      const PortOne = (await import("@portone/browser-sdk/v2")).default
+      const paymentId = `order_${nanoid()}`
+
+      const response = await PortOne.requestPayment({
+        storeId: process.env.NEXT_PUBLIC_PORTONE_STORE_ID ?? "store-b6ae6b94-3891-4a84-afce-0428f5b5de34",
+        channelKey,
+        paymentId,
+        orderName: items.length === 1 ? items[0].product.name : `${items[0].product.name} 외 ${items.length - 1}건`,
+        totalAmount: grandTotal,
+        currency: "CURRENCY_KRW",
+        payMethod: "CARD",
+        customer: { fullName: form.ordererName, phoneNumber: form.ordererPhone },
+        redirectUrl: `${window.location.origin}/checkout/complete`,
+      })
+
+      if (response?.code) {
+        // 결제 취소 또는 실패
+        if (response.code !== "USER_CANCEL") setError(response.message ?? "결제에 실패했습니다")
+        return
+      }
+
+      // 서버에서 결제 검증
+      const verifyRes = await fetch("/api/payment/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentId, expectedAmount: grandTotal }),
+      })
+
+      if (!verifyRes.ok) {
+        const d = await verifyRes.json()
+        throw new Error(d.error ?? "결제 검증에 실패했습니다")
+      }
+
       const { orderId } = await createOrder(paymentId)
       clear()
       router.push(`/checkout/complete?orderId=${orderId}`)
@@ -367,13 +415,23 @@ export default function CheckoutPage() {
 
             {error && <p className="text-sm text-red-500 text-center bg-red-50 rounded-lg p-2">{error}</p>}
 
+            <label className="flex items-center gap-2 text-xs text-stone-500 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={skipPayment}
+                onChange={(e) => setSkipPayment(e.target.checked)}
+                className="accent-amber-500 w-3.5 h-3.5"
+              />
+              결제 건너뛰기 (테스트용 — 실제 결제 없이 주문만 생성)
+            </label>
+
             <Button
               onClick={handlePayment}
               disabled={loading}
               className="w-full h-12 bg-rose-400 hover:bg-rose-500 text-white font-semibold text-base disabled:opacity-60 gap-2"
             >
               <CreditCard size={18} />
-              {loading ? "처리 중..." : `${grandTotal.toLocaleString()}원 결제하기`}
+              {loading ? "처리 중..." : skipPayment ? "주문 완료 (테스트)" : `${grandTotal.toLocaleString()}원 결제하기`}
             </Button>
             <p className="text-xs text-center text-stone-400">카드 · 카카오페이 · 토스 등 결제 가능</p>
           </div>
