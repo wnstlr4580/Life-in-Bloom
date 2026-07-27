@@ -100,7 +100,9 @@ const nextAuth = NextAuth({
         token.isAdmin = token.role === "ADMIN"
         token.accountStatus = data?.status ?? "ACTIVE"
         token.passwordResetRequired = data?.passwordResetRequired ?? false
-        if (!token.id && data?.id) token.id = data.id
+        // 소셜 로그인의 provider id가 signIn 콜백에서 실제 DB id로 교체됐을 수 있으니,
+        // 매 요청마다 DB에서 조회한 실제 값으로 다시 맞춰준다 (그렇지 않으면 주문 등에서 FK 위반 발생)
+        if (data?.id) token.id = data.id
       }
       return token
     },
