@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase"
 import { calculateSaju, getCurrentSeason } from "@/lib/saju"
 import type { Ohaeng } from "@/lib/saju"
 import { calcFortune } from "@/lib/fortune"
+import { scoreOhaengMatch, whoGenerates } from "@/lib/ohaengMatching"
 
 const OHAENG_ALL: Ohaeng[] = ["목", "화", "토", "금", "수"]
 
@@ -39,36 +40,42 @@ export async function POST(req: NextRequest) {
   const weakest = OHAENG_ALL.reduce((a, b) => (pct[b] < pct[a] ? b : a))
   const lackingOhaeng = pct[weakest] < 20 ? [weakest] : []
 
-  // 부족한 기운별 상품 조회 + 대표 오행 상품 + 계절 상품 병렬 조회
-  const lackingQueries = lackingOhaeng.map(o =>
+  // 활성 상품 후보군을 넓게 가져와 색상·계절·꽃말 3축 점수(등록 시 자동 태깅과 동일 기준)로 정렬한다.
+  const [{ data: candidates }, { data: seasonalData }] = await Promise.all([
     supabaseAdmin
       .from("Product")
-      .select("id, name, price, images, flowerMeaning, category")
+      .select("id, name, price, images, flowerMeaning, description, category, colorTags, seasonTags")
       .eq("isActive", true)
-      .contains("ohaengTags", [o])
-      .limit(3)
-  )
-
-  const [ohaengResult, seasonalResult, ...lackingResults] = await Promise.all([
-    supabaseAdmin
-      .from("Product")
-      .select("id, name, price, images, flowerMeaning, category")
-      .eq("isActive", true)
-      .contains("ohaengTags", [saju.mainOhaeng])
-      .limit(4),
+      .order("createdAt", { ascending: false })
+      .limit(300),
     supabaseAdmin
       .from("Product")
       .select("id, name, price, images, flowerMeaning, category")
       .eq("isActive", true)
       .contains("seasonTags", [currentSeason])
       .limit(4),
-    ...lackingQueries,
   ])
 
-  const lackingProducts = lackingOhaeng.map((o, i) => ({
-    ohaeng: o,
-    products: lackingResults[i]?.data ?? [],
-  }))
+  const scored = (candidates ?? []).map((p) => ({ product: p, scores: scoreOhaengMatch(p) }))
+
+  function topByOhaeng(target: Ohaeng, limit: number, exclude = new Set<string>()) {
+    return scored
+      .filter((s) => !exclude.has(s.product.id))
+      .sort((a, b) => b.scores[target] - a.scores[target])
+      .slice(0, limit)
+      .map((s) => s.product)
+  }
+
+  const recommendedFlowers = topByOhaeng(saju.mainOhaeng, 4)
+
+  // 부족한 기운에 정확히 맞는 상품이 모자라면, 그 기운을 낳아주는(상생) 오행 상품으로 채운다.
+  const lackingProducts = lackingOhaeng.map((o) => {
+    const exact = topByOhaeng(o, 3)
+    const products = exact.length >= 3
+      ? exact
+      : [...exact, ...topByOhaeng(whoGenerates(o), 3 - exact.length, new Set(exact.map((p) => p.id)))]
+    return { ohaeng: o, products }
+  })
 
   return NextResponse.json({
     ohaeng: saju.mainOhaeng,
@@ -83,7 +90,7 @@ export async function POST(req: NextRequest) {
     calendarType,
     lackingProducts,
     fortune,
-    recommendedFlowers: ohaengResult.data ?? [],
-    seasonalFlowers: seasonalResult.data ?? [],
+    recommendedFlowers,
+    seasonalFlowers: seasonalData ?? [],
   })
 }
