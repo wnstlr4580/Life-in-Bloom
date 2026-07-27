@@ -81,9 +81,22 @@ function ProductsContent() {
   const [filterOpen, setFilterOpen] = useState(() => Boolean(searchParams.get("color") || searchParams.get("seller") || searchParams.get("minPrice") || searchParams.get("maxPrice") || searchParams.get("inStock")))
   const [facets, setFacets] = useState<{ colors: string[]; uses: string[]; sellers: string[] }>({ colors: [], uses: [], sellers: [] })
 
-  // 메가메뉴 링크(?category= / ?use=)로 진입하면 필터에 반영
-  useEffect(() => { setCategory(searchParams.get("category") ?? "") }, [searchParams])
   const [sort, setSort] = useState(() => searchParams.get("sort") ?? "latest")
+
+  // 메가메뉴 등 외부 링크(?category=, ?use= 등)로 진입/이동하면 모든 필터를 그 URL 기준으로 다시 맞춘다.
+  // 일부만(category만) 동기화하면, 남아있는 다른 필터(uses 등) 때문에 아래 "URL 기록" 효과가
+  // 방금 이동한 URL을 옛 필터값으로 되돌려버려 메뉴 이동이 먹통인 것처럼 보인다.
+  useEffect(() => {
+    setCategory(searchParams.get("category") ?? "")
+    setUses(searchParams.getAll("use"))
+    setColor(searchParams.get("color") ?? "")
+    setSeller(searchParams.get("seller") ?? "")
+    setMinPrice(searchParams.get("minPrice") ?? "")
+    setMaxPrice(searchParams.get("maxPrice") ?? "")
+    setInStock(searchParams.get("inStock") === "true")
+    setSort(searchParams.get("sort") ?? "latest")
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
