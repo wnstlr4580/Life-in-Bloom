@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, Suspense, type ReactNode } from "react"
-import { useSearchParams, usePathname } from "next/navigation"
+import { useSearchParams, usePathname, useRouter } from "next/navigation"
 import { ProductCard } from "@/components/shop/ProductCard"
 import { ChevronDown, RotateCcw, SlidersHorizontal, Store } from "lucide-react"
 
@@ -64,79 +64,60 @@ interface Product {
 function ProductsContent() {
   const searchParams = useSearchParams()
   const pathname = usePathname()
+  const router = useRouter()
 
+  // URL을 유일한 출처(source of truth)로 삼는다 — 필터를 별도 state로 미러링해서
+  // 서로 되먹이던 예전 구조가 레이스 컨디션(메뉴 이동이 먹히지 않는 문제)의 근본 원인이었다.
   const q = searchParams.get("q") ?? ""
   const ohaeng = searchParams.get("ohaeng") ?? ""
+  const category = searchParams.get("category") ?? ""
+  const uses = searchParams.getAll("use")
+  const color = searchParams.get("color") ?? ""
+  const seller = searchParams.get("seller") ?? ""
+  const minPrice = searchParams.get("minPrice") ?? ""
+  const maxPrice = searchParams.get("maxPrice") ?? ""
+  const inStock = searchParams.get("inStock") === "true"
+  const sort = searchParams.get("sort") ?? "latest"
+  const page = Number(searchParams.get("page") ?? "1")
 
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const hasLoaded = useRef(false)
-  const [category, setCategory] = useState(() => searchParams.get("category") ?? "")
-  const [uses, setUses] = useState<string[]>(() => searchParams.getAll("use"))
-  const [color, setColor] = useState(() => searchParams.get("color") ?? "")
-  const [seller, setSeller] = useState(() => searchParams.get("seller") ?? "")
-  const [minPrice, setMinPrice] = useState(() => searchParams.get("minPrice") ?? "")
-  const [maxPrice, setMaxPrice] = useState(() => searchParams.get("maxPrice") ?? "")
-  const [inStock, setInStock] = useState(() => searchParams.get("inStock") === "true")
-  const [filterOpen, setFilterOpen] = useState(() => Boolean(searchParams.get("color") || searchParams.get("seller") || searchParams.get("minPrice") || searchParams.get("maxPrice") || searchParams.get("inStock")))
+  const [filterOpen, setFilterOpen] = useState(() => Boolean(color || seller || minPrice || maxPrice || inStock))
   const [facets, setFacets] = useState<{ colors: string[]; uses: string[]; sellers: string[] }>({ colors: [], uses: [], sellers: [] })
 
-  const [sort, setSort] = useState(() => searchParams.get("sort") ?? "latest")
+  // 필터 변경은 전부 URL을 갱신하는 것으로 통일한다. (page는 필터가 바뀔 때 1로 리셋)
+  function updateParams(mutate: (params: URLSearchParams) => void, resetPage = true) {
+    const params = new URLSearchParams(searchParams.toString())
+    mutate(params)
+    if (resetPage) params.delete("page")
+    router.replace(params.size ? `${pathname}?${params.toString()}` : pathname, { scroll: false })
+  }
 
-  // 메가메뉴 등 외부 링크(?category=, ?use= 등)로 진입/이동하면 모든 필터를 그 URL 기준으로 다시 맞춘다.
-  // 일부만(category만) 동기화하면, 남아있는 다른 필터(uses 등) 때문에 아래 "URL 기록" 효과가
-  // 방금 이동한 URL을 옛 필터값으로 되돌려버려 메뉴 이동이 먹통인 것처럼 보인다.
-  useEffect(() => {
-    setCategory(searchParams.get("category") ?? "")
-    setUses(searchParams.getAll("use"))
-    setColor(searchParams.get("color") ?? "")
-    setSeller(searchParams.get("seller") ?? "")
-    setMinPrice(searchParams.get("minPrice") ?? "")
-    setMaxPrice(searchParams.get("maxPrice") ?? "")
-    setInStock(searchParams.get("inStock") === "true")
-    setSort(searchParams.get("sort") ?? "latest")
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams])
-  const [page, setPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
-  const [total, setTotal] = useState(0)
+  const setCategory = (value: string) => updateParams((p) => (value ? p.set("category", value) : p.delete("category")))
+  const toggleUse = (value: string) => updateParams((p) => {
+    const current = p.getAll("use")
+    p.delete("use")
+    if (!value) return
+    const next = current.includes(value) ? current.filter((v) => v !== value) : [...current, value]
+    next.forEach((v) => p.append("use", v))
+  })
+  const setColor = (value: string) => updateParams((p) => (value ? p.set("color", value) : p.delete("color")))
+  const setSeller = (value: string) => updateParams((p) => (value ? p.set("seller", value) : p.delete("seller")))
+  const setMinPrice = (value: string) => updateParams((p) => (value ? p.set("minPrice", value) : p.delete("minPrice")))
+  const setMaxPrice = (value: string) => updateParams((p) => (value ? p.set("maxPrice", value) : p.delete("maxPrice")))
+  const setInStock = (checked: boolean) => updateParams((p) => (checked ? p.set("inStock", "true") : p.delete("inStock")))
+  const setSort = (value: string) => updateParams((p) => (value !== "latest" ? p.set("sort", value) : p.delete("sort")))
+  const setPage = (n: number) => updateParams((p) => p.set("page", String(n)), false)
 
-  // 필터가 바뀌면 1페이지부터
-  useEffect(() => { setPage(1) }, [q, ohaeng, category, uses, color, seller, minPrice, maxPrice, inStock, sort])
-
-  // 상세 상품에서 뒤로 왔을 때 선택 조건이 복원되도록 필터를 URL에 기록한다.
-  useEffect(() => {
-    const params = new URLSearchParams()
-    if (q) params.set("q", q)
-    if (ohaeng) params.set("ohaeng", ohaeng)
-    if (category) params.set("category", category)
-    uses.forEach((value) => params.append("use", value))
-    if (color) params.set("color", color)
-    if (seller) params.set("seller", seller)
-    if (minPrice) params.set("minPrice", minPrice)
-    if (maxPrice) params.set("maxPrice", maxPrice)
-    if (inStock) params.set("inStock", "true")
-    if (sort !== "latest") params.set("sort", sort)
-    const nextUrl = params.size ? `${pathname}?${params.toString()}` : pathname
-    const currentUrl = searchParams.size ? `${pathname}?${searchParams.toString()}` : pathname
-    if (nextUrl !== currentUrl) window.history.replaceState(null, "", nextUrl)
-  }, [q, ohaeng, category, uses, color, seller, minPrice, maxPrice, inStock, sort, pathname, searchParams])
+  const clearFilter = () => router.replace(pathname, { scroll: false })
+  const clearKeyword = () => updateParams((p) => p.delete("q"), false)
 
   useEffect(() => {
     const controller = new AbortController()
     if (!hasLoaded.current) setLoading(true)
-    const params = new URLSearchParams()
-    if (category) params.set("category", category)
-    uses.forEach((value) => params.append("use", value))
-    if (q) params.set("q", q)
-    if (color) params.set("color", color)
-    if (seller) params.set("seller", seller)
-    if (minPrice) params.set("minPrice", minPrice)
-    if (maxPrice) params.set("maxPrice", maxPrice)
-    if (inStock) params.set("inStock", "true")
-    if (ohaeng) params.set("ohaeng", ohaeng)
-    if (sort !== "latest") params.set("sort", sort)
-    params.set("page", String(page))
+    const params = new URLSearchParams(searchParams.toString())
+    if (!params.has("page")) params.set("page", "1")
     fetch(`/api/products?${params.toString()}`, { signal: controller.signal })
       .then((r) => r.json())
       .then((d) => {
@@ -155,26 +136,10 @@ function ProductsContent() {
         if (!controller.signal.aborted) setLoading(false)
       })
     return () => controller.abort()
-  }, [category, uses, q, color, seller, minPrice, maxPrice, inStock, ohaeng, sort, page])
+  }, [searchParams])
 
-  const clearFilter = () => {
-    setCategory(""); setUses([]); setColor(""); setSeller(""); setMinPrice(""); setMaxPrice(""); setInStock(false); setSort("latest")
-    window.history.replaceState(null, "", pathname)
-  }
-
-  const toggleUse = (value: string) => {
-    if (!value) {
-      setUses([])
-      return
-    }
-    setUses((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value])
-  }
-
-  const clearKeyword = () => {
-    const params = new URLSearchParams(searchParams.toString())
-    params.delete("q")
-    window.history.replaceState(null, "", params.size ? `${pathname}?${params.toString()}` : pathname)
-  }
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10">
@@ -284,7 +249,7 @@ function ProductsContent() {
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-1.5 mt-10">
               <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => setPage(Math.max(1, page - 1))}
                 disabled={page === 1}
                 className="px-3 py-1.5 rounded-lg text-sm text-stone-500 border border-stone-200 bg-white disabled:opacity-40 hover:border-rose-300 transition-colors"
               >
@@ -304,7 +269,7 @@ function ProductsContent() {
                 </button>
               ))}
               <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() => setPage(Math.min(totalPages, page + 1))}
                 disabled={page === totalPages}
                 className="px-3 py-1.5 rounded-lg text-sm text-stone-500 border border-stone-200 bg-white disabled:opacity-40 hover:border-rose-300 transition-colors"
               >
