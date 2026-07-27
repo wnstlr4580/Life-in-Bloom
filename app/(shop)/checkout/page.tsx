@@ -189,8 +189,9 @@ export default function CheckoutPage() {
       }
 
       const channelKey = process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY
-      if (!channelKey) {
-        setError("결제 설정이 아직 완료되지 않았어요. 관리자에게 문의하거나 '결제 건너뛰기'를 이용해주세요.")
+      const storeId = process.env.NEXT_PUBLIC_PORTONE_STORE_ID
+      if (!channelKey || !storeId) {
+        setError("결제 설정이 아직 완료되지 않았어요 (NEXT_PUBLIC_PORTONE_STORE_ID 미등록). 관리자에게 문의하거나 '결제 건너뛰기'를 이용해주세요.")
         return
       }
 
@@ -198,7 +199,7 @@ export default function CheckoutPage() {
       const paymentId = `order_${nanoid()}`
 
       const response = await PortOne.requestPayment({
-        storeId: process.env.NEXT_PUBLIC_PORTONE_STORE_ID ?? "store-b6ae6b94-3891-4a84-afce-0428f5b5de34",
+        storeId,
         channelKey,
         paymentId,
         orderName: items.length === 1 ? items[0].product.name : `${items[0].product.name} 외 ${items.length - 1}건`,
