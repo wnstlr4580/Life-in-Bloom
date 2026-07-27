@@ -18,7 +18,7 @@ function LoginContent() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(
     searchParams.get("error") === "NoEmailFromProvider"
-      ? "카카오 계정에서 이메일 제공에 동의하지 않아 로그인할 수 없어요. 이메일/비밀번호로 로그인하거나 카카오 로그인 시 이메일 제공에 동의해주세요."
+      ? "카카오 계정이 이메일 제공에 동의하지 않아 로그인할 수 없어요. 아래 이메일/비밀번호로 로그인해주세요."
       : ""
   )
 
@@ -74,6 +74,9 @@ function LoginContent() {
         <Button onClick={() => signIn("kakao", { callbackUrl })} className="h-11 bg-[#FEE500] hover:bg-[#F5D800] text-stone-800 font-semibold">
           카카오로 시작하기
         </Button>
+        <p className="text-[11px] text-stone-400 text-center -mt-1">
+          카카오 계정이 이메일 제공에 동의하지 않으면 로그인이 안 될 수 있어요
+        </p>
         <Button onClick={() => signIn("google", { callbackUrl })} variant="outline" className="h-11 font-semibold">
           Google로 시작하기
         </Button>
