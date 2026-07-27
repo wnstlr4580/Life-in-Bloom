@@ -60,7 +60,11 @@ const nextAuth = NextAuth({
   session: { strategy: "jwt" },
   callbacks: {
     signIn: async ({ user, account }) => {
-      if (!user.email || !supabaseAdmin) return true
+      if (!supabaseAdmin) return true
+      // 카카오가 이메일 동의를 못 받아온 경우(테스터 미등록 등) 여기서 통과시키면
+      // DB와 무관한 임시 id로 세션이 발급되어 주문 등에서 FK 위반이 난다.
+      // 소셜 로그인은 이메일이 반드시 있어야만 허용한다.
+      if (!user.email) return account?.provider === "credentials" ? true : "/login?error=NoEmailFromProvider"
       if (account?.provider !== "credentials") {
         const normalizedEmail = user.email.toLowerCase().trim()
         const { data: existing } = await supabaseAdmin

@@ -16,7 +16,11 @@ function LoginContent() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
+  const [error, setError] = useState(
+    searchParams.get("error") === "NoEmailFromProvider"
+      ? "카카오 계정에서 이메일 제공에 동의하지 않아 로그인할 수 없어요. 이메일/비밀번호로 로그인하거나 카카오 로그인 시 이메일 제공에 동의해주세요."
+      : ""
+  )
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
