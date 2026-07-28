@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase"
 import { auth } from "@/lib/auth"
 import { nanoid } from "nanoid"
-import { grantPointsOnce, POINT_POLICY } from "@/lib/points"
+import { grantPointsOnce, redeemPointsOnce, POINT_POLICY } from "@/lib/points"
 
 interface OrderItemInput {
   productId: string
@@ -22,10 +22,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "꽃 구매는 일반회원만 이용할 수 있습니다" }, { status: 403 })
   }
 
-  const { items, totalAmount, shippingFee, deliveryType, shippingAddr, giftMessage, giftWrapping, paymentId, sourcePostId, sourceReviewId } = await req.json()
+  const { items, totalAmount, shippingFee, deliveryType, shippingAddr, giftMessage, giftWrapping, paymentId, sourcePostId, sourceReviewId, pointsUsed } = await req.json()
 
   if (!items?.length || !totalAmount || !deliveryType || !shippingAddr) {
     return NextResponse.json({ error: "필수 정보가 누락되었습니다" }, { status: 400 })
+  }
+
+  // 클라이언트가 보낸 사용 포인트를 그대로 믿지 않고, 보유 잔액 안에서만 인정한다.
+  const requestedPoints = Math.max(0, Math.floor(Number(pointsUsed) || 0))
+  let pointsToRedeem = 0
+  if (requestedPoints > 0) {
+    const { data: me } = await supabaseAdmin.from("User").select("points").eq("id", session.user.id).maybeSingle()
+    pointsToRedeem = Math.min(requestedPoints, me?.points ?? 0, totalAmount)
   }
 
   const orderId = nanoid()
@@ -44,9 +52,18 @@ export async function POST(req: Request) {
       qrCode: nanoid(12),
       status: paymentId ? "PAID" : "PENDING",
       paymentId: paymentId ?? null,
+      pointsUsed: pointsToRedeem,
     })
 
   if (orderError) return NextResponse.json({ error: orderError.message }, { status: 500 })
+
+  if (pointsToRedeem > 0) {
+    const redeemed = await redeemPointsOnce({ userId: session.user.id, amount: pointsToRedeem, orderId })
+    if (!redeemed) {
+      await supabaseAdmin.from("Order").delete().eq("id", orderId)
+      return NextResponse.json({ error: "포인트 사용에 실패했어요. 잔액을 다시 확인해주세요" }, { status: 409 })
+    }
+  }
 
   // 커스텀 꽃다발은 클라이언트에서 생성한 임시 ID라 Product 테이블에 없음 — 먼저 upsert
   const customItems = (items as OrderItemInput[]).filter((i) => i.productId.startsWith("custom_") || i.productId.startsWith("diy_"))

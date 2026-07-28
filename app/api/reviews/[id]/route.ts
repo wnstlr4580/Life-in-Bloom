@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getToken } from "next-auth/jwt"
 import { supabaseAdmin } from "@/lib/supabase"
+import { revokePointsOnce } from "@/lib/points"
 
 // 요청자 확인 — 본인 글이거나 관리자면 수정/삭제 가능
 async function getActor(req: NextRequest): Promise<{ id: string; isAdmin: boolean } | null> {
@@ -65,7 +66,15 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const check = await canTouch(req, id)
   if (!check.ok) return NextResponse.json({ error: check.error }, { status: check.status })
 
+  const { data: review } = await supabaseAdmin.from("Review").select("userId").eq("id", id).maybeSingle()
+
   const { error } = await supabaseAdmin.from("Review").delete().eq("id", id)
   if (error) return NextResponse.json({ error: "삭제에 실패했어요" }, { status: 500 })
+
+  // 리뷰 작성으로 지급했던 포인트를 회수한다 (이미 다 써버렸으면 잔액은 0에서 멈춤)
+  if (review?.userId) {
+    await revokePointsOnce({ userId: review.userId, originalReason: "REVIEW", referenceType: "Review", referenceId: id })
+  }
+
   return NextResponse.json({ ok: true })
 }

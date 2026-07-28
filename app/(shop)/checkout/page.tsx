@@ -30,6 +30,12 @@ export default function CheckoutPage() {
   const [error, setError] = useState("")
   // 결제 모듈 테스트 중에는 체크 시 실제 결제 없이 바로 주문 완료 처리
   const [skipPayment, setSkipPayment] = useState(false)
+  const [myPoints, setMyPoints] = useState(0)
+  const [pointsInput, setPointsInput] = useState("")
+
+  useEffect(() => {
+    fetch("/api/me").then((r) => r.json()).then((d) => setMyPoints(d?.points ?? 0)).catch(() => {})
+  }, [])
   const bouquetFulfillment = items.find((item) => item.fulfillment)?.fulfillment
   const pickupOnly = items.some((item) => item.fulfillment?.orderMode === "diy")
   const pickupStoreName = bouquetFulfillment?.sellerName
@@ -106,6 +112,10 @@ export default function CheckoutPage() {
   const giftFee = form.giftWrapping ? 2000 : 0
   const expressFee = selectedDeliveryType === "express" ? 5000 : 0
   const grandTotal = total + shippingFee + giftFee + expressFee
+  // 사용 포인트는 보유 포인트와 결제 총액을 넘을 수 없다
+  const maxUsablePoints = Math.min(myPoints, grandTotal)
+  const pointsUsed = Math.min(Math.max(0, Number(pointsInput) || 0), maxUsablePoints)
+  const payableTotal = grandTotal - pointsUsed
 
   const validate = () => {
     if (!form.ordererName || !form.ordererPhone) {
@@ -158,6 +168,7 @@ export default function CheckoutPage() {
         giftMessage: form.giftMessage || null,
         giftWrapping: form.giftWrapping,
         paymentId: paymentId ?? null,
+        pointsUsed,
         // 후기 갤러리의 조합 그대로 만든 주문이면 글쓴이 포인트 적립용으로 전달
         sourcePostId: typeof window !== "undefined" ? sessionStorage.getItem("bouquetSourcePost") : null,
         sourceReviewId: typeof window !== "undefined" ? sessionStorage.getItem("bouquetSourceReview") : null,
@@ -179,9 +190,9 @@ export default function CheckoutPage() {
     setError("")
 
     try {
-      if (skipPayment) {
-        // 결제 테스트 건너뛰기 — 실제 결제 없이 바로 주문 완료 처리
-        const paymentId = `test_${nanoid()}`
+      if (skipPayment || payableTotal === 0) {
+        // 결제 테스트 건너뛰기, 또는 포인트로 전액 결제되어 실제 결제가 필요 없는 경우
+        const paymentId = payableTotal === 0 && !skipPayment ? `points_${nanoid()}` : `test_${nanoid()}`
         const { orderId } = await createOrder(paymentId)
         clear()
         router.push(`/checkout/complete?orderId=${orderId}`)
@@ -203,7 +214,7 @@ export default function CheckoutPage() {
         channelKey,
         paymentId,
         orderName: items.length === 1 ? items[0].product.name : `${items[0].product.name} 외 ${items.length - 1}건`,
-        totalAmount: grandTotal,
+        totalAmount: payableTotal,
         currency: "CURRENCY_KRW",
         payMethod: "CARD",
         customer: {
@@ -225,7 +236,7 @@ export default function CheckoutPage() {
       const verifyRes = await fetch("/api/payment/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paymentId, expectedAmount: grandTotal }),
+        body: JSON.stringify({ paymentId, expectedAmount: payableTotal }),
       })
 
       if (!verifyRes.ok) {
@@ -414,9 +425,48 @@ export default function CheckoutPage() {
               {form.giftWrapping && <div className="flex justify-between"><span>선물 포장</span><span>2,000원</span></div>}
             </div>
 
-            <div className="border-t border-stone-100 pt-4 flex justify-between font-bold text-stone-800">
-              <span>총 결제금액</span>
-              <span className="text-rose-500 text-lg">{grandTotal.toLocaleString()}원</span>
+            {/* 포인트 사용 */}
+            <div className="border-t border-stone-100 pt-4 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-stone-500">포인트 사용 (보유 {myPoints.toLocaleString()}P)</Label>
+                <button
+                  type="button"
+                  onClick={() => setPointsInput(String(maxUsablePoints))}
+                  className="text-xs font-medium text-rose-500 hover:text-rose-600"
+                >
+                  전액 사용
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  min={0}
+                  max={maxUsablePoints}
+                  value={pointsInput}
+                  onChange={(e) => setPointsInput(e.target.value)}
+                  placeholder="0"
+                  className="rounded-xl border-stone-200"
+                />
+                {pointsUsed > 0 && (
+                  <Button type="button" variant="outline" onClick={() => setPointsInput("")} className="shrink-0 rounded-xl border-stone-200 text-stone-500">
+                    취소
+                  </Button>
+                )}
+              </div>
+              {maxUsablePoints === 0 && <p className="text-[11px] text-stone-400">사용할 수 있는 포인트가 없어요</p>}
+            </div>
+
+            <div className="border-t border-stone-100 pt-4 space-y-1">
+              {pointsUsed > 0 && (
+                <div className="flex justify-between text-sm text-stone-500">
+                  <span>포인트 사용</span>
+                  <span>-{pointsUsed.toLocaleString()}원</span>
+                </div>
+              )}
+              <div className="flex justify-between font-bold text-stone-800">
+                <span>총 결제금액</span>
+                <span className="text-rose-500 text-lg">{payableTotal.toLocaleString()}원</span>
+              </div>
             </div>
 
             {error && <p className="text-sm text-red-500 text-center bg-red-50 rounded-lg p-2">{error}</p>}
@@ -437,7 +487,13 @@ export default function CheckoutPage() {
               className="w-full h-12 bg-rose-400 hover:bg-rose-500 text-white font-semibold text-base disabled:opacity-60 gap-2"
             >
               <CreditCard size={18} />
-              {loading ? "처리 중..." : skipPayment ? "주문 완료 (테스트)" : `${grandTotal.toLocaleString()}원 결제하기`}
+              {loading
+                ? "처리 중..."
+                : skipPayment
+                ? "주문 완료 (테스트)"
+                : payableTotal === 0
+                ? "포인트로 전액 결제하기"
+                : `${payableTotal.toLocaleString()}원 결제하기`}
             </Button>
             <p className="text-xs text-center text-stone-400">카드 · 카카오페이 · 토스 등 결제 가능</p>
           </div>
