@@ -38,6 +38,14 @@ interface OrderItem {
 interface Order {
   id: string; status: string; totalAmount: number; createdAt: string; items: OrderItem[]
 }
+interface PointTransaction {
+  id: string; amount: number; reason: string; referenceType: string; createdAt: string
+}
+
+const POINT_REASON_LABEL: Record<string, string> = {
+  PURCHASE: "구매 적립", REVIEW: "후기 작성 적립", REMAKE_SALE: "내 조합 판매 적립", REDEEM: "포인트 사용",
+  PURCHASE_REVOKED: "구매 취소로 회수", REVIEW_REVOKED: "후기 삭제로 회수", REMAKE_SALE_REVOKED: "판매 취소로 회수", REDEEM_REVOKED: "사용 포인트 환급",
+}
 
 export default function MyPage() {
   const router = useRouter()
@@ -53,6 +61,7 @@ export default function MyPage() {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [points, setPoints] = useState<number | null>(null)
+  const [pointHistory, setPointHistory] = useState<PointTransaction[]>([])
   const [specialDates, setSpecialDates] = useState<SpecialDate[]>([])
   const [dateLabel, setDateLabel] = useState("")
   const [dateMonthDay, setDateMonthDay] = useState("")
@@ -140,7 +149,7 @@ export default function MyPage() {
     if (!session?.user) return
     setLoadingOrders(true)
     fetch("/api/orders").then((r) => r.json()).then((d) => setOrders(d.orders ?? [])).finally(() => setLoadingOrders(false))
-    fetch("/api/me").then((r) => r.json()).then((d) => setPoints(d?.points ?? 0)).catch(() => {})
+    fetch("/api/me").then((r) => r.json()).then((d) => { setPoints(d?.points ?? 0); setPointHistory(d?.pointTransactions ?? []) }).catch(() => {})
     loadSajuProfile()
     loadSpecialDates()
   }, [session, loadSajuProfile, loadSpecialDates])
@@ -391,6 +400,33 @@ export default function MyPage() {
               </div>
               {dateMessage && <p className="text-xs text-red-500">{dateMessage}</p>}
             </div>
+          </div>
+
+          {/* 포인트 내역 */}
+          <div className="bg-white rounded-2xl border border-stone-100 overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-stone-50">
+              <h2 className="font-semibold text-stone-800 flex items-center gap-2">🌟 포인트 내역</h2>
+              <span className="text-sm font-bold text-rose-500">{(points ?? 0).toLocaleString()}P 보유</span>
+            </div>
+            {pointHistory.length === 0 ? (
+              <div className="py-12 text-center text-stone-400">
+                <p className="text-sm">아직 포인트 내역이 없어요</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-stone-50">
+                {pointHistory.map((tx) => (
+                  <div key={tx.id} className="flex items-center justify-between px-6 py-3">
+                    <div>
+                      <p className="text-sm text-stone-700">{POINT_REASON_LABEL[tx.reason] ?? tx.reason}</p>
+                      <p className="text-xs text-stone-400">{new Date(tx.createdAt).toLocaleDateString("ko-KR")}</p>
+                    </div>
+                    <span className={`text-sm font-bold ${tx.amount >= 0 ? "text-rose-500" : "text-stone-500"}`}>
+                      {tx.amount >= 0 ? "+" : ""}{tx.amount.toLocaleString()}P
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* 주문 내역 */}

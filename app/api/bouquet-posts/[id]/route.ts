@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getToken } from "next-auth/jwt"
 import { supabaseAdmin } from "@/lib/supabase"
+import { revokePointsOnce } from "@/lib/points"
 
 // 후기 단건 조회 — /custom?post=ID 에서 조합을 불러올 때 사용
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -88,7 +89,15 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const check = await canTouch(req, id)
   if (!check.ok) return NextResponse.json({ error: check.error }, { status: check.status })
 
+  const { data: post } = await supabaseAdmin.from("BouquetPost").select("userId").eq("id", id).maybeSingle()
+
   const { error } = await supabaseAdmin.from("BouquetPost").delete().eq("id", id)
   if (error) return NextResponse.json({ error: "삭제에 실패했어요" }, { status: 500 })
+
+  // 구매자 후기 작성으로 지급했던 포인트를 회수한다 (AI 합성 공유 글은 애초에 지급이 없어 조용히 무시됨)
+  if (post?.userId) {
+    await revokePointsOnce({ userId: post.userId, originalReason: "REVIEW", referenceType: "BouquetPost", referenceId: id })
+  }
+
   return NextResponse.json({ ok: true })
 }

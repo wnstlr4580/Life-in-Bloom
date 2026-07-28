@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { requireSeller } from "@/lib/authorization"
 import { supabaseAdmin } from "@/lib/supabase"
+import { revokeAllPointsForOrder } from "@/lib/points"
 
 const STATUS = new Set(["PAID", "PREPARING", "SHIPPED", "DELIVERED", "CANCELLED"])
 const TRANSITIONS: Record<string, string[]> = {
@@ -71,5 +72,12 @@ export async function PATCH(req: Request) {
     : statuses.some((value) => value === "SHIPPED") ? "SHIPPED"
     : statuses.some((value) => value === "PREPARING") ? "PREPARING" : "PAID"
   await supabaseAdmin.from("Order").update({ status: orderStatus }).eq("id", current.orderId)
+
+  // 주문 전체가 취소로 확정되면 이 주문으로 오갔던 포인트를 전부 되돌린다 (회수/사용포인트 환급)
+  if (orderStatus === "CANCELLED") {
+    const { data: order } = await supabaseAdmin.from("Order").select("userId").eq("id", current.orderId).maybeSingle()
+    if (order?.userId) await revokeAllPointsForOrder(current.orderId, order.userId)
+  }
+
   return NextResponse.json({ ok: true })
 }
