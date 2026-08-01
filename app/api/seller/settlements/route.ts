@@ -10,8 +10,8 @@ export async function GET() {
   }
   const { data: seller } = await supabaseAdmin.from("Seller").select("settlementBank, settlementAccount, settlementHolder").eq("id", actor.seller.id).single()
   const { data, error } = await supabaseAdmin.from("OrderItem").select(`
-    id, orderId, quantity, price, itemType, fulfillmentStatus, commissionRate, commissionFee,
-    settlementAmount, settlementStatus, settlementDueAt, settledAt,
+    id, orderId, quantity, price, itemType, fulfillmentStatus, commissionRate, commissionFee, commissionVat,
+    shippingFeeAmount, discountShare, pgFee, pgFeeVat, adjustmentAmount, settlementAmount, settlementStatus, settlementDueAt, settledAt,
     product:Product(name), order:Order(createdAt)
   `).eq("sellerId", actor.seller.id).neq("fulfillmentStatus", "CANCELLED").order("id", { ascending: false })
   if (error) return NextResponse.json({ error: "정산 내역을 불러오지 못했어요" }, { status: 500 })
@@ -22,6 +22,9 @@ export async function GET() {
     summary: {
       gross: items.reduce((total, item) => total + item.price * item.quantity, 0),
       commission: items.reduce((total, item) => total + (item.commissionFee ?? 0), 0),
+      commissionVat: items.reduce((total, item) => total + (item.commissionVat ?? 0), 0),
+      shipping: items.reduce((total, item) => total + (item.shippingFeeAmount ?? 0), 0),
+      adjustments: items.reduce((total, item) => total + (item.adjustmentAmount ?? 0), 0),
       waiting: sum("WAITING"), ready: sum("READY"), paid: sum("PAID"),
     },
     account: {

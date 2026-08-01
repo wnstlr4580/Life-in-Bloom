@@ -2,6 +2,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { BadgeCheck, ExternalLink, Store } from "lucide-react"
 import { WishlistButton } from "@/components/shop/WishlistButton"
+import { isNonghyupName, NonghyupMark } from "@/components/brand/NonghyupMark"
 
 interface Props {
   id: string
@@ -30,11 +31,12 @@ const CATEGORY_LABEL: Record<string, string> = {
   subscription: "구독",
 }
 
-export function ProductCard({ id, name, price, images, flowerMeaning, category, stock, ratingAvg, reviewCount, seller, purchaseType, externalUrl, partnerName, partnerBadge }: Props) {
+export function ProductCard({ id, name, price, images, flowerMeaning, category, stock, ratingAvg, reviewCount, seller, purchaseType, externalUrl, partnerName }: Props) {
   const soldOut = stock === 0
   const sellerInfo = Array.isArray(seller) ? seller[0] : seller
   const external = purchaseType === "EXTERNAL" && Boolean(externalUrl)
   const marketName = external ? partnerName : sellerInfo?.marketName
+  const nonghyupSeller = isNonghyupName(marketName, partnerName)
   return (
     <div className="group relative">
       {!external && <WishlistButton productId={id} />}
@@ -78,10 +80,10 @@ export function ProductCard({ id, name, price, images, flowerMeaning, category, 
           {marketName && (
             <div className={`mt-2 flex items-center gap-1.5 rounded-full border px-2 py-1.5 ${external ? "border-amber-200 bg-amber-50/80" : "border-emerald-100 bg-emerald-50/70"}`}>
               <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${external ? "bg-gradient-to-br from-amber-300 to-yellow-600 text-white" : "bg-white text-emerald-700"}`}>
-                {external ? <BadgeCheck size={12} /> : <Store size={11} />}
+                {nonghyupSeller ? <NonghyupMark compact/> : external ? <BadgeCheck size={12} /> : <Store size={11} />}
               </span>
               <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-stone-700">{marketName}</span>
-              {external && <span className="shrink-0 text-[9px] font-bold text-amber-700">공식 제휴</span>}
+              {nonghyupSeller ? <span className="shrink-0 text-[9px] font-bold text-[#007a4d]">농협</span> : external && <span className="shrink-0 text-[9px] font-bold text-amber-700">공식 제휴</span>}
               {external && <ExternalLink size={11} className="shrink-0 text-amber-600" />}
             </div>
           )}

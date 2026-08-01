@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase"
 import { auth } from "@/lib/auth"
 import { nanoid } from "nanoid"
 import { grantPointsOnce, redeemPointsOnce, POINT_POLICY } from "@/lib/points"
+import { calculateSettlement } from "@/lib/settlement"
 
 interface OrderItemInput {
   productId: string
@@ -98,24 +99,35 @@ export async function POST(req: Request) {
   const productIds = (items as OrderItemInput[]).map((item) => item.productId)
   const { data: orderProducts } = await supabaseAdmin
     .from("Product")
-    .select("id, sellerId, category")
+    .select("id, sellerId, category, seller:Seller(commissionRate)")
     .in("id", productIds)
   const productMap = new Map((orderProducts ?? []).map((product) => [product.id, product]))
-  const COMMISSION_RATE = 10
+  const orderItems = items as OrderItemInput[]
+  const totalGross = orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const sellerShippingFee = Math.max(0, Math.round(Number(shippingFee) || 0))
+  let allocatedShippingFee = 0
 
   const { error: itemsError } = await supabaseAdmin
     .from("OrderItem")
     .insert(
-      (items as OrderItemInput[]).map((item) => {
+      orderItems.map((item, index) => {
         const product = productMap.get(item.productId)
         const gross = item.price * item.quantity
-        const commissionFee = Math.round(gross * COMMISSION_RATE / 100)
+        const seller = Array.isArray(product?.seller) ? product.seller[0] : product?.seller
+        const shippingFeeAmount = index === orderItems.length - 1
+          ? sellerShippingFee - allocatedShippingFee
+          : Math.round(sellerShippingFee * gross / Math.max(1, totalGross))
+        allocatedShippingFee += shippingFeeAmount
+        const settlement = calculateSettlement({ grossAmount: gross, shippingFeeAmount, commissionRate: seller?.commissionRate ?? 10, pgFee: 0 })
         return {
           id: nanoid(), orderId, productId: item.productId, sellerId: product?.sellerId ?? null,
           quantity: item.quantity, price: item.price,
           itemType: product?.category === "custom" ? "CUSTOM_BOUQUET" : ["single-flower", "diy"].includes(product?.category ?? "") ? "DIY_FLOWER" : "FINISHED",
           fulfillmentStatus: paymentId ? "PAID" : "PENDING",
-          commissionRate: COMMISSION_RATE, commissionFee, settlementAmount: gross - commissionFee,
+          commissionRate: settlement.commissionRate, commissionFee: settlement.commissionFee,
+          commissionVat: settlement.commissionVat, shippingFeeAmount: settlement.shippingFeeAmount,
+          discountShare: settlement.discountShare, pgFee: settlement.pgFee, pgFeeVat: settlement.pgFeeVat,
+          adjustmentAmount: settlement.adjustmentAmount, settlementAmount: settlement.settlementAmount,
           settlementStatus: "WAITING",
           previewImageUrl: item.previewImageUrl?.startsWith("data:") ? null : item.previewImageUrl ?? null,
           composition: item.composition ?? null,
