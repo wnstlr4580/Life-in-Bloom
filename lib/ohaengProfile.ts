@@ -1,0 +1,348 @@
+// 꽃 오행 프로필 — 상품 하나가 오행 5개에 대해 갖는 "독립 절대점수"(0~100).
+//
+// 각 축을 오행별 기여로 보고 가중합만 하므로 한 꽃이 여러 오행에 동시에 높을 수 있다
+// (예: 해바라기가 형태로 화(火), 색으로 토(土)에 동시에 높음).
+//
+// 근거 축과 가중치(사용자 확정): 색상 45% · 형태 35% · 계절 20%.
+// ※ 꽃말(flowerMeaning)은 오행 점수에서 제외한다 — 추천 이유/사용 목적/감성 스토리 생성 등
+//    다른 용도로만 쓴다.
+import type { Ohaeng } from "./saju"
+
+const OHAENG_ORDER: Ohaeng[] = ["목", "화", "토", "금", "수"]
+
+// 색상 → 오행 비율. 색상 출처는 (1) 꽃 이름에 색이 붙어 있으면 그 색(세부색 연/진 포함),
+// (2) 없으면 상품 대표색(colorTags). 보라·핑크는 세부색(연/진)이 기본색보다 우선한다.
+type ColorWeight = Partial<Record<Ohaeng, number>>
+
+// 단색 — 이름/태그 키워드 → 오행. 여러 색이 섞이면 합산(복합 꽃다발).
+const SIMPLE_COLORS: [string[], ColorWeight][] = [
+  [["빨강", "빨간", "레드"], { 화: 1 }],
+  [["노랑", "노란", "옐로"], { 토: 1 }],
+  [["초록", "연두", "그린"], { 목: 1 }],
+  [["파랑", "파란", "블루"], { 수: 1 }],
+  [["흰", "하얀", "하양", "화이트"], { 금: 1 }],
+  [["주황", "오렌지"], { 화: 0.5, 토: 0.5 }],
+]
+// 보라 계열 — 세부(연/진) 우선, 계열당 한 번만.
+const PURPLE_FAMILY: [string[], ColorWeight][] = [
+  [["연보라"], { 수: 0.7, 화: 0.3 }],
+  [["진보라"], { 화: 0.6, 수: 0.4 }],
+  [["보라", "퍼플"], { 수: 0.6, 화: 0.4 }],
+]
+// 핑크 계열
+const PINK_FAMILY: [string[], ColorWeight][] = [
+  [["연핑크", "연분홍"], { 금: 0.5, 화: 0.5 }],
+  [["진핑크", "진분홍"], { 화: 0.8, 금: 0.2 }],
+  [["핑크", "분홍"], { 화: 0.7, 금: 0.3 }],
+]
+const ALL_COLOR_WORDS = [...SIMPLE_COLORS, ...PURPLE_FAMILY, ...PINK_FAMILY].flatMap(([words]) => words)
+
+// 꽃별 세부색 지정 — 상품 색태그는 보통 보라/핑크로만 등록되므로, 연/진 구분은 여기서 꽃별로 지정한다.
+// 지정한 꽃이라도 이름/대표색이 실제로 보라(연보라·진보라)나 핑크(연핑크·진핑크) 계열일 때만 적용된다.
+// (이름에 연/진이 직접 붙어 있으면 그게 우선.)
+export const FLOWER_SHADE: Record<string, "연보라" | "진보라" | "연핑크" | "진핑크"> = {
+  라벤더: "연보라",
+  라일락: "연보라",
+  스토크: "연보라",
+  무스카리: "연보라",
+  작약: "진핑크",
+  벚꽃: "연핑크",
+}
+
+function addWeights(acc: Record<Ohaeng, number>, w: ColorWeight) {
+  for (const o of OHAENG_ORDER) acc[o] += w[o] ?? 0
+}
+
+/** 색상 축 — 이름에 색이 있으면 그 색, 없으면 대표색(colorTags) 기준 오행 비율(각 최대 1).
+ *  보라/핑크는 꽃별 세부색 지정(FLOWER_SHADE)이 있으면 연/진 비율을 적용한다. */
+function colorAxis(name: string, colorTags: string[]): Record<Ohaeng, number> {
+  const nameLower = (name ?? "").toLowerCase()
+  const nameHasColor = ALL_COLOR_WORDS.some((w) => nameLower.includes(w.toLowerCase()))
+  let text = nameHasColor ? nameLower : colorTags.join(" ").toLowerCase()
+
+  // 꽃별 세부색 지정 적용 — 이름에 연/진이 이미 있으면 이름을 우선한다.
+  const hasFine = ["연보라", "진보라", "연핑크", "진핑크"].some((k) => text.includes(k))
+  if (!hasFine) {
+    let shade: string | undefined
+    for (const [flower, sh] of Object.entries(FLOWER_SHADE)) {
+      if (nameLower.includes(flower.toLowerCase())) { shade = sh; break }
+    }
+    if ((shade === "연보라" || shade === "진보라") && /보라|퍼플/.test(text)) text = `${shade} ${text}`
+    else if ((shade === "연핑크" || shade === "진핑크") && /핑크|분홍/.test(text)) text = `${shade} ${text}`
+  }
+
+  const acc = { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 } as Record<Ohaeng, number>
+  for (const [words, w] of SIMPLE_COLORS) {
+    if (words.some((k) => text.includes(k))) addWeights(acc, w)
+  }
+  for (const family of [PURPLE_FAMILY, PINK_FAMILY]) {
+    for (const [words, w] of family) {
+      if (words.some((k) => text.includes(k))) { addWeights(acc, w); break }
+    }
+  }
+  for (const o of OHAENG_ORDER) acc[o] = Math.min(1, acc[o])
+  return acc
+}
+
+// 형태/생육특성 — 색상처럼 "특성별로 해당 오행에 점수를 누적"한다. 한 꽃이 여러 형태 특성을
+// 가지면 여러 오행에 점수가 쌓인다(예: 해바라기 = 큰꽃송이·태양형태(화) + 둥근형태(토)).
+//
+// (1) 특성 → 오행·점수 (사용자 정의 기준)
+export type FormTrait =
+  | "수직성장" | "잎풍성" | "가지확장" | "덩굴성" | "새순초록"
+  | "큰꽃송이" | "선명한꽃잎" | "태양불꽃형태" | "위로활짝"
+  | "화분분재" | "다육" | "둥근형태" | "오래키우는식물"
+  | "흰꽃" | "좌우대칭" | "길고곧은형태" | "작은꽃정돈"
+  | "둥글고풍성한꽃" | "아래로늘어짐" | "부드러운곡선" | "습지물연관"
+
+export const FORM_TRAITS: Record<FormTrait, { ohaeng: Ohaeng; points: number }> = {
+  수직성장: { ohaeng: "목", points: 40 }, 잎풍성: { ohaeng: "목", points: 30 },
+  가지확장: { ohaeng: "목", points: 20 }, 덩굴성: { ohaeng: "목", points: 20 }, 새순초록: { ohaeng: "목", points: 10 },
+  큰꽃송이: { ohaeng: "화", points: 40 }, 선명한꽃잎: { ohaeng: "화", points: 30 },
+  태양불꽃형태: { ohaeng: "화", points: 20 }, 위로활짝: { ohaeng: "화", points: 10 },
+  화분분재: { ohaeng: "토", points: 40 }, 다육: { ohaeng: "토", points: 30 },
+  둥근형태: { ohaeng: "토", points: 20 }, 오래키우는식물: { ohaeng: "토", points: 10 },
+  흰꽃: { ohaeng: "금", points: 30 }, 좌우대칭: { ohaeng: "금", points: 25 },
+  길고곧은형태: { ohaeng: "금", points: 25 }, 작은꽃정돈: { ohaeng: "금", points: 20 },
+  둥글고풍성한꽃: { ohaeng: "수", points: 30 }, 아래로늘어짐: { ohaeng: "수", points: 25 },
+  부드러운곡선: { ohaeng: "수", points: 25 }, 습지물연관: { ohaeng: "수", points: 20 },
+}
+
+// (2) 꽃(이름 키워드) → 그 꽃이 가진 형태 특성. 주요 상업꽃 큐레이션.
+export const FLOWER_FORM: Record<string, FormTrait[]> = {
+  // 잎·줄기 위주(목 계열 형태)
+  대나무: ["수직성장", "잎풍성", "새순초록"],
+  유칼립투스: ["잎풍성", "가지확장", "새순초록"],
+  라일락: ["잎풍성", "작은꽃정돈"],
+  미모사: ["잎풍성", "가지확장", "작은꽃정돈"],
+  // 수직 스파이크
+  히아신스: ["수직성장", "작은꽃정돈"],
+  무스카리: ["수직성장", "작은꽃정돈"],
+  델피니움: ["수직성장", "작은꽃정돈"],
+  글라디올러스: ["수직성장", "위로활짝"],
+  금어초: ["수직성장", "위로활짝"],
+  스토크: ["수직성장", "작은꽃정돈"],
+  // 크고 화려한 꽃(화 계열)
+  장미: ["큰꽃송이", "선명한꽃잎", "좌우대칭"],
+  거베라: ["큰꽃송이", "태양불꽃형태", "좌우대칭"],
+  해바라기: ["큰꽃송이", "태양불꽃형태", "위로활짝", "둥근형태"],
+  달리아: ["큰꽃송이", "둥글고풍성한꽃", "좌우대칭"],
+  작약: ["큰꽃송이", "둥글고풍성한꽃"],
+  아네모네: ["선명한꽃잎", "태양불꽃형태"],
+  맨드라미: ["큰꽃송이", "태양불꽃형태"],
+  포인세티아: ["선명한꽃잎", "큰꽃송이"],
+  튤립: ["위로활짝", "길고곧은형태"],
+  // 둥근·풍성(토·수 계열)
+  국화: ["둥글고풍성한꽃", "둥근형태", "좌우대칭"],
+  소국: ["둥근형태", "새순초록"],
+  메리골드: ["둥근형태", "둥글고풍성한꽃"],
+  수국: ["둥글고풍성한꽃", "둥근형태"],
+  동백: ["큰꽃송이", "좌우대칭", "둥근형태"],
+  스노우볼: ["둥글고풍성한꽃", "둥근형태", "흰꽃"],
+  // 정갈·흰꽃(금 계열)
+  백합: ["큰꽃송이", "길고곧은형태", "좌우대칭"],
+  카네이션: ["둥글고풍성한꽃", "좌우대칭"],
+  안개꽃: ["작은꽃정돈", "흰꽃"],
+  목련: ["큰꽃송이", "흰꽃", "위로활짝"],
+  마가렛: ["태양불꽃형태", "좌우대칭", "흰꽃"],
+  마거리트: ["태양불꽃형태", "좌우대칭", "흰꽃"],
+  데이지: ["태양불꽃형태", "좌우대칭", "흰꽃"],
+  카라: ["길고곧은형태", "부드러운곡선", "흰꽃"],
+  캐모마일: ["태양불꽃형태", "좌우대칭"],
+  프리지아: ["가지확장", "위로활짝"],
+  // 곡선·늘어짐(수 계열)
+  라벤더: ["길고곧은형태", "부드러운곡선"],
+  아이리스: ["길고곧은형태", "아래로늘어짐", "부드러운곡선"],
+  제비꽃: ["작은꽃정돈", "부드러운곡선", "아래로늘어짐"],
+  팬지: ["선명한꽃잎", "좌우대칭"],
+  리시안셔스: ["둥글고풍성한꽃", "부드러운곡선"],
+  스타티스: ["작은꽃정돈", "가지확장"],
+  은방울꽃: ["아래로늘어짐", "부드러운곡선", "작은꽃정돈"],
+  스위트피: ["부드러운곡선", "덩굴성"],
+  수선화: ["좌우대칭", "길고곧은형태"],
+  앵초: ["작은꽃정돈", "둥근형태"],
+  // 화분·다육(토 계열)
+  다육: ["다육", "오래키우는식물", "둥근형태"],
+  선인장: ["다육", "오래키우는식물", "수직성장"],
+  화분: ["화분분재", "오래키우는식물"],
+  분재: ["화분분재", "오래키우는식물", "가지확장"],
+  난초: ["부드러운곡선", "아래로늘어짐", "오래키우는식물"],
+  수련: ["둥근형태", "습지물연관", "부드러운곡선"],
+}
+
+// (3) 오행별 특성 점수 총합 — 정규화 분모(자동 계산)
+export const FORM_OHAENG_MAX: Record<Ohaeng, number> = Object.values(FORM_TRAITS).reduce(
+  (acc, { ohaeng, points }) => { acc[ohaeng] += points; return acc },
+  { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 } as Record<Ohaeng, number>,
+)
+
+/** 형태 축 — 상품명(+카테고리·설명)에서 꽃을 찾아 그 형태 특성 점수를 오행별 합산 후 0~1 정규화. */
+function formAxis(text: string): Record<Ohaeng, number> {
+  const lower = text.toLowerCase()
+  const traits = new Set<FormTrait>()
+  for (const [flower, list] of Object.entries(FLOWER_FORM)) {
+    if (lower.includes(flower.toLowerCase())) list.forEach((t) => traits.add(t))
+  }
+  const raw = { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 } as Record<Ohaeng, number>
+  for (const t of traits) {
+    const { ohaeng, points } = FORM_TRAITS[t]
+    raw[ohaeng] += points
+  }
+  return Object.fromEntries(
+    OHAENG_ORDER.map((o) => [o, FORM_OHAENG_MAX[o] > 0 ? Math.min(1, raw[o] / FORM_OHAENG_MAX[o]) : 0]),
+  ) as Record<Ohaeng, number>
+}
+
+// ── 계절 축 — 꽃별 개화 적합도 등급 ──────────────────────────────
+// "있다/없다"가 아니라 개화 적합도: 주개화기 100 · 보조 70 · 비수기 20 · 불가 0.
+// 각 계절은 오행 하나에 대응(봄=목·여름=화·가을=금·겨울=수). 토는 계절이 없어
+// 사계절 내내 피는 꽃에만 보너스로 준다. 잎식물(꽃 없음)은 상시성이라 4계절 보조(70) 균등.
+type Season = "spring" | "summer" | "autumn" | "winter"
+const SEASON_OHAENG: Record<Season, Ohaeng> = { spring: "목", summer: "화", autumn: "금", winter: "수" }
+const SEASON_ORDER: Season[] = ["spring", "summer", "autumn", "winter"]
+const BLOOM = { 주: 100, 보조: 70, 비수기: 10, 불가: 0 } as const
+const TOJI_ALLSEASON_BONUS = 10
+
+interface FlowerSeason {
+  main?: Season[]     // 주개화기 (100)
+  sub?: Season[]      // 보조개화기 (70)
+  never?: Season[]    // 불가 (0) — 지정 안 한 계절은 비수기(20)
+  foliage?: boolean   // 잎식물: 4계절 보조(70), 토 보너스 없음
+  allSeason?: boolean // 사계절 개화: 4계절 보조(70) + 토 보너스
+}
+
+// 꽃(이름 키워드)별 개화기 큐레이션 (한국 절화 기준).
+export const FLOWER_SEASON: Record<string, FlowerSeason> = {
+  // 봄 위주
+  튤립: { main: ["spring"] },
+  수선화: { main: ["spring"], sub: ["winter"] },
+  히아신스: { main: ["spring"], sub: ["winter"] },
+  은방울꽃: { main: ["spring"] },
+  스토크: { main: ["spring"], sub: ["winter"] },
+  아네모네: { main: ["spring"], sub: ["winter"] },
+  프리지아: { main: ["spring"], sub: ["winter"] },
+  유채꽃: { main: ["spring"] },
+  미모사: { main: ["spring"], sub: ["winter"] },
+  목련: { main: ["spring"] },
+  마가렛: { main: ["spring"], sub: ["summer"] },
+  마거리트: { main: ["spring"], sub: ["summer"] },
+  데이지: { main: ["spring"], sub: ["summer"] },
+  라일락: { main: ["spring"] },
+  앵초: { main: ["spring"] },
+  스위트피: { main: ["spring"], sub: ["winter"] },
+  제비꽃: { main: ["spring"] },
+  팬지: { main: ["spring"], sub: ["winter"] },
+  무스카리: { main: ["spring"] },
+  스노우볼: { main: ["spring"] },
+  금어초: { main: ["spring"], sub: ["autumn"] },
+  캐모마일: { main: ["spring"], sub: ["summer"] },
+  작약: { main: ["spring"], sub: ["summer"] },
+  카라: { main: ["spring"], sub: ["summer"] },
+  아이리스: { main: ["spring"], sub: ["summer"] },
+  델피니움: { main: ["summer"], sub: ["spring"] },
+  // 여름 위주
+  해바라기: { main: ["summer"] },
+  수국: { main: ["summer"], sub: ["spring"] },
+  라벤더: { main: ["summer"] },
+  백합: { main: ["summer"], sub: ["spring"] },
+  달리아: { main: ["summer"], sub: ["autumn"] },
+  글라디올러스: { main: ["summer"] },
+  맨드라미: { main: ["summer"], sub: ["autumn"] },
+  메리골드: { main: ["summer"], sub: ["autumn"] },
+  안개꽃: { main: ["summer"], sub: ["spring", "autumn"] },
+  리시안셔스: { main: ["summer"], sub: ["autumn"] },
+  스타티스: { main: ["summer"], sub: ["autumn"] },
+  수련: { main: ["summer"] },
+  // 가을 위주
+  국화: { main: ["autumn"] },
+  소국: { main: ["autumn"] },
+  // 겨울 위주
+  포인세티아: { main: ["winter"] },
+  동백: { main: ["winter"], sub: ["spring"] },
+  난초: { main: ["winter"], sub: ["spring"] },
+  // 봄+가을 두 성수기
+  장미: { main: ["spring", "autumn"], sub: ["summer", "winter"] },
+  // 사계절 개화(연중 절화) → 토 보너스
+  거베라: { allSeason: true },
+  카네이션: { allSeason: true },
+  // 잎식물 / 상록 → 4계절 보조
+  유칼립투스: { foliage: true },
+  대나무: { foliage: true },
+  다육: { foliage: true },
+  선인장: { foliage: true },
+  화분: { foliage: true },
+  분재: { foliage: true },
+}
+
+function seasonGrades(spec: FlowerSeason): Record<Season, number> {
+  if (spec.foliage || spec.allSeason) {
+    return Object.fromEntries(SEASON_ORDER.map((s) => [s, BLOOM.보조])) as Record<Season, number>
+  }
+  const main = new Set(spec.main ?? [])
+  const sub = new Set(spec.sub ?? [])
+  const never = new Set(spec.never ?? [])
+  return Object.fromEntries(
+    SEASON_ORDER.map((s) => {
+      let g: number = BLOOM.비수기
+      if (never.has(s)) g = BLOOM.불가
+      if (sub.has(s)) g = BLOOM.보조
+      if (main.has(s)) g = BLOOM.주
+      return [s, g]
+    }),
+  ) as Record<Season, number>
+}
+
+/** 계절 축 — 꽃 개화기(FLOWER_SEASON)로 오행 점수(0~1). 미큐레이션이면 상품 seasonTags 폴백. */
+function seasonAxis(name: string, seasonTags: string[]): Record<Ohaeng, number> {
+  const lower = (name ?? "").toLowerCase()
+  let spec: FlowerSeason | undefined
+  for (const [flower, s] of Object.entries(FLOWER_SEASON)) {
+    if (lower.includes(flower.toLowerCase())) { spec = s; break }
+  }
+
+  let tojiBonus = 0
+  let grades: Record<Season, number>
+  if (spec) {
+    grades = seasonGrades(spec)
+    if (spec.allSeason) tojiBonus = TOJI_ALLSEASON_BONUS
+  } else {
+    // 폴백: 상품 seasonTags → 태그 계절=주개화기(100), all/사계절=사계절 취급
+    const tags = (seasonTags ?? []).map((t) => t.toLowerCase())
+    if (tags.includes("all") || tags.includes("사계절")) {
+      grades = Object.fromEntries(SEASON_ORDER.map((s) => [s, BLOOM.보조])) as Record<Season, number>
+      tojiBonus = TOJI_ALLSEASON_BONUS
+    } else {
+      grades = Object.fromEntries(SEASON_ORDER.map((s) => [s, tags.includes(s) ? BLOOM.주 : 0])) as Record<Season, number>
+    }
+  }
+
+  const result = { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 } as Record<Ohaeng, number>
+  for (const s of SEASON_ORDER) result[SEASON_OHAENG[s]] = grades[s] / 100
+  result.토 = tojiBonus / 100
+  return result
+}
+
+export const PROFILE_WEIGHT = { color: 0.45, form: 0.35, season: 0.20 }
+
+export interface OhaengProfileInput {
+  name?: string | null
+  category?: string | null
+  colorTags?: string[]
+  seasonTags?: string[]
+  description?: string | null
+}
+
+/** 오행별 0~100 절대점수 프로필. 합이 100이 아니며, 한 꽃이 여러 오행에 높을 수 있다. */
+export function flowerOhaengProfile(input: OhaengProfileInput): Record<Ohaeng, number> {
+  const color = colorAxis(input.name ?? "", input.colorTags ?? [])
+  const form = formAxis([input.name, input.category, input.description].filter(Boolean).join(" "))
+  const season = seasonAxis(input.name ?? "", input.seasonTags ?? [])
+
+  const result = {} as Record<Ohaeng, number>
+  for (const o of OHAENG_ORDER) {
+    result[o] = Math.round(
+      100 * (color[o] * PROFILE_WEIGHT.color + form[o] * PROFILE_WEIGHT.form + season[o] * PROFILE_WEIGHT.season),
+    )
+  }
+  return result
+}

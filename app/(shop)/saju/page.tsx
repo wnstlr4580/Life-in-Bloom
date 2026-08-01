@@ -36,6 +36,8 @@ interface AnalyzeResult {
   lackingProducts: LackingEntry[]
   fortune: FortuneData
   recommendedFlowers: Product[]
+  wealthFlowers: Product[]
+  loveFlowers: Product[]
   seasonalFlowers: Product[]
 }
 
@@ -320,8 +322,22 @@ function SajuPageContent() {
 
           {result.recommendedFlowers.length > 0 && (
             <FlowerRecommendList
-              title={`🛒 지금 바로 살 수 있는 ${result.ohaeng} 기운 꽃`}
+              title="🌿 내 사주 오행 균형을 채워주는 꽃"
               products={result.recommendedFlowers}
+            />
+          )}
+
+          {result.wealthFlowers.length > 0 && (
+            <FlowerRecommendList
+              title="💰 재물운을 부르는 꽃"
+              products={result.wealthFlowers}
+            />
+          )}
+
+          {result.loveFlowers.length > 0 && (
+            <FlowerRecommendList
+              title="💗 연애운을 부르는 꽃"
+              products={result.loveFlowers}
             />
           )}
 
