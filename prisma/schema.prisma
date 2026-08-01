@@ -7,6 +7,24 @@ datasource db {
   provider = "postgresql"
 }
 
+model PublicMarketAuctionPrice {
+  id           String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  marketId     String
+  marketName   String
+  companyCode  String
+  tradeDate    DateTime @db.Date
+  itemName     String
+  quantity     Int
+  minPrice     Int
+  maxPrice     Int
+  averagePrice Int
+  sourceUrl    String
+  fetchedAt    DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([marketId, tradeDate, itemName])
+  @@index([marketId, tradeDate(sort: Desc), itemName])
+}
+
 // ─── 사용자 ───────────────────────────────────────────
 
 model User {
@@ -116,6 +134,8 @@ model Product {
   partnerBadge       String?
   isPromoted         Boolean   @default(false)
   exposurePriority   Int       @default(0)
+  sellerPromoted     Boolean   @default(false)
+  sellerPriority     Int       @default(0)
 
   cartItems  CartItem[]
   orderItems OrderItem[]
@@ -168,6 +188,7 @@ model Seller {
   settlementBank        String
   settlementAccount     String
   settlementHolder      String
+  commissionRate        Int          @default(10)
   sellsFinishedProducts Boolean      @default(true)
   offersCustomBouquet   Boolean      @default(false)
   offersDiyFlowers      Boolean      @default(false)
@@ -179,6 +200,7 @@ model Seller {
   createdAt             DateTime     @default(now())
   updatedAt             DateTime     @updatedAt
   exposureWeight        Int          @default(0)
+  productSortStrategy   String       @default("MANUAL")
   isCoopMember          Boolean      @default(false)
   customDeliveryScope   String       @default("NATIONWIDE")
   customDeliveryRegions String[]     @default([])
@@ -193,6 +215,16 @@ model Seller {
   restockRequests RestockRequest[]
 
   @@index([status, isOpen])
+}
+
+model ExposurePolicy {
+  id                       String   @id @default("default")
+  nonghyupPriorityEnabled  Boolean  @default(true)
+  preferredSellerIds       String[] @default([])
+  inventoryMode            String   @default("NONE")
+  adminPromotionsEnabled   Boolean  @default(true)
+  sellerPoliciesEnabled    Boolean  @default(true)
+  updatedAt                DateTime @updatedAt
 }
 
 model RestockRequest {
@@ -329,6 +361,12 @@ model OrderItem {
   deliveredAt       DateTime?
   commissionRate    Int       @default(10)
   commissionFee     Int       @default(0)
+  commissionVat     Int       @default(0)
+  shippingFeeAmount Int       @default(0)
+  discountShare     Int       @default(0)
+  pgFee             Int       @default(0)
+  pgFeeVat          Int       @default(0)
+  adjustmentAmount  Int       @default(0)
   settlementAmount  Int       @default(0)
   settlementStatus  String    @default("WAITING")
   settlementDueAt   DateTime?

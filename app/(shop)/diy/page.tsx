@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { useMemo, useRef, useState, useEffect } from "react"
+import { useCallback, useMemo, useRef, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { nanoid } from "nanoid"
@@ -11,6 +11,7 @@ import { COLOR_FILTER, COLOR_LABEL, FLOWERS, SIZES, WRAPPING } from "@/lib/custo
 import { birthFlowerSelection, flowerBirthDates, flowerMeaning, flowerMonths, flowerOccasions, isMonthFlower, isOccasionFlower, OCCASIONS } from "@/lib/diyFlowerTags"
 import { useCartStore } from "@/store/cartStore"
 import { SellerMap } from "@/components/shop/SellerMap"
+import { NonghyupMark } from "@/components/brand/NonghyupMark"
 
 type LocationState = {
   address: string
@@ -66,7 +67,10 @@ type PublicMarket = {
   sourceName: string
   sourceUrl: string
   dailyDataUrl?: string | null
+  marketInfoUrl?: string
+  auctionInfoUrl?: string
   isNonghyup?: boolean
+  supportsRealtime: boolean
   flowers: { id: string; name: string; group?: string; quantity: number; bundleCount?: number; stemsPerBundle?: number | null; unitNote?: string; averageBundlePrice?: number | null; latestDate?: string | null; tradeCount?: number }[]
   checkedAt: string
   liveTradeCount: number
@@ -77,16 +81,13 @@ type PublicMarket = {
   basisDate?: string | null
   priceScope?: "TODAY_ONLY"
   todayDataAvailable?: boolean
+  priceFreshness?: "LIVE_TODAY" | "LATEST_CONFIRMED" | "UNAVAILABLE"
+  pricingScope?: "ITEM_ALL_VARIETIES_AND_GRADES"
+  priceAvailability?: "NO_SELECTED_FLOWER_TRADE" | "NO_RECENT_MARKET_FILE"
 }
 type FilterMode = "all" | "ohaeng" | "color" | "meaning" | "month" | "birth" | "occasion"
 type GpsStatus = "idle" | "checking" | "success" | "error"
 type SpecialDate = { id: string; type: string; label: string; monthDay: string }
-
-function NonghyupEmblem({ className = "h-7 w-7" }: { className?: string }) {
-  return <svg viewBox="0 0 64 72" className={className} role="img" aria-label="농협">
-    <path fill="#fbbf24" d="M32 0 43 19l17-8-9 22 13 8-20 4a20 20 0 1 1-24 0L0 41l13-8-9-22 17 8L32 0Zm0 40a13 13 0 1 0 0 26 13 13 0 0 0 0-26Z"/>
-  </svg>
-}
 
 const OHAENG_STYLE: Record<string, { active: string; idle: string; dot: string }> = {
   목: { active: "border-emerald-500 bg-emerald-50 text-emerald-700", idle: "border-emerald-100 bg-emerald-50/40 text-emerald-700", dot: "bg-emerald-500" },
@@ -124,6 +125,7 @@ export default function DiyPage() {
   const [radiusKm, setRadiusKm] = useState(3)
   const [matches, setMatches] = useState<Match[] | null>(null)
   const [publicMarkets, setPublicMarkets] = useState<PublicMarket[]>([])
+  const [marketDirectoryInfo, setMarketDirectoryInfo] = useState<{ criteria: string; sourceUrl: string; coordinatesManagedManually: boolean } | null>(null)
   const [matching, setMatching] = useState(false)
   const [matchError, setMatchError] = useState("")
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null)
@@ -290,7 +292,7 @@ export default function DiyPage() {
     setGenerateError("")
   }
 
-  const useGps = async () => {
+  const locateCurrentPosition = useCallback(async () => {
     if (!navigator.geolocation) {
       setGpsStatus("error")
       setLocationMessage("이 기기에서는 GPS 위치를 사용할 수 없어요. 도로명주소를 입력해주세요.")
@@ -347,9 +349,9 @@ export default function DiyPage() {
             : "현재 위치를 확인하지 못했어요. GPS 상태를 확인하거나 도로명주소를 입력해주세요."
         setLocationMessage(message)
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
     )
-  }
+  }, [])
 
   function hashCode(value: string) {
     let hash = 5381
@@ -423,7 +425,7 @@ export default function DiyPage() {
         }),
       })
       const publicRequest = fulfillmentMode === "diy"
-        ? fetch("/api/diy/public-markets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ flowers: selected.map(([id, quantity]) => ({ id, quantity })), latitude: location.latitude, longitude: location.longitude }) })
+        ? fetch("/api/diy/public-markets", { method: "POST", cache: "no-store", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ flowers: selected.map(([id, quantity]) => ({ id, quantity })), latitude: location.latitude, longitude: location.longitude }) })
         : Promise.resolve(null)
       const [response, publicResponse] = await Promise.all([matchesRequest, publicRequest])
       const data = await response.json()
@@ -431,9 +433,11 @@ export default function DiyPage() {
       setMatches(data.matches)
       if (publicResponse?.ok) {
         const publicData = await publicResponse.json()
-        setPublicMarkets(publicData.markets ?? [])
+        setPublicMarkets((publicData.markets ?? []).map((market: PublicMarket) => market.id === "busan-eomgung" ? { ...market, isNonghyup: true, marketType: "농협 화훼공판장" } : market))
+        setMarketDirectoryInfo({ criteria: publicData.directoryCriteria ?? "aT 공식 공판장 목록", sourceUrl: publicData.directorySourceUrl ?? "https://flower.at.or.kr/real/real2.do", coordinatesManagedManually: publicData.coordinatesManagedManually === true })
       } else {
         setPublicMarkets([])
+        setMarketDirectoryInfo(null)
       }
     } catch (error) {
       setMatchError(error instanceof Error ? error.message : "재고를 확인하지 못했어요.")
@@ -690,11 +694,11 @@ export default function DiyPage() {
               <h2 className="font-bold text-stone-900">③ 수령 방법과 판매처 찾기</h2>
               <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl bg-stone-100 p-1.5">
                 <button onClick={() => { setFulfillmentMode("custom"); setMatches(null); setMatchError("") }} className={`rounded-xl px-3 py-3 text-sm font-bold transition ${fulfillmentMode === "custom" ? "bg-white text-rose-600 shadow-sm" : "text-stone-500"}`}>🚚 주문제작·전국 배송</button>
-                <button onClick={() => { setFulfillmentMode("diy"); setMatches(null); setMatchError("") }} className={`rounded-xl px-3 py-3 text-sm font-bold transition ${fulfillmentMode === "diy" ? "bg-white text-emerald-700 shadow-sm" : "text-stone-500"}`}>✂️ 직접 만들기·근처 픽업</button>
+                <button onClick={() => { setFulfillmentMode("diy"); setMatches(null); setMatchError(""); if (gpsStatus === "idle" && !location.source) void locateCurrentPosition() }} className={`rounded-xl px-3 py-3 text-sm font-bold transition ${fulfillmentMode === "diy" ? "bg-white text-emerald-700 shadow-sm" : "text-stone-500"}`}>✂️ 직접 만들기·근처 픽업</button>
               </div>
               <p className="mt-3 text-sm leading-6 text-stone-500">{fulfillmentMode === "diy" ? "직접 만들기는 방문 가능한 거리 안에서 모든 꽃을 픽업할 수 있는 판매처를 찾아요." : "주문제작은 거리와 관계없이 전국 배송 가능한 판매처의 제작 재고를 확인해요."}</p>
               {fulfillmentMode === "diy" && <><div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                <Button onClick={useGps} disabled={gpsStatus === "checking"} className="h-11 gap-2 bg-emerald-600 text-white hover:bg-emerald-700">
+                <Button onClick={locateCurrentPosition} disabled={gpsStatus === "checking"} className="h-11 gap-2 bg-emerald-600 text-white hover:bg-emerald-700">
                   {gpsStatus === "checking" ? <RefreshCw size={17} className="animate-spin" /> : <LocateFixed size={17} />}
                   {gpsStatus === "checking" ? "현재 위치 확인 중..." : gpsStatus === "success" ? "현재 위치 다시 확인" : "현재 위치 사용"}
                 </Button>
@@ -732,7 +736,7 @@ export default function DiyPage() {
             {matches && (
               <section className="rounded-2xl border border-stone-200 bg-white p-5 sm:p-6">
                 <div className="mb-5">
-                  {fulfillmentMode === "diy" ? <><h2 className="mb-2 font-bold text-stone-900">근처 꽃집·도매시장·공판장 지도</h2><SellerMap latitude={location.latitude} longitude={location.longitude} radiusKm={radiusKm} sellers={[...visibleMatches, ...publicMarkets]} /><p className="mt-2 text-[11px] text-stone-400">등록 판매처뿐 아니라 방문 가능한 화훼공판장과 꽃 도매시장도 함께 표시해요.</p></> : <div className="rounded-2xl bg-rose-50 p-4"><h2 className="font-bold text-rose-700">🚚 전국 배송 제작처</h2><p className="mt-1 text-sm text-stone-600">거리순이 아닌 제작 가능 여부와 원 리뷰 판매처를 우선으로 보여드려요.</p></div>}
+                  {fulfillmentMode === "diy" ? <><div className="mb-2 flex flex-wrap items-center justify-between gap-2"><h2 className="font-bold text-stone-900">현재 위치 중심 꽃집·공판장 지도</h2><Button variant="outline" onClick={locateCurrentPosition} disabled={gpsStatus === "checking"} className="h-8 text-xs"><LocateFixed size={13}/>{gpsStatus === "checking" ? "위치 확인 중" : "내 위치로 다시 맞추기"}</Button></div><SellerMap latitude={location.latitude} longitude={location.longitude} radiusKm={radiusKm} sellers={[...visibleMatches, ...publicMarkets]} /><p className="mt-2 text-[11px] text-stone-400">파란 ‘현재 위치’가 지도 중심입니다. 전국 공판장 마커는 지도 범위 밖에 있을 수 있어요.</p></> : <div className="rounded-2xl bg-rose-50 p-4"><h2 className="font-bold text-rose-700">🚚 전국 배송 제작처</h2><p className="mt-1 text-sm text-stone-600">거리순이 아닌 제작 가능 여부와 원 리뷰 판매처를 우선으로 보여드려요.</p></div>}
                 </div>
                 {visibleMatches.length > 0 ? (
                   <>
@@ -797,20 +801,22 @@ export default function DiyPage() {
                 {fulfillmentMode === "diy" && publicMarkets.length > 0 && <div className="mt-6 border-t border-stone-200 pt-6">
                   <div className="flex items-start gap-3">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-700">🏛️</span>
-                    <div><h2 className="font-bold text-stone-900">방문 가능한 도매시장·화훼공판장</h2><p className="mt-1 text-sm text-stone-500">오늘 공개된 절화 경매 실거래가 있을 때만 구매 참고가를 보여드려요.</p></div>
+                    <div><h2 className="font-bold text-stone-900">최근 가격을 확인할 수 있는 화훼공판장</h2><p className="mt-1 text-sm text-stone-500">최근 7일 내 경매파일이 있는 공판장만 가까운 순서로 보여주며, 당일 실시간가가 없으면 최근 확정 경매가로 예상가격을 계산해요.</p></div>
                   </div>
                   <details className="mt-3 rounded-xl border border-sky-100 bg-white px-4 py-3 text-xs text-stone-600">
                     <summary className="cursor-pointer font-bold text-sky-800">‘속’이란 무엇인가요?</summary>
-                    <p className="mt-2 leading-5">속은 절화를 묶어 경매·유통하는 포장 단위예요. 품목·품종·등급·시장에 따라 한 속의 본수가 달라 고정된 송이 단위는 아닙니다. 화면의 본수 환산은 일반적인 거래 관행을 적용한 참고치이며, 실제 포장 규격을 우선해 주세요.</p>
+                    <p className="mt-2 leading-5">속은 절화를 묶어 경매·유통하는 구매 단위예요. 예를 들어 미니 꽃다발에 장미 7송이가 필요해도 공판장에서는 낱송이 7개가 아니라 장미 1속을 사야 할 수 있어요. 품목·품종·등급·시장에 따라 한 속의 본수가 달라 화면에서는 장미 1속을 약 10본으로 환산하며, 실제 구매단위와 일반인 구매 가능 여부는 공판장 또는 중도매인에게 확인해야 합니다.</p>
                     <a href="https://www.naqs.go.kr/hp/contents/contents.do?menuId=MN40332" target="_blank" rel="noreferrer" className="mt-2 inline-flex font-bold text-sky-700 underline">농산물 표준규격 확인</a>
                   </details>
-                  <div className="mt-4 space-y-3">{publicMarkets.map((market) => <article key={market.id} className={`rounded-2xl border p-4 ${market.isNonghyup ? "border-emerald-300 bg-gradient-to-br from-emerald-50 to-yellow-50 ring-1 ring-emerald-100" : "border-sky-200 bg-sky-50/40"}`}>
-                    <div className="flex items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2">{market.isNonghyup && <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-700 shadow-sm"><NonghyupEmblem className="h-7 w-7"/></span>}<h3 className="font-bold text-stone-900">{market.marketName}</h3><span className={`rounded-full px-2 py-0.5 text-[11px] font-bold text-white ${market.isNonghyup ? "bg-emerald-700" : "bg-sky-600"}`}>{market.marketType}</span>{market.liveTradeCount > 0 && <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-sky-700">오늘 실거래 {market.liveTradeCount}건</span>}</div><p className="mt-1 text-xs text-stone-500">{market.roadAddress}{market.distanceKm !== null ? ` · 약 ${market.distanceKm}km` : ""}</p></div><div className="shrink-0 text-right"><p className="text-[11px] text-stone-400">{market.basisDate ? `${market.basisDate} 당일 기준` : "오늘 실거래 기준"}</p>{market.expectedPrice !== null ? <><strong className="text-lg text-sky-700">약 {market.expectedPrice.toLocaleString()}원</strong>{market.minPrice !== null && market.maxPrice !== null && <p className="text-[10px] text-stone-400">{market.minPrice.toLocaleString()}~{market.maxPrice.toLocaleString()}원</p>}</> : <strong className={`block text-sm ${market.isNonghyup ? "text-emerald-700" : "text-stone-400"}`}>{market.id === "at-yangjae" ? "오늘 거래 없음" : "당일 자료 자동 연계 준비 중"}</strong>}</div></div>
-                    <div className="mt-3 flex flex-wrap gap-1.5">{market.flowers.map((flower) => <span key={flower.id} className="rounded-full bg-white px-2 py-1 text-[11px] text-stone-600">{flower.name} {flower.quantity}송이 → 약 {flower.bundleCount ?? 1}속 ({flower.unitNote ?? "포장 규격 확인 필요"}){flower.averageBundlePrice ? ` · 1속 평균 ${Math.round(flower.averageBundlePrice).toLocaleString()}원` : ""}</span>)}</div>
+                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900"><strong>예상가격 안내</strong><p className="mt-1">aT 경매자료에는 꽃 색상이 일관된 항목으로 제공되지 않아, 선택한 색상의 가격이 아닌 해당 품목 전체의 품종·등급을 거래량으로 가중평균합니다. 실제 구매가를 확정하는 값이 아니라 공판장 방문 전 예산을 잡기 위한 단순 참고용 데이터예요.</p></div>
+                  {marketDirectoryInfo && <div className="mt-3 rounded-xl border border-stone-200 bg-stone-50 p-3 text-[11px] leading-5 text-stone-600"><strong>목록 기준:</strong> {marketDirectoryInfo.criteria}. {marketDirectoryInfo.coordinatesManagedManually && "지도 좌표는 공식 주소를 기준으로 서비스에서 관리합니다."} <a href={marketDirectoryInfo.sourceUrl} target="_blank" rel="noreferrer" className="font-bold text-sky-700 underline">aT 원문 확인</a></div>}
+                  <div className="mt-4 space-y-3">{publicMarkets.map((market) => <article key={market.id} className={`rounded-2xl border p-4 ${market.isNonghyup ? "border-[#8bc7aa] bg-gradient-to-br from-[#f1faf5] to-[#fff8dc] ring-1 ring-[#d9eadf]" : "border-sky-200 bg-sky-50/40"}`}>
+                    <div className="flex items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2">{market.isNonghyup && <NonghyupMark compact className="rounded-full bg-white p-1.5 shadow-sm"/>}<h3 className="font-bold text-stone-900">{market.marketName}</h3><span className={`rounded-full px-2 py-0.5 text-[11px] font-bold text-white ${market.isNonghyup ? "bg-[#007a4d]" : "bg-sky-600"}`}>{market.marketType}</span>{market.priceFreshness === "LIVE_TODAY" && market.liveTradeCount > 0 && <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-sky-700">오늘 집계 행 {market.liveTradeCount}건</span>}{market.priceFreshness === "LATEST_CONFIRMED" && <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-amber-700">최근 확정 경매가</span>}</div><p className="mt-1 text-xs text-stone-500">{market.roadAddress}{market.distanceKm !== null ? ` · 현재 위치에서 약 ${market.distanceKm}km` : ""}</p></div><div className="shrink-0 text-right"><p className="text-[11px] text-stone-400">{market.basisDate ? `${market.basisDate} 거래 기준` : "가격 기준일 없음"}</p>{market.expectedPrice !== null ? <><strong className={`text-lg ${market.isNonghyup ? "text-[#007a4d]" : "text-sky-700"}`}>예상가격 {market.expectedPrice.toLocaleString()}원</strong>{market.minPrice !== null && market.maxPrice !== null && <p className="text-[10px] text-stone-400">경매가 범위 {market.minPrice.toLocaleString()}~{market.maxPrice.toLocaleString()}원</p>}</> : <strong className={`block max-w-52 text-sm ${market.isNonghyup ? "text-[#007a4d]" : "text-stone-400"}`}>이 공판장의 최근 자료에 선택한 꽃 거래 없음</strong>}</div></div>
+                    <div className="mt-3 flex flex-wrap gap-1.5">{market.flowers.map((flower) => <span key={flower.id} className="rounded-full bg-white px-2 py-1 text-[11px] text-stone-600">필요 {flower.name} {flower.quantity}송이 → 공판장 구매 약 {flower.bundleCount ?? 1}속 ({flower.unitNote ?? "포장 규격 확인 필요"}){flower.averageBundlePrice ? ` · ${flower.group} 전체 품종·등급 1속 평균 ${Math.round(flower.averageBundlePrice).toLocaleString()}원` : ""}</span>)}</div>
                     <p className="mt-3 text-[11px] leading-5 text-stone-500">{market.priceBasis}. 실제 등급·포장단위·당일 물량에 따라 달라질 수 있어요.</p>
-                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p className="text-[11px] text-stone-400">방문 전 문의 {market.publicPhone || "공판장 확인"} · {market.sourceName}</p><div className="flex flex-wrap gap-2">{market.dailyDataUrl && <a href={market.dailyDataUrl} target="_blank" rel="noreferrer" className={`inline-flex items-center gap-1 rounded-xl border bg-white px-3 py-2 text-xs font-bold ${market.isNonghyup ? "border-emerald-300 text-emerald-700 hover:bg-emerald-50" : "border-sky-200 text-sky-700 hover:bg-sky-50"}`}>공식 일일 경매자료 <ExternalLink size={13}/></a>}<a href={market.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-xl border border-sky-200 bg-white px-3 py-2 text-xs font-bold text-sky-700 hover:bg-sky-50">실시간 시세·시장정보 <ExternalLink size={13}/></a></div></div>
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p className="text-[11px] text-stone-400">방문 전 문의 {market.publicPhone || "공판장 확인"} · {market.sourceName}</p><div className="flex flex-wrap gap-2">{market.marketInfoUrl && <a href={market.marketInfoUrl} target="_blank" rel="noreferrer" className={`inline-flex items-center gap-1 rounded-xl border bg-white px-3 py-2 text-xs font-bold ${market.isNonghyup ? "border-emerald-300 text-emerald-700 hover:bg-emerald-50" : "border-sky-200 text-sky-700 hover:bg-sky-50"}`}>이 공판장 위치·정보 <ExternalLink size={13}/></a>}<a href={`/api/diy/public-markets/${market.id}/at`} target="_blank" rel="noreferrer" className={`inline-flex items-center gap-1 rounded-xl border bg-white px-3 py-2 text-xs font-bold ${market.isNonghyup ? "border-emerald-300 text-emerald-700 hover:bg-emerald-50" : "border-sky-200 text-sky-700 hover:bg-sky-50"}`}>이 공판장 aT 경매자료 바로 보기 <ExternalLink size={13}/></a></div></div>
                   </article>)}</div>
-                  <p className="mt-3 text-[11px] leading-5 text-stone-400">가격은 aT 공식 API의 오늘 양재 절화 경매값만 사용하며 과거값·임시 추정가·타 시장 복제값은 사용하지 않습니다. 경매가는 소매 판매가가 아니고, 본수 환산은 참고치이므로 실제 포장 규격과 방문 구매 가능 여부를 시장에 확인해 주세요.</p>
+                  <p className="mt-3 text-[11px] leading-5 text-stone-400">예상가격은 aT 당일 실시간가 또는 공판장별 최근 확정 경매가를 사용합니다. 경매가는 소매 판매가가 아니며 낱송이 구매를 보장하지 않습니다. 실제 속당 본수·포장 규격·일반인 구매 가능 여부는 공판장 또는 중도매인에게 확인해 주세요.</p>
                 </div>}
               </section>
             )}

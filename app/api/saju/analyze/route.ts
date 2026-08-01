@@ -5,6 +5,7 @@ import { calculateSaju, getCurrentSeason } from "@/lib/saju"
 import type { Ohaeng } from "@/lib/saju"
 import { calcFortune } from "@/lib/fortune"
 import { scoreOhaengMatch, whoGenerates } from "@/lib/ohaengMatching"
+import { getExposurePolicy, rankProducts } from "@/lib/exposureRanking"
 
 const OHAENG_ALL: Ohaeng[] = ["목", "화", "토", "금", "수"]
 
@@ -41,12 +42,12 @@ export async function POST(req: NextRequest) {
   const lackingOhaeng = pct[weakest] < 20 ? [weakest] : []
 
   // 활성 상품 후보군을 넓게 가져와 색상·계절·꽃말 3축 점수(등록 시 자동 태깅과 동일 기준)로 정렬한다.
-  const [{ data: candidates }, { data: seasonalData }] = await Promise.all([
+  const [{ data: candidates }, { data: seasonalData }, exposurePolicy] = await Promise.all([
     supabaseAdmin
       .from("Product")
-      .select("id, name, price, images, flowerMeaning, description, category, colorTags, seasonTags")
+      .select("id, name, price, images, flowerMeaning, description, category, colorTags, seasonTags, stock, saleStatus, createdAt, partnerName, isPromoted, exposurePriority, sellerPromoted, sellerPriority, seller:Seller(id, marketName, productSortStrategy), reviews:Review(rating), orderItems:OrderItem(quantity), wishlist:WishlistItem(id)")
       .eq("isActive", true)
-      .order("createdAt", { ascending: false })
+      .in("saleStatus", ["ON_SALE", "SOLD_OUT"])
       .limit(300),
     supabaseAdmin
       .from("Product")
@@ -54,16 +55,21 @@ export async function POST(req: NextRequest) {
       .eq("isActive", true)
       .contains("seasonTags", [currentSeason])
       .limit(4),
+    getExposurePolicy(),
   ])
 
   const scored = (candidates ?? []).map((p) => ({ product: p, scores: scoreOhaengMatch(p) }))
 
   function topByOhaeng(target: Ohaeng, limit: number, exclude = new Set<string>()) {
-    return scored
-      .filter((s) => !exclude.has(s.product.id))
-      .sort((a, b) => b.scores[target] - a.scores[target])
+    const available = scored.filter((s) => !exclude.has(s.product.id))
+    const scoreMap = new Map(available.map((item) => [item.product.id, item.scores[target]]))
+    return rankProducts(available.map((item) => item.product), { policy: exposurePolicy, page: "saju", userSort: "recommended", sajuScores: scoreMap })
       .slice(0, limit)
-      .map((s) => s.product)
+      .map((item) => {
+        const { reviews, orderItems, wishlist, ...product } = item
+        void reviews; void orderItems; void wishlist
+        return product
+      })
   }
 
   const recommendedFlowers = topByOhaeng(saju.mainOhaeng, 4)

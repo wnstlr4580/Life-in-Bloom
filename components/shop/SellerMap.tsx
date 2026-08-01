@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { OFFICIAL_NONGHYUP_SYMBOL } from "@/components/brand/NonghyupMark"
 
 type MapSeller = {
   sellerId: string
@@ -44,7 +45,14 @@ function createInfoContent(seller: MapSeller) {
   content.style.cssText = "min-width:220px;max-width:280px;padding:14px;font-family:system-ui,sans-serif;color:#292524"
 
   const title = document.createElement("strong")
-  title.textContent = `${seller.isNonghyup ? "🌾 " : ""}${seller.marketName}`
+  if (seller.isNonghyup) {
+    const mark = document.createElement("img")
+    mark.src = OFFICIAL_NONGHYUP_SYMBOL
+    mark.alt = "농협 심벌"
+    mark.style.cssText = "width:22px;height:22px;object-fit:contain;float:left;margin-right:6px"
+    content.appendChild(mark)
+  }
+  title.textContent = seller.marketName
   title.style.cssText = `display:block;font-size:14px;margin-bottom:6px;${seller.isNonghyup ? "color:#047857" : ""}`
   content.appendChild(title)
 
@@ -80,11 +88,9 @@ export function SellerMap({ latitude, longitude, radiusKm, sellers }: { latitude
       setError("")
       const maps = window.naver.maps
       const currentPosition = new maps.LatLng(latitude, longitude)
-      const locatedSellers = sellers.filter((seller) => seller.latitude !== null && seller.longitude !== null)
-      const centerLatitude = (latitude + locatedSellers.reduce((sum, seller) => sum + Number(seller.latitude), 0)) / (locatedSellers.length + 1)
-      const centerLongitude = (longitude + locatedSellers.reduce((sum, seller) => sum + Number(seller.longitude), 0)) / (locatedSellers.length + 1)
-      const zoom = locatedSellers.length > 0 ? 11 : radiusKm <= 1 ? 15 : radiusKm <= 2 ? 14 : radiusKm <= 3 ? 13 : 12
-      const map = new maps.Map(containerRef.current, { center: new maps.LatLng(centerLatitude, centerLongitude), zoom })
+      const zoom = radiusKm <= 1 ? 15 : radiusKm <= 2 ? 14 : radiusKm <= 3 ? 13 : radiusKm <= 5 ? 12 : 11
+      // 전국 공판장 좌표의 평균이 아니라 사용자의 실제 GPS 좌표를 지도 중심으로 고정한다.
+      const map = new maps.Map(containerRef.current, { center: currentPosition, zoom })
 
       new maps.Circle({
         map,
@@ -116,7 +122,9 @@ export function SellerMap({ latitude, longitude, radiusKm, sellers }: { latitude
           position,
           title: seller.marketName,
           ...(seller.marketType ? { icon: {
-            content: `<div style="display:flex;flex-direction:column;align-items:center;white-space:nowrap;transform:translate(-50%,-50%)"><span style="display:flex;align-items:center;gap:5px;padding:5px 9px;border:2px solid white;border-radius:13px;background:${seller.isNonghyup ? "#047857" : "#0284c7"};color:#fff;font:700 11px system-ui;box-shadow:0 2px 8px ${seller.isNonghyup ? "#065f4666" : "#0369a166"}">${seller.isNonghyup ? '<svg width="15" height="17" viewBox="0 0 64 72" aria-hidden="true"><path fill="#fbbf24" d="M32 0 43 19l17-8-9 22 13 8-20 4a20 20 0 1 1-24 0L0 41l13-8-9-22 17 8L32 0Zm0 40a13 13 0 1 0 0 26 13 13 0 0 0 0-26Z"/></svg>' : ""}<span>${seller.marketName}</span></span><span style="width:15px;height:15px;margin-top:3px;border:4px solid white;border-radius:50%;background:${seller.isNonghyup ? "#fbbf24" : "#0284c7"};box-shadow:0 1px 6px ${seller.isNonghyup ? "#065f46" : "#0369a1"}"></span></div>`,
+            content: seller.isNonghyup
+              ? `<button type="button" aria-label="${seller.marketName} 상세정보" style="display:flex;width:42px;height:42px;align-items:center;justify-content:center;transform:translate(-50%,-50%);border:2px solid white;border-radius:50%;background:white;box-shadow:0 3px 10px #005b3a55;cursor:pointer"><img src="${OFFICIAL_NONGHYUP_SYMBOL}" alt="" style="width:25px;height:31px;object-fit:contain"/></button>`
+              : '<button type="button" aria-label="공판장 상세정보" style="display:block;width:20px;height:20px;transform:translate(-50%,-50%);border:4px solid white;border-radius:50%;background:#0284c7;box-shadow:0 2px 8px #0369a166;cursor:pointer"></button>',
             anchor: new maps.Point(0, 0),
           } } : {}),
         })

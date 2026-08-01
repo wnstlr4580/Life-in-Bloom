@@ -16,6 +16,8 @@ const CATEGORIES = [
 ]
 
 const SORTS = [
+  { value: "recommended", label: "추천순" },
+  { value: "popular", label: "인기순" },
   { value: "latest", label: "최신순" },
   { value: "price_asc", label: "낮은 가격순" },
   { value: "price_desc", label: "높은 가격순" },
@@ -86,7 +88,7 @@ function ProductsContent() {
   const minPrice = mounted ? searchParams.get("minPrice") ?? "" : ""
   const maxPrice = mounted ? searchParams.get("maxPrice") ?? "" : ""
   const inStock = mounted ? searchParams.get("inStock") === "true" : false
-  const sort = mounted ? searchParams.get("sort") ?? "latest" : "latest"
+  const sort = mounted ? searchParams.get("sort") ?? "recommended" : "recommended"
   const page = mounted ? Number(searchParams.get("page") ?? "1") : 1
 
   const [products, setProducts] = useState<Product[]>([])
@@ -116,7 +118,7 @@ function ProductsContent() {
   const setMinPrice = (value: string) => updateParams((p) => (value ? p.set("minPrice", value) : p.delete("minPrice")))
   const setMaxPrice = (value: string) => updateParams((p) => (value ? p.set("maxPrice", value) : p.delete("maxPrice")))
   const setInStock = (checked: boolean) => updateParams((p) => (checked ? p.set("inStock", "true") : p.delete("inStock")))
-  const setSort = (value: string) => updateParams((p) => (value !== "latest" ? p.set("sort", value) : p.delete("sort")))
+  const setSort = (value: string) => updateParams((p) => (value !== "recommended" ? p.set("sort", value) : p.delete("sort")))
   const setPage = (n: number) => updateParams((p) => p.set("page", String(n)), false)
 
   const clearFilter = () => router.replace(pathname, { scroll: false })
