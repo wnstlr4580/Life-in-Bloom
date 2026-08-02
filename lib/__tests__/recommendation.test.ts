@@ -3,7 +3,7 @@ import {
   needVector, balanceGain, normalizeGains,
   stockScore, personalPreferenceScore, blendScore,
   wealthOhaeng, loveOhaeng, birthColorOhaeng,
-  MONTH_TO_OHAENG, OBANGSAEK_OHAENG,
+  MONTH_TO_OHAENG, OBANGSAEK_OHAENG, topByOhaeng, OHAENG_RELEVANCE_MIN,
 } from "../recommendation"
 import { flowerOhaengProfile } from "../ohaengProfile"
 import type { Ohaeng } from "../saju"
@@ -124,5 +124,44 @@ describe("운세별 오행", () => {
     expect(loveOhaeng("토")).toBe("금")
     expect(loveOhaeng("금")).toBe("수")
     expect(loveOhaeng("수")).toBe("목")
+  })
+})
+
+describe("topByOhaeng", () => {
+  // 프로필·재고·개인화만 갖는 최소 후보
+  const cand = (id: string, profile: Partial<Record<Ohaeng, number>>, stock = 10, personal = 0) =>
+    ({ id, profile: { ...zero, ...profile }, stock, personal })
+
+  it("프로필이 임계 미만인 상품은 그 오행 리스트에 들어가지 않는다", () => {
+    const items = [
+      cand("무관", { 토: 0 }, 999, 1), // 재고·개인화 만점이어도 토가 0
+      cand("관련", { 토: 60 }, 1),
+    ]
+    expect(topByOhaeng(items, "토", 3).map((s) => s.id)).toEqual(["관련"])
+  })
+
+  it("임계(20) 경계는 포함한다", () => {
+    expect(topByOhaeng([cand("경계", { 금: OHAENG_RELEVANCE_MIN })], "금", 3)).toHaveLength(1)
+    expect(topByOhaeng([cand("미달", { 금: OHAENG_RELEVANCE_MIN - 1 })], "금", 3)).toHaveLength(0)
+  })
+
+  it("관련 상품이 부족하면 limit보다 적게 반환한다 (상생 폴백이 돌 수 있게)", () => {
+    const items = [cand("a", { 수: 50 }), cand("b", { 화: 50 }), cand("c", { 화: 50 })]
+    expect(topByOhaeng(items, "수", 3)).toHaveLength(1)
+  })
+
+  it("품절과 exclude는 제외한다", () => {
+    const items = [cand("품절", { 목: 90 }, 0), cand("제외", { 목: 80 }), cand("남음", { 목: 70 })]
+    const got = topByOhaeng(items, "목", 3, new Set(["제외"]))
+    expect(got.map((s) => s.id)).toEqual(["남음"])
+  })
+
+  it("사주 항이 후보 최댓값 기준으로 정규화되어 85:10:5가 지켜진다", () => {
+    // 1위는 프로필이 만점이 아니어도 balance 항 0.85를 온전히 받아야 한다
+    const items = [cand("top", { 목: 40 }, 50, 1), cand("low", { 목: 20 }, 50, 1)]
+    const [first] = topByOhaeng(items, "목", 1)
+    expect(first.id).toBe("top")
+    // 정규화 전이라면 0.85*0.40 = 0.34 였을 항이 0.85*1 = 0.85 가 된다
+    expect(blendScore(1, 50, 1)).toBeCloseTo(0.85 + 0.10 + 0.05)
   })
 })

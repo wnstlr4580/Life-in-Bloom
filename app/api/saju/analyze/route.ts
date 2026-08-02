@@ -7,7 +7,7 @@ import { calcFortune } from "@/lib/fortune"
 import { whoGenerates } from "@/lib/ohaengMatching"
 import { flowerOhaengProfile } from "@/lib/ohaengProfile"
 import {
-  needVector, balanceGain, normalizeGains,
+  needVector, balanceGain, normalizeGains, topByOhaeng,
   blendScore, personalPreferenceScore, wealthOhaeng, loveOhaeng,
   type UserPersonalization,
 } from "@/lib/recommendation"
@@ -74,6 +74,7 @@ export async function POST(req: NextRequest) {
   // 후보별 프로필·개인화·재고를 미리 계산해둔다.
   const scored = (candidates ?? []).map((p) => ({
     product: p,
+    id: p.id,
     profile: flowerOhaengProfile(p),
     personal: personalPreferenceScore(p, user),
     stock: p.stock ?? 0,
@@ -81,35 +82,27 @@ export async function POST(req: NextRequest) {
 
   // 균형 최적화 — 사주 오행 분포의 부족분을 얼마나 채워주는가로 주 추천을 뽑는다.
   const need = needVector(pct)
-  const balanceNorm = normalizeGains(scored.map((s) => balanceGain(s.profile, need)))
-  const recommendedFlowers = scored
+  // 품절 배제를 정규화보다 먼저 — 순서를 바꾸면 balanceNorm[i] 인덱스가 어긋난다.
+  const inStock = scored.filter((s) => s.stock > 0)
+  const balanceNorm = normalizeGains(inStock.map((s) => balanceGain(s.profile, need)))
+  const recommendedFlowers = inStock
     .map((s, i) => ({ s, score: blendScore(balanceNorm[i], s.stock, s.personal) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 4)
     .map((x) => x.s.product)
 
-  // 특정 오행을 채우는 리스트 — 프로필[오행]을 사주 점수로, 재고·개인화를 블렌딩. 품절 제외.
-  function topByOhaeng(target: Ohaeng, limit: number, exclude = new Set<string>()) {
-    return scored
-      .filter((s) => s.stock > 0 && !exclude.has(s.product.id))
-      .map((s) => ({ s, score: blendScore(s.profile[target] / 100, s.stock, s.personal) }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit)
-      .map((x) => x.s.product)
-  }
-
   // 부족한 기운에 맞는 상품이 모자라면, 그 기운을 낳아주는(상생) 오행 상품으로 채운다.
   const lackingProducts = lackingOhaeng.map((o) => {
-    const exact = topByOhaeng(o, 3)
-    const products = exact.length >= 3
+    const exact = topByOhaeng(scored, o, 3)
+    const picked = exact.length >= 3
       ? exact
-      : [...exact, ...topByOhaeng(whoGenerates(o), 3 - exact.length, new Set(exact.map((p) => p.id)))]
-    return { ohaeng: o, products }
+      : [...exact, ...topByOhaeng(scored, whoGenerates(o), 3 - exact.length, new Set(exact.map((s) => s.id)))]
+    return { ohaeng: o, products: picked.map((s) => s.product) }
   })
 
   // 운세별 추천 — 재물운(재성)·연애운(식상) 오행 프로필이 높은 꽃
-  const wealthFlowers = topByOhaeng(wealthOhaeng(saju.mainOhaeng), 4)
-  const loveFlowers = topByOhaeng(loveOhaeng(saju.mainOhaeng), 4)
+  const wealthFlowers = topByOhaeng(scored, wealthOhaeng(saju.mainOhaeng), 4).map((s) => s.product)
+  const loveFlowers = topByOhaeng(scored, loveOhaeng(saju.mainOhaeng), 4).map((s) => s.product)
 
   return NextResponse.json({
     ohaeng: saju.mainOhaeng,

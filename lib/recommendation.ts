@@ -110,6 +110,37 @@ export function blendScore(balanceScore: number, stock: number, personal: number
   return 0.85 * balanceScore + 0.10 * stockScore(stock) + 0.05 * personal
 }
 
+// ── 특정 오행을 채우는 상품 랭킹 ──────────────────────────────
+/** 이 값 미만이면 "그 오행 꽃"이라고 부르지 않는다.
+ *  색상 한 축만 잡혀도 최소 22.5점, 계절 태그 하나만 있어도 20점이므로 "신호 있음"의 경계. */
+export const OHAENG_RELEVANCE_MIN = 20
+
+export interface RankCandidate {
+  id: string
+  profile: Record<Ohaeng, number>
+  stock: number
+  personal: number
+}
+
+/** 특정 오행을 채우는 상위 상품 — 품절·무관(임계 미만) 상품은 제외한다.
+ *  사주 항은 후보 최댓값 기준으로 정규화해 주 추천과 동일하게 85:10:5가 지켜지게 한다. */
+export function topByOhaeng<T extends RankCandidate>(
+  items: T[],
+  target: Ohaeng,
+  limit: number,
+  exclude: Set<string> = new Set(),
+): T[] {
+  const eligible = items.filter(
+    (s) => s.stock > 0 && !exclude.has(s.id) && s.profile[target] >= OHAENG_RELEVANCE_MIN,
+  )
+  const norm = normalizeGains(eligible.map((s) => s.profile[target]))
+  return eligible
+    .map((s, i) => ({ s, score: blendScore(norm[i], s.stock, s.personal) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((x) => x.s)
+}
+
 // ── 운세별 추천 오행 ──────────────────────────────────────────
 /** 재물운 = 재성(財星) = 일간이 극(剋)하는 오행. */
 export function wealthOhaeng(main: Ohaeng): Ohaeng {
