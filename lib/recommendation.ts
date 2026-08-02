@@ -5,6 +5,7 @@
 // 를 블렌딩한다. 사용자 확정 비율: 사주(균형) 85% · 재고 10% · 개인화 5%.
 import type { Ohaeng } from "./saju"
 import { birthFlowerSelection, isBirthFlower } from "./diyFlowerTags"
+import { flowerSpeciesKey } from "./ohaengProfile"
 
 const OHAENG_ORDER: Ohaeng[] = ["목", "화", "토", "금", "수"]
 const OHAENG_IDX: Record<Ohaeng, number> = { 목: 0, 화: 1, 토: 2, 금: 3, 수: 4 }
@@ -127,9 +128,32 @@ export const OHAENG_RELEVANCE_MIN = 20
 
 export interface RankCandidate {
   id: string
+  name: string
   profile: Record<Ohaeng, number>
   stock: number
   personal: number
+}
+
+/** 점수순 목록에서 limit개를 뽑되 같은 꽃 종(種)은 하나만 — 부족하면 점수순으로 마저 채운다.
+ *  종 사전은 FLOWER_FORM 키를 그대로 쓰고, 큐레이션에 없는 상품은 각자 고유한 종으로 본다. */
+export function pickDiverse<T extends { id: string; name: string }>(ranked: T[], limit: number): T[] {
+  const picked: T[] = []
+  const seenSpecies = new Set<string>()
+  for (const item of ranked) {
+    if (picked.length === limit) break
+    const key = flowerSpeciesKey(item.name) ?? item.id
+    if (seenSpecies.has(key)) continue
+    seenSpecies.add(key)
+    picked.push(item)
+  }
+  if (picked.length < limit) {
+    const chosen = new Set(picked.map((p) => p.id))
+    for (const item of ranked) {
+      if (picked.length === limit) break
+      if (!chosen.has(item.id)) picked.push(item)
+    }
+  }
+  return picked
 }
 
 /** 특정 오행을 채우는 상위 상품 — 품절·무관(임계 미만) 상품은 제외한다.
@@ -144,11 +168,11 @@ export function topByOhaeng<T extends RankCandidate>(
     (s) => s.stock > 0 && !exclude.has(s.id) && s.profile[target] >= OHAENG_RELEVANCE_MIN,
   )
   const norm = normalizeGains(eligible.map((s) => s.profile[target]))
-  return eligible
+  const ranked = eligible
     .map((s, i) => ({ s, score: blendScore(norm[i], s.stock, s.personal) }))
     .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
     .map((x) => x.s)
+  return pickDiverse(ranked, limit)
 }
 
 // ── 운세별 추천 오행 ──────────────────────────────────────────

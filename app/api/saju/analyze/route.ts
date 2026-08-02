@@ -7,7 +7,7 @@ import { calcFortune } from "@/lib/fortune"
 import { whoGenerates } from "@/lib/ohaengMatching"
 import { flowerOhaengProfile } from "@/lib/ohaengProfile"
 import {
-  needVector, balanceGain, normalizeGains, topByOhaeng,
+  needVector, balanceGain, normalizeGains, topByOhaeng, pickDiverse,
   blendScore, personalPreferenceScore, wealthOhaeng, loveOhaeng,
   type UserPersonalization,
 } from "@/lib/recommendation"
@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
   const scored = (candidates ?? []).map((p) => ({
     product: p,
     id: p.id,
+    name: p.name,
     profile: flowerOhaengProfile(p),
     personal: personalPreferenceScore(p, user),
     stock: p.stock ?? 0,
@@ -85,11 +86,11 @@ export async function POST(req: NextRequest) {
   // 품절 배제를 정규화보다 먼저 — 순서를 바꾸면 balanceNorm[i] 인덱스가 어긋난다.
   const inStock = scored.filter((s) => s.stock > 0)
   const balanceNorm = normalizeGains(inStock.map((s) => balanceGain(s.profile, need)))
-  const recommendedFlowers = inStock
+  const rankedMain = inStock
     .map((s, i) => ({ s, score: blendScore(balanceNorm[i], s.stock, s.personal) }))
     .sort((a, b) => b.score - a.score)
-    .slice(0, 4)
-    .map((x) => x.s.product)
+    .map((x) => x.s)
+  const recommendedFlowers = pickDiverse(rankedMain, 4).map((s) => s.product)
 
   // 부족한 기운에 맞는 상품이 모자라면, 그 기운을 낳아주는(상생) 오행 상품으로 채운다.
   const lackingProducts = lackingOhaeng.map((o) => {

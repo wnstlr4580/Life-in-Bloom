@@ -3,9 +3,9 @@ import {
   needVector, balanceGain, normalizeGains,
   stockScore, personalPreferenceScore, blendScore,
   wealthOhaeng, loveOhaeng, birthColorOhaeng,
-  MONTH_TO_OHAENG, OBANGSAEK_OHAENG, topByOhaeng, OHAENG_RELEVANCE_MIN,
+  MONTH_TO_OHAENG, OBANGSAEK_OHAENG, topByOhaeng, OHAENG_RELEVANCE_MIN, pickDiverse,
 } from "../recommendation"
-import { flowerOhaengProfile } from "../ohaengProfile"
+import { flowerOhaengProfile, flowerSpeciesKey } from "../ohaengProfile"
 import type { Ohaeng } from "../saju"
 
 const zero: Record<Ohaeng, number> = { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 }
@@ -130,7 +130,7 @@ describe("운세별 오행", () => {
 describe("topByOhaeng", () => {
   // 프로필·재고·개인화만 갖는 최소 후보
   const cand = (id: string, profile: Partial<Record<Ohaeng, number>>, stock = 10, personal = 0) =>
-    ({ id, profile: { ...zero, ...profile }, stock, personal })
+    ({ id, name: id, profile: { ...zero, ...profile }, stock, personal })
 
   it("프로필이 임계 미만인 상품은 그 오행 리스트에 들어가지 않는다", () => {
     const items = [
@@ -190,5 +190,36 @@ describe("과잉 오행 감점", () => {
     const rose = flowerOhaengProfile({ name: "빨간 장미", colorTags: ["레드"] })
     const lily = flowerOhaengProfile({ name: "백합", colorTags: ["화이트"] })
     expect(balanceGain(rose, need)).toBeLessThan(balanceGain(lily, need))
+  })
+})
+
+describe("pickDiverse (추천 다양성)", () => {
+  const item = (id: string, name: string) => ({ id, name })
+
+  it("같은 종이 상위를 독식하면 다음 종으로 대체한다", () => {
+    const ranked = [item("1", "빨간 장미"), item("2", "핑크 장미"), item("3", "흰 백합")]
+    expect(pickDiverse(ranked, 2).map((i) => i.name)).toEqual(["빨간 장미", "흰 백합"])
+  })
+
+  it("후보가 전부 같은 종이면 점수순으로 채워 limit를 지킨다", () => {
+    const ranked = [item("1", "빨간 장미"), item("2", "핑크 장미"), item("3", "노란 장미")]
+    const got = pickDiverse(ranked, 2)
+    expect(got).toHaveLength(2)
+    expect(got.map((i) => i.id)).toEqual(["1", "2"]) // 점수순 유지
+  })
+
+  it("종 큐레이션에 없는 상품끼리는 중복으로 보지 않는다", () => {
+    const ranked = [item("1", "파스텔 혼합 꽃다발"), item("2", "로맨틱 가든 부케")]
+    expect(pickDiverse(ranked, 2)).toHaveLength(2)
+  })
+
+  it("후보가 limit보다 적으면 있는 만큼만 반환한다", () => {
+    expect(pickDiverse([item("1", "장미")], 4)).toHaveLength(1)
+  })
+
+  it("flowerSpeciesKey: 수식어가 붙어도 종을 찾고, 없으면 null", () => {
+    expect(flowerSpeciesKey("열정의 빨간 장미 다발")).toBe("장미")
+    expect(flowerSpeciesKey("해바라기 미니 화분")).toBe("해바라기")
+    expect(flowerSpeciesKey("파스텔 혼합 꽃다발")).toBeNull()
   })
 })

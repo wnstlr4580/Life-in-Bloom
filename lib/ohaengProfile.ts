@@ -336,6 +336,15 @@ function seasonAxis(name: string, seasonTags: string[]): Record<Ohaeng, number> 
   return result
 }
 
+/** 상품명에서 꽃 종(種) 키를 뽑는다 — 추천 다양성 판정용. 큐레이션에 없으면 null. */
+export function flowerSpeciesKey(name: string): string | null {
+  const lower = (name ?? "").toLowerCase()
+  for (const flower of Object.keys(FLOWER_FORM)) {
+    if (lower.includes(flower.toLowerCase())) return flower
+  }
+  return null
+}
+
 export const PROFILE_WEIGHT = { color: 0.45, form: 0.35, season: 0.20 }
 
 export interface OhaengProfileInput {
