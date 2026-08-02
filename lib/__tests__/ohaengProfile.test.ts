@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { flowerOhaengProfile, FORM_TRAITS, FORM_OHAENG_MAX, FLOWER_SEASON, PROFILE_WEIGHT } from "../ohaengProfile"
+import { flowerOhaengProfile, FORM_TRAITS, FORM_OHAENG_MAX, FLOWER_SEASON, PROFILE_WEIGHT, explainOhaeng } from "../ohaengProfile"
 import { scoreOhaengMatch, classifyOhaeng } from "../ohaengMatching"
 
 describe("flowerOhaengProfile", () => {
@@ -221,5 +221,35 @@ describe("회귀: scoreOhaengMatch/classifyOhaeng 불변", () => {
   it("classifyOhaeng은 백합류를 금으로 분류", () => {
     const tags = classifyOhaeng({ colorTags: ["화이트"], seasonTags: ["autumn"], flowerMeaning: "순수, 깨끗" })
     expect(tags).toContain("금")
+  })
+})
+
+describe("explainOhaeng (추천 이유 문구)", () => {
+  it("기여한 축을 큰 순서로 최대 2개까지 보여준다", () => {
+    const s = explainOhaeng({ name: "해바라기", colorTags: ["옐로"], seasonTags: ["summer"] }, "토")
+    expect(s).toBe("노란 색감 · 둥근형태") // 색(45%) > 형태 > 상시성
+  })
+
+  it("오행마다 근거가 달라진다 — 같은 꽃도 화(火) 관점에서는 다른 이유", () => {
+    const input = { name: "해바라기", colorTags: ["옐로"], seasonTags: ["summer"] }
+    expect(explainOhaeng(input, "화")).not.toBe(explainOhaeng(input, "토"))
+  })
+
+  it("계절 근거는 오행에 맞는 표현을 쓴다 (토는 계절이 아니라 상시성)", () => {
+    expect(explainOhaeng({ name: "거베라" }, "토")).toContain("연중 상시성")
+    expect(explainOhaeng({ name: "튤립" }, "목")).toContain("봄 개화")
+  })
+
+  it("기여가 전혀 없는 오행은 빈 문자열", () => {
+    expect(explainOhaeng({ name: "무명 꽃" }, "금")).toBe("")
+  })
+
+  it("설명은 점수와 어긋나지 않는다 — 점수 0이면 설명도 비어 있다", () => {
+    const input = { name: "백합", colorTags: ["화이트"] }
+    const p = flowerOhaengProfile(input)
+    for (const o of ["목", "화", "토", "금", "수"] as const) {
+      if (p[o] === 0) expect(explainOhaeng(input, o), o).toBe("")
+      else expect(explainOhaeng(input, o), o).not.toBe("")
+    }
   })
 })

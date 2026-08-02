@@ -5,7 +5,7 @@ import { calculateSaju, getCurrentSeason } from "@/lib/saju"
 import type { Ohaeng } from "@/lib/saju"
 import { calcFortune } from "@/lib/fortune"
 import { whoGenerates } from "@/lib/ohaengMatching"
-import { flowerOhaengProfile } from "@/lib/ohaengProfile"
+import { flowerOhaengProfile, explainOhaeng } from "@/lib/ohaengProfile"
 import {
   needVector, balanceGain, normalizeGains, topByOhaeng, pickDiverse,
   blendScore, personalPreferenceScore, wealthOhaeng, loveOhaeng,
@@ -90,20 +90,27 @@ export async function POST(req: NextRequest) {
     .map((s, i) => ({ s, score: blendScore(balanceNorm[i], s.stock, s.personal) }))
     .sort((a, b) => b.score - a.score)
     .map((x) => x.s)
-  const recommendedFlowers = pickDiverse(rankedMain, 4).map((s) => s.product)
+  // 추천 이유 한 줄을 붙여 "왜 이 꽃인가"가 화면에 보이게 한다.
+  const withReason = (items: typeof scored, target: Ohaeng) =>
+    items.map((s) => ({ ...s.product, ohaengReason: explainOhaeng(s.product, target) }))
+
+  const recommendedFlowers = withReason(pickDiverse(rankedMain, 4), weakest)
 
   // 부족한 기운에 맞는 상품이 모자라면, 그 기운을 낳아주는(상생) 오행 상품으로 채운다.
   const lackingProducts = lackingOhaeng.map((o) => {
     const exact = topByOhaeng(scored, o, 3)
-    const picked = exact.length >= 3
-      ? exact
-      : [...exact, ...topByOhaeng(scored, whoGenerates(o), 3 - exact.length, new Set(exact.map((s) => s.id)))]
-    return { ohaeng: o, products: picked.map((s) => s.product) }
+    if (exact.length >= 3) return { ohaeng: o, products: withReason(exact, o) }
+    // 폴백 상품은 실제 근거가 상생 오행이므로 그 오행으로 설명한다.
+    const helper = whoGenerates(o)
+    const filler = topByOhaeng(scored, helper, 3 - exact.length, new Set(exact.map((s) => s.id)))
+    return { ohaeng: o, products: [...withReason(exact, o), ...withReason(filler, helper)] }
   })
 
   // 운세별 추천 — 재물운(재성)·연애운(식상) 오행 프로필이 높은 꽃
-  const wealthFlowers = topByOhaeng(scored, wealthOhaeng(saju.mainOhaeng), 4).map((s) => s.product)
-  const loveFlowers = topByOhaeng(scored, loveOhaeng(saju.mainOhaeng), 4).map((s) => s.product)
+  const wealth = wealthOhaeng(saju.mainOhaeng)
+  const love = loveOhaeng(saju.mainOhaeng)
+  const wealthFlowers = withReason(topByOhaeng(scored, wealth, 4), wealth)
+  const loveFlowers = withReason(topByOhaeng(scored, love, 4), love)
 
   return NextResponse.json({
     ohaeng: saju.mainOhaeng,

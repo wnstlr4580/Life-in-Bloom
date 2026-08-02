@@ -8,6 +8,7 @@ interface Product {
   images: string[]
   flowerMeaning: string | null
   category: string
+  ohaengReason?: string // "왜 이 꽃인가" — 오행 점수에 기여한 근거 (예: "노란 색감 · 여름 개화")
 }
 
 interface Props {
@@ -43,6 +44,9 @@ export function FlowerRecommendList({ title, products }: Props) {
             </div>
             <div className="p-3">
               <p className="text-xs font-medium text-stone-800 line-clamp-1">{product.name}</p>
+              {product.ohaengReason && (
+                <p className="text-[11px] text-rose-400 mt-0.5 line-clamp-1">{product.ohaengReason}</p>
+              )}
               {product.flowerMeaning && (
                 <p className="text-xs text-stone-400 mt-0.5 line-clamp-1">{product.flowerMeaning}</p>
               )}

@@ -355,6 +355,38 @@ export interface OhaengProfileInput {
   description?: string | null
 }
 
+// ── 추천 이유 문구 ────────────────────────────────────────────
+const COLOR_HINT: Record<Ohaeng, string> = { 목: "초록", 화: "붉은", 토: "노란", 금: "흰", 수: "푸른" }
+const SEASON_HINT: Record<Ohaeng, string> = {
+  목: "봄 개화", 화: "여름 개화", 금: "가을 개화", 수: "겨울 개화", 토: "연중 상시성",
+}
+
+/** "왜 이 꽃이 그 오행인가" 한 줄 — 그 오행 점수에 크게 기여한 축을 최대 2개까지.
+ *  기여가 전혀 없으면 빈 문자열. 점수 계산과 같은 축 함수를 그대로 쓰므로 설명이 점수와 어긋나지 않는다. */
+export function explainOhaeng(input: OhaengProfileInput, target: Ohaeng): string {
+  const name = input.name ?? ""
+  const color = colorAxis(name, input.colorTags ?? [])
+  const form = formAxis([input.name, input.category, input.description].filter(Boolean).join(" "))
+  const season = seasonAxis(name, input.seasonTags ?? [])
+
+  // 형태는 근거가 되는 특성 이름을 그대로 보여준다 (예: 큰꽃송이, 둥근형태)
+  const traits = FLOWER_FORM[flowerSpeciesKey(name) ?? ""] ?? []
+  const topTrait = traits
+    .filter((t) => FORM_TRAITS[t].ohaeng === target)
+    .sort((a, b) => FORM_TRAITS[b].points - FORM_TRAITS[a].points)[0]
+
+  return [
+    { weight: color[target] * PROFILE_WEIGHT.color, text: `${COLOR_HINT[target]} 색감` },
+    { weight: form[target] * PROFILE_WEIGHT.form, text: topTrait ?? "형태" },
+    { weight: season[target] * PROFILE_WEIGHT.season, text: SEASON_HINT[target] },
+  ]
+    .filter((p) => p.weight > 0)
+    .sort((a, b) => b.weight - a.weight)
+    .slice(0, 2)
+    .map((p) => p.text)
+    .join(" · ")
+}
+
 /** 오행별 0~100 절대점수 프로필. 합이 100이 아니며, 한 꽃이 여러 오행에 높을 수 있다. */
 export function flowerOhaengProfile(input: OhaengProfileInput): Record<Ohaeng, number> {
   const color = colorAxis(input.name ?? "", input.colorTags ?? [])
