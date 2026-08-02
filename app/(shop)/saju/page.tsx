@@ -10,36 +10,14 @@ import { FortuneResult } from "@/components/saju/FortuneResult"
 import { FlowerRecommendList } from "@/components/saju/FlowerRecommendList"
 import { FlowerGuide } from "@/components/saju/FlowerGuide"
 import { ShareCard } from "@/components/saju/ShareCard"
-import type { Ohaeng, OhaengProfile, PillarInfo } from "@/lib/saju"
 import type { FortuneResult as FortuneData } from "@/lib/fortune"
+import type { AnalyzeResult as SharedAnalyzeResult } from "@/types/saju"
 
-interface Product {
-  id: string
-  name: string
-  price: number
-  images: string[]
-  flowerMeaning: string | null
-  category: string
-}
+// 응답 스키마는 types/saju.ts가 단일 출처다 (라우트가 satisfies로 검증).
+type AnalyzeResult = Omit<SharedAnalyzeResult, "fortune"> & { fortune: FortuneData }
 
-interface LackingEntry {
-  ohaeng: Ohaeng
-  products: Product[]
-}
-
-interface AnalyzeResult {
-  ohaeng: Ohaeng
-  profile: OhaengProfile
-  pillars: PillarInfo[]
-  hasHour: boolean
-  name?: string
-  lackingProducts: LackingEntry[]
-  fortune: FortuneData
-  recommendedFlowers: Product[]
-  wealthFlowers: Product[]
-  loveFlowers: Product[]
-  seasonalFlowers: Product[]
-}
+// 응답 스키마를 바꾸면 뒤 숫자를 올린다 — 구버전 캐시가 read 경로에 도달하지 못하게 한다.
+const SAJU_CACHE_KEY = "lifeInBloomSajuStateV2"
 
 interface SubmitData {
   name: string
@@ -87,11 +65,15 @@ function SajuPageContent() {
   useEffect(() => {
     if (kioskBirthDate) return
     try {
-      const cached = sessionStorage.getItem("lifeInBloomSajuState")
+      const cached = sessionStorage.getItem(SAJU_CACHE_KEY)
       if (!cached) return
       const state = JSON.parse(cached) as { input: SavedProfile; result: AnalyzeResult; birthYear: number; userName: string }
+      // 스키마가 어긋난 캐시는 렌더 전에 버린다
+      if (!Array.isArray(state?.result?.recommendedFlowers) || !Array.isArray(state?.result?.lackingProducts)) {
+        sessionStorage.removeItem(SAJU_CACHE_KEY); return
+      }
       setSavedProfile(state.input); setResult(state.result); setBirthYear(state.birthYear); setUserName(state.userName); setLoadKey((key) => key + 1)
-    } catch { sessionStorage.removeItem("lifeInBloomSajuState") }
+    } catch { sessionStorage.removeItem(SAJU_CACHE_KEY) }
   }, [kioskBirthDate])
 
   // 분석 완료 시 결과로 부드럽게 스크롤
@@ -133,7 +115,7 @@ function SajuPageContent() {
       if (!res.ok) throw new Error()
       const analyzed = await res.json()
       setResult(analyzed)
-      sessionStorage.setItem("lifeInBloomSajuState", JSON.stringify({ input: data, result: analyzed, birthYear: new Date(data.birthDate).getFullYear(), userName: data.name }))
+      sessionStorage.setItem(SAJU_CACHE_KEY, JSON.stringify({ input: data, result: analyzed, birthYear: new Date(data.birthDate).getFullYear(), userName: data.name }))
 
       // 로그인 상태이면 자동 저장
       if (session?.user) {

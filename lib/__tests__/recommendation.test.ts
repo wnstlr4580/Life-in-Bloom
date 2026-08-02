@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest"
 import {
-  needVector, balanceGain, normalizeGains,
+  ohaengBalance, balanceDelta, idealBalanceDelta, ohaengFit, NEUTRAL_FIT,
+  isRecommendable, personalPreferenceDetail, personalScore, buildReasons,
   stockScore, personalPreferenceScore, blendScore,
   wealthOhaeng, loveOhaeng, birthColorOhaeng,
   MONTH_TO_OHAENG, OBANGSAEK_OHAENG, topByOhaeng, OHAENG_RELEVANCE_MIN, pickDiverse,
@@ -10,40 +11,105 @@ import type { Ohaeng } from "../saju"
 
 const zero: Record<Ohaeng, number> = { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 }
 
-describe("needVector", () => {
-  it("부족은 양수, 딱 20은 0, 과잉은 음수(절반 강도)", () => {
-    const need = needVector({ 목: 5, 화: 40, 토: 20, 금: 15, 수: 20 })
-    expect(need.목).toBe(15) // 20-5
-    expect(need.금).toBe(5) // 20-15
-    expect(need.화).toBe(-10) // 과잉 → (20-40) * 0.5
-    expect(need.토).toBe(0) // 딱 20 = 중립
-    expect(need.수).toBe(0)
+const counts = (목: number, 화: number, 토: number, 금: number, 수: number) => ({ 목, 화, 토, 금, 수 })
+
+describe("ohaengBalance", () => {
+  it("완전 균형이 100, 한 오행에 다 몰리면 0", () => {
+    expect(ohaengBalance(counts(2, 2, 2, 2, 2))).toBeCloseTo(100)
+    expect(ohaengBalance(counts(8, 0, 0, 0, 0))).toBeCloseTo(0)
+  })
+
+  it("글자 수가 6·8이라 완전 균형은 구조적으로 도달 불가능하다", () => {
+    // 비둘기집 원리로 max n ≥ ⌈N/5⌉ = 2. 실제 최선값을 고정한다.
+    expect(ohaengBalance(counts(2, 2, 2, 1, 1))).toBeCloseTo(84.7, 1) // 8자 최선
+    expect(ohaengBalance(counts(2, 1, 1, 1, 1))).toBeCloseTo(83.3, 1) // 6자 최선
+  })
+
+  it("치우칠수록 낮다", () => {
+    expect(ohaengBalance(counts(1, 3, 2, 0, 2))).toBeGreaterThan(ohaengBalance(counts(1, 1, 5, 1, 0)))
+  })
+
+  it("반올림한 퍼센트가 아니라 글자 수를 입력해야 한다", () => {
+    // [1,1,2,2,2] → pct [13,13,25,25,25] 는 합이 101이라 균형도가 어긋난다
+    const fromCounts = ohaengBalance(counts(1, 1, 2, 2, 2))
+    const fromRoundedPct = ohaengBalance(counts(13, 13, 25, 25, 25))
+    expect(fromCounts).not.toBeCloseTo(fromRoundedPct, 5)
   })
 })
 
-describe("balanceGain", () => {
-  it("부족 오행에 강한 프로필이 더 높은 gain", () => {
-    const need = needVector({ 목: 0, 화: 40, 토: 30, 금: 20, 수: 10 }) // 목 부족(20), 수 부족(10)
-    const mokFlower = { ...zero, 목: 80 } // 목에 강함
-    const hwaFlower = { ...zero, 화: 80 } // 이미 과잉인 화에 강함
-    expect(balanceGain(mokFlower, need)).toBeGreaterThan(balanceGain(hwaFlower, need))
-    expect(balanceGain(hwaFlower, need)).toBe(-800) // 화 과잉(need=-10) → 감점
+describe("balanceDelta", () => {
+  it("부족한 오행을 채우는 꽃은 양수, 과잉을 키우는 꽃은 음수", () => {
+    const me = counts(1, 3, 2, 0, 2) // 화 과다·금 결핍
+    expect(balanceDelta(me, { ...zero, 금: 80 })).toBeGreaterThan(0)
+    expect(balanceDelta(me, { ...zero, 화: 80 })).toBeLessThan(0)
   })
 
-  it("실제 프로필과 연동: 목 부족 사주에 유칼립투스(목)가 해바라기(화·토)보다 높다", () => {
-    const need = needVector({ 목: 0, 화: 30, 토: 30, 금: 20, 수: 20 })
+  it("과잉 감점에 상수가 필요 없다 — 수식에서 그대로 나온다", () => {
+    const me = counts(1, 4, 1, 0, 2)
+    const rose = flowerOhaengProfile({ name: "빨간 장미", colorTags: ["레드"] })
+    const lily = flowerOhaengProfile({ name: "백합", colorTags: ["화이트"] })
+    expect(balanceDelta(me, rose)).toBeLessThan(balanceDelta(me, lily))
+  })
+
+  it("실제 프로필: 목 부족 사주에 유칼립투스(목)가 해바라기(화·토)보다 높다", () => {
+    const me = counts(0, 2, 2, 2, 2)
     const euca = flowerOhaengProfile({ name: "유칼립투스", colorTags: ["그린"], seasonTags: ["spring"] })
     const sun = flowerOhaengProfile({ name: "해바라기", colorTags: ["옐로"], seasonTags: ["summer"] })
-    expect(balanceGain(euca, need)).toBeGreaterThan(balanceGain(sun, need))
+    expect(balanceDelta(me, euca)).toBeGreaterThan(balanceDelta(me, sun))
+  })
+
+  it("오행 신호가 전혀 없는 꽃은 균형을 바꾸지 않는다", () => {
+    expect(balanceDelta(counts(1, 3, 2, 0, 2), zero)).toBe(0)
   })
 })
 
-describe("normalizeGains", () => {
-  it("최댓값이 1, 나머지는 비율", () => {
-    expect(normalizeGains([0, 5, 10])).toEqual([0, 0.5, 1])
+describe("idealBalanceDelta · ohaengFit", () => {
+  // 8자·6자로 가능한 모든 오행 분포
+  const allCounts: ReturnType<typeof counts>[] = []
+  for (const total of [6, 8]) {
+    for (let a = 0; a <= total; a++)
+      for (let b = 0; a + b <= total; b++)
+        for (let c = 0; a + b + c <= total; c++)
+          for (let d = 0; a + b + c + d <= total; d++)
+            allCounts.push(counts(a, b, c, d, total - a - b - c - d))
+  }
+
+  it("모든 사주에서 Δ* > 0 (완전 균형이 불가능하므로 개선 여지가 항상 있다)", () => {
+    for (const c of allCounts) expect(idealBalanceDelta(c)).toBeGreaterThan(0)
   })
-  it("전부 0이면 전부 0", () => {
-    expect(normalizeGains([0, 0])).toEqual([0, 0])
+
+  it("어떤 꽃도 Δ*를 넘지 못한다 — 비율 ≤ 1 보장", () => {
+    const profiles = [
+      zero, { ...zero, 목: 80 }, { ...zero, 화: 80 }, { ...zero, 토: 80 },
+      { ...zero, 금: 80 }, { ...zero, 수: 80 },
+      { 목: 40, 화: 30, 토: 20, 금: 10, 수: 5 }, { 목: 14, 화: 40, 토: 2, 금: 79, 수: 2 },
+    ]
+    for (const c of allCounts) {
+      const ideal = idealBalanceDelta(c)
+      for (const p of profiles) {
+        expect(balanceDelta(c, p)).toBeLessThanOrEqual(ideal + 1e-9)
+      }
+    }
+  })
+
+  it("ohaengFit: 영향 없으면 NEUTRAL_FIT, 항상 0~1", () => {
+    const me = counts(1, 3, 2, 0, 2)
+    const ideal = idealBalanceDelta(me)
+    expect(ohaengFit(me, zero, ideal)).toBeCloseTo(NEUTRAL_FIT)
+    for (const p of [zero, { ...zero, 금: 80 }, { ...zero, 화: 100 }]) {
+      const fit = ohaengFit(me, p, ideal)
+      expect(fit).toBeGreaterThanOrEqual(0)
+      expect(fit).toBeLessThanOrEqual(1)
+    }
+  })
+
+  it("점수가 실제로 퍼진다 — 좋은 꽃과 나쁜 꽃의 궁합 차이가 뚜렷하다", () => {
+    const me = counts(1, 3, 2, 0, 2) // 금 결핍
+    const ideal = idealBalanceDelta(me)
+    const good = Math.round(100 * ohaengFit(me, flowerOhaengProfile({ name: "백합", colorTags: ["화이트"] }), ideal))
+    const bad = Math.round(100 * ohaengFit(me, flowerOhaengProfile({ name: "해바라기", colorTags: ["옐로"] }), ideal))
+    expect(good).toBeGreaterThan(70)
+    expect(bad).toBeLessThan(50)
   })
 })
 
@@ -156,40 +222,104 @@ describe("topByOhaeng", () => {
     expect(got.map((s) => s.id)).toEqual(["남음"])
   })
 
-  it("사주 항이 후보 최댓값 기준으로 정규화되어 85:10:5가 지켜진다", () => {
-    // 1위는 프로필이 만점이 아니어도 balance 항 0.85를 온전히 받아야 한다
-    const items = [cand("top", { 목: 40 }, 50, 1), cand("low", { 목: 20 }, 50, 1)]
-    const [first] = topByOhaeng(items, "목", 1)
-    expect(first.id).toBe("top")
-    // 정규화 전이라면 0.85*0.40 = 0.34 였을 항이 0.85*1 = 0.85 가 된다
-    expect(blendScore(1, 50, 1)).toBeCloseTo(0.85 + 0.10 + 0.05)
+  it("점수는 절대값이다 — 후보군이 빈약하면 1위도 낮은 점수를 받는다", () => {
+    // 상대 정규화였다면 두 경우 모두 1위가 만점을 받았을 것이다
+    const weak = topByOhaeng([cand("약함", { 목: 40 }, 50, 0)], "목", 1)[0]
+    const strong = topByOhaeng([cand("강함", { 목: 90 }, 50, 0)], "목", 1)[0]
+    expect(weak.score).toBeLessThan(strong.score)
+    expect(weak.score).toBeCloseTo(blendScore(0.4, 50, 0))
+  })
+
+  it("계산된 점수를 그대로 실어 보낸다", () => {
+    const [top] = topByOhaeng([cand("a", { 수: 60 }, 20, 0.5)], "수", 1)
+    expect(top.score).toBeCloseTo(blendScore(0.6, 20, 0.5))
   })
 })
 
-describe("과잉 오행 감점", () => {
-  it("과잉 오행에 강한 꽃은 음수 gain을 받는다", () => {
-    const need = needVector({ 목: 0, 화: 50, 토: 25, 금: 13, 수: 12 })
-    expect(balanceGain({ ...zero, 화: 80 }, need)).toBeLessThan(0)
+describe("isRecommendable (추모 제외)", () => {
+  it("추모 태그가 있으면 사주 추천 대상에서 뺀다", () => {
+    expect(isRecommendable({ useTags: ["추모"] })).toBe(false)
+    expect(isRecommendable({ useTags: ["축하", "추모"] })).toBe(false)
+  })
+  it("그 외 용도는 통과하고, 태그가 없거나 null이어도 통과한다", () => {
+    expect(isRecommendable({ useTags: ["생일", "감사"] })).toBe(true)
+    expect(isRecommendable({ useTags: [] })).toBe(true)
+    expect(isRecommendable({})).toBe(true)
+    expect(isRecommendable({ useTags: null })).toBe(true)
+  })
+})
+
+describe("personalPreferenceDetail", () => {
+  const user = { monthDay: null, month: 6, mainOhaeng: "화" as const } // 6월=화=적(레드/핑크)
+
+  it("점수 함수는 내역 함수의 합성과 정확히 같다 (기존 동작 보존)", () => {
+    const p = { id: "x", name: "빨간 장미", colorTags: ["레드"] }
+    expect(personalPreferenceScore(p, user)).toBeCloseTo(personalScore(personalPreferenceDetail(p, user)))
   })
 
-  it("normalizeGains는 음수가 섞여도 순서를 보존한다", () => {
-    const [a, b, c] = normalizeGains([-4, 0, 10])
-    expect(a).toBe(0)
-    expect(c).toBe(1)
-    expect(b).toBeGreaterThan(a)
-    expect(b).toBeLessThan(c)
+  it("무엇이 걸렸는지 내역으로 알 수 있다", () => {
+    const d = personalPreferenceDetail({ id: "x", name: "무명 꽃", colorTags: ["레드"] }, user)
+    expect(d.color).toBe(1)
+    expect(d.birthColorName).toBe("적(赤)")
   })
 
-  it("gain이 전부 양수면 기존(최댓값 기준) 정규화와 동일하다", () => {
-    expect(normalizeGains([0, 5, 10])).toEqual([0, 0.5, 1])
+  it("아무것도 안 걸리면 전부 0", () => {
+    const d = personalPreferenceDetail({ id: "x", name: "무명 꽃", colorTags: ["그린"] }, user)
+    expect(d.color).toBe(0)
+    expect(d.flower).toBe(0)
+    expect(personalScore(d)).toBe(0)
+  })
+})
+
+describe("buildReasons", () => {
+  const base = {
+    product: { name: "백합", colorTags: ["화이트"] },
+    target: "금" as const,
+    profile: flowerOhaengProfile({ name: "백합", colorTags: ["화이트"] }),
+    stock: 20,
+    personal: { flower: 0, color: 0, birthFlowerName: null, birthColorName: "적(赤)" },
+  }
+
+  it("점수에 기여한 근거만 만든다 — 기여 없는 항목은 카드도 없다", () => {
+    const reasons = buildReasons(base)
+    expect(reasons.some((r) => r.icon === "🎨")).toBe(false) // 탄생색 미일치
+    expect(reasons.some((r) => r.icon === "🌸")).toBe(false) // 탄생화 무관
+    expect(reasons.some((r) => r.icon === "🛒")).toBe(true) // 재고 20
   })
 
-  it("화가 과잉인 사주에서 빨간 장미가 흰 백합보다 낮게 평가된다", () => {
-    // 이 알고리즘의 핵심 주장 그 자체 — 과한 기운은 더 키우지 않는다
-    const need = needVector({ 목: 13, 화: 50, 토: 12, 금: 0, 수: 25 })
-    const rose = flowerOhaengProfile({ name: "빨간 장미", colorTags: ["레드"] })
-    const lily = flowerOhaengProfile({ name: "백합", colorTags: ["화이트"] })
-    expect(balanceGain(rose, need)).toBeLessThan(balanceGain(lily, need))
+  it("품절이면 구매 가능 근거가 없다", () => {
+    expect(buildReasons({ ...base, stock: 0 }).some((r) => r.icon === "🛒")).toBe(false)
+  })
+
+  it("오행 근거는 그 오행에 실제 기여가 있을 때만", () => {
+    expect(buildReasons(base).some((r) => r.title.includes("금(金)"))).toBe(true)
+    // 백합은 토에 거의 기여가 없다
+    expect(buildReasons({ ...base, target: "토" }).some((r) => r.title.includes("토(土)"))).toBe(false)
+  })
+
+  it("탄생화·탄생색이 걸리면 근거가 붙는다", () => {
+    const reasons = buildReasons({
+      ...base,
+      personal: { flower: 0.7, color: 1, birthFlowerName: "백합", birthColorName: "백(白)" },
+    })
+    expect(reasons.some((r) => r.icon === "🎨")).toBe(true)
+    expect(reasons.find((r) => r.icon === "🌸")?.detail).toContain("백합")
+  })
+
+  it("과잉 회피 근거는 그 오행 점수가 실제로 낮을 때만", () => {
+    // 백합 프로필은 { 목14, 화40, 토2, 금79, 수2 }
+    expect(buildReasons({ ...base, excessOhaeng: "토" }).some((r) => r.icon === "⚖️")).toBe(true)
+    // 금(79)·화(40)가 과잉이라면 백합은 그 기운을 오히려 키우므로 근거가 되면 안 된다
+    expect(buildReasons({ ...base, excessOhaeng: "금" }).some((r) => r.icon === "⚖️")).toBe(false)
+    expect(buildReasons({ ...base, excessOhaeng: "화" }).some((r) => r.icon === "⚖️")).toBe(false)
+  })
+
+  it("모든 근거는 아이콘·제목·설명을 갖는다", () => {
+    for (const r of buildReasons({ ...base, excessOhaeng: "화", seasonal: true })) {
+      expect(r.icon.length).toBeGreaterThan(0)
+      expect(r.title.length).toBeGreaterThan(0)
+      expect(r.detail.length).toBeGreaterThan(0)
+    }
   })
 })
 

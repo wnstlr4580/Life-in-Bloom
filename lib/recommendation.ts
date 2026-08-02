@@ -1,42 +1,102 @@
 // 최종 추천 랭킹 — 꽃 오행 프로필(lib/ohaengProfile)을 사용해
-//   1) 균형 최적화(사주 오행 분포의 빈 곳을 얼마나 채워주는가)
+//   1) 오행 궁합(그 꽃을 더했을 때 내 사주 오행이 얼마나 고르게 되는가)
 //   2) 구매 가능성(재고)
 //   3) 개인화(탄생화·탄생컬러)
-// 를 블렌딩한다. 사용자 확정 비율: 사주(균형) 85% · 재고 10% · 개인화 5%.
+// 를 블렌딩한다. 사용자 확정 비율: 사주(궁합) 85% · 재고 10% · 개인화 5%.
 import type { Ohaeng } from "./saju"
+import { OHAENG_PROFILE } from "./saju"
 import { birthFlowerSelection, isBirthFlower } from "./diyFlowerTags"
-import { flowerSpeciesKey } from "./ohaengProfile"
+import { flowerSpeciesKey, explainOhaeng, type OhaengProfileInput } from "./ohaengProfile"
 
 const OHAENG_ORDER: Ohaeng[] = ["목", "화", "토", "금", "수"]
 const OHAENG_IDX: Record<Ohaeng, number> = { 목: 0, 화: 1, 토: 2, 금: 3, 수: 4 }
 const EVEN_SHARE = 100 / OHAENG_ORDER.length // 균형 기준선 = 20%
 
-/** 과잉 오행에 주는 음의 가중 강도 — 부족 채우기가 주목적이라 절반만 반영한다. */
-export const EXCESS_PENALTY = 0.5
+// ── 오행 균형 ─────────────────────────────────────────────────
+// 균형도는 "5등분(20%)에서 얼마나 벗어났는가"(L2 편차)로 잰다.
+// L1을 쓰면 기울기가 ±1 상수라 "가장 빈 오행"과 "두 번째로 빈 오행"의 기여가 같아져 동점이 쏟아진다.
+/** 한 오행에 100% 몰린 최악의 편차 노름 = ‖(80,-20,-20,-20,-20)‖₂ */
+export const MAX_DEVIATION = Math.sqrt(8000)
 
-/** 사주 오행 분포(%)에서 부족분 벡터 — 5등분(20%) 기준. 부족하면 양수(부족할수록 큰 가중),
- *  이미 과잉이면 음수로 감점해 그 기운을 더 키우는 꽃이 밀리게 한다. */
-export function needVector(pct: Record<Ohaeng, number>): Record<Ohaeng, number> {
-  return Object.fromEntries(
-    OHAENG_ORDER.map((o) => {
-      const diff = EVEN_SHARE - (pct[o] ?? 0)
-      return [o, diff >= 0 ? diff : diff * EXCESS_PENALTY]
-    }),
-  ) as Record<Ohaeng, number>
+/** 균형에 아무 영향이 없는 꽃(Δ=0)의 궁합 점수. 유일한 튜닝 상수. */
+export const NEUTRAL_FIT = 0.4
+
+/** 오행별 글자 수 — 반올림 전 값이어야 한다.
+ *  퍼센트는 오행마다 반올림돼 합이 100이 아닌 경우가 흔하다(예: [1,1,2,2,2] → 101). */
+export type OhaengCounts = Record<Ohaeng, number>
+
+/** 오행 분포가 고른 정도 0~100. 완전 균형이 100, 한 오행에 전부 몰리면 0.
+ *  글자 수가 6 또는 8이라 완전 균형(100)은 구조적으로 도달 불가능하다(8자 최선 84.7). */
+export function ohaengBalance(counts: OhaengCounts): number {
+  const total = OHAENG_ORDER.reduce((sum, o) => sum + (counts[o] ?? 0), 0)
+  if (total <= 0) return 0
+  const squared = OHAENG_ORDER.reduce((sum, o) => {
+    const deviation = (100 * (counts[o] ?? 0)) / total - EVEN_SHARE
+    return sum + deviation * deviation
+  }, 0)
+  return 100 * (1 - Math.sqrt(squared) / MAX_DEVIATION)
 }
 
-/** 균형 gain = 프로필·부족벡터 내적. 내가 부족한 오행에 강한 꽃일수록 높다. */
-export function balanceGain(profile: Record<Ohaeng, number>, need: Record<Ohaeng, number>): number {
-  return OHAENG_ORDER.reduce((sum, o) => sum + profile[o] * need[o], 0)
+/** 꽃 프로필(0~100 절대점수, 합≠100)을 오행 점유 비율(합 1)로. 신호가 전혀 없으면 null.
+ *  크기가 아니라 비율을 쓰는 이유: 프로필 합은 "기운이 세다"가 아니라 "여러 축에 걸쳐 있다"는 뜻이다. */
+function flowerShare(profile: Record<Ohaeng, number>): Record<Ohaeng, number> | null {
+  const sum = OHAENG_ORDER.reduce((acc, o) => acc + (profile[o] ?? 0), 0)
+  if (sum <= 0) return null
+  return Object.fromEntries(OHAENG_ORDER.map((o) => [o, profile[o] / sum])) as Record<Ohaeng, number>
 }
 
-/** 후보군 gain들을 0~1로 정규화. 과잉 오행 감점으로 음수 gain이 나올 수 있으므로 min-max를
- *  쓰되 하한을 0으로 고정한다 — gain이 전부 양수인 경우 최댓값 기준 정규화와 동일하게 동작한다. */
-export function normalizeGains(gains: number[]): number[] {
-  const max = Math.max(0, ...gains)
-  const min = Math.min(0, ...gains)
-  const span = max - min
-  return gains.map((g) => (span > 0 ? (g - min) / span : 0))
+function addShare(counts: OhaengCounts, share: Record<Ohaeng, number>): OhaengCounts {
+  return Object.fromEntries(OHAENG_ORDER.map((o) => [o, (counts[o] ?? 0) + share[o]])) as OhaengCounts
+}
+
+/** 그 꽃을 사주에 글자 하나로 더했을 때의 균형도.
+ *  혼합 계수를 따로 두지 않는다 — 글자 하나를 더하면 α = 1/(N+1)이 자동으로 유도된다. */
+export function balanceAfter(counts: OhaengCounts, profile: Record<Ohaeng, number>): number {
+  const share = flowerShare(profile)
+  if (!share) return ohaengBalance(counts)
+  return ohaengBalance(addShare(counts, share))
+}
+
+/** 균형 개선폭. 과잉 기운을 더 키우는 꽃은 음수가 된다(감점 상수 없이 수식에서 나온다). */
+export function balanceDelta(counts: OhaengCounts, profile: Record<Ohaeng, number>): number {
+  return balanceAfter(counts, profile) - ohaengBalance(counts)
+}
+
+/** 합이 1이고 모든 성분이 0 이상인 심플렉스로의 유클리드 사영. */
+function projectOntoSimplex(v: number[]): number[] {
+  const sorted = [...v].sort((a, b) => b - a)
+  let cumulative = 0
+  let theta = 0
+  for (let i = 0; i < sorted.length; i++) {
+    cumulative += sorted[i]
+    const candidate = (cumulative - 1) / (i + 1)
+    if (sorted[i] - candidate > 0) theta = candidate
+  }
+  return v.map((x) => Math.max(0, x - theta))
+}
+
+/** 이 사주에 "완벽한 꽃"이 낼 수 있는 최대 개선폭 Δ*. 절대 궁합도의 분모.
+ *  가장 순수한 단일 오행 꽃을 분모로 쓰면 안 된다 — 최적해가 2~3오행 혼합인 사주가 과반이라
+ *  비율이 1을 넘어 상위권이 100점에 뭉친다. 사영을 쓰면 비율 ≤ 1이 보장된다. */
+export function idealBalanceDelta(counts: OhaengCounts): number {
+  const total = OHAENG_ORDER.reduce((sum, o) => sum + (counts[o] ?? 0), 0)
+  // t의 합은 (N+1) - N = 1 이라 심플렉스 합 조건과 정확히 일치한다.
+  const t = OHAENG_ORDER.map((o) => (total + 1) / OHAENG_ORDER.length - (counts[o] ?? 0))
+  const best = projectOntoSimplex(t)
+  const share = Object.fromEntries(OHAENG_ORDER.map((o, i) => [o, best[i]])) as Record<Ohaeng, number>
+  return ohaengBalance(addShare(counts, share)) - ohaengBalance(counts)
+}
+
+/** 절대 오행 궁합도 0~1 — 달성 가능한 최대 개선폭 대비 이 꽃의 개선폭.
+ *  1(완벽 보완) → 1.0, 0(영향 없음) → NEUTRAL_FIT, 균형을 크게 망치면 0. */
+export function ohaengFit(
+  counts: OhaengCounts,
+  profile: Record<Ohaeng, number>,
+  idealDelta: number,
+): number {
+  if (idealDelta <= 0) return NEUTRAL_FIT
+  const ratio = balanceDelta(counts, profile) / idealDelta
+  return Math.min(1, Math.max(0, NEUTRAL_FIT + (1 - NEUTRAL_FIT) * ratio))
 }
 
 // ── 재고(구매 가능성) ─────────────────────────────────────────
@@ -88,12 +148,25 @@ interface PersonalizableProduct {
   colorTags: string[]
 }
 
-/** 사용자 생일 기반 개인화 점수 0~1 — 탄생화(0.7) + 탄생컬러(0.3). */
-export function personalPreferenceScore(product: PersonalizableProduct, user: UserPersonalization): number {
+/** 개인화 점수의 내역 — 근거 카드를 만들려면 무엇이 걸렸는지 알아야 한다. */
+export interface PersonalDetail {
+  flower: number // 1=탄생화 그 자체 · 0.7=같은 꽃 · 0.4=같은 색 · 0=없음
+  color: number // 1=탄생컬러 일치
+  birthFlowerName: string | null
+  birthColorName: string // 오방색 이름 (예: "적(赤)")
+}
+
+/** 사용자 생일 기반 개인화 내역. */
+export function personalPreferenceDetail(
+  product: PersonalizableProduct,
+  user: UserPersonalization,
+): PersonalDetail {
   let flower = 0
+  let birthFlowerName: string | null = null
   if (user.monthDay) {
     const sel = birthFlowerSelection(user.monthDay)
     if (sel) {
+      birthFlowerName = sel.name
       if (isBirthFlower(product.id, user.monthDay)) flower = 1
       else if (matchesSpecies(product.name, sel.name)) flower = 0.7
       else if (matchesColor(product.colorTags, sel.color)) flower = 0.4
@@ -102,7 +175,17 @@ export function personalPreferenceScore(product: PersonalizableProduct, user: Us
   const target = OBANGSAEK_OHAENG[birthColorOhaeng(user)]
   const color = product.colorTags.some((t) => target.colorTags.includes(t)) ? 1 : 0
 
-  return 0.7 * flower + 0.3 * color
+  return { flower, color, birthFlowerName, birthColorName: target.name }
+}
+
+/** 개인화 점수 0~1 — 탄생화(0.7) + 탄생컬러(0.3). */
+export function personalScore(detail: PersonalDetail): number {
+  return 0.7 * detail.flower + 0.3 * detail.color
+}
+
+/** 사용자 생일 기반 개인화 점수 0~1 — 탄생화(0.7) + 탄생컬러(0.3). */
+export function personalPreferenceScore(product: PersonalizableProduct, user: UserPersonalization): number {
+  return personalScore(personalPreferenceDetail(product, user))
 }
 
 function matchesSpecies(productName: string, birthFlowerName: string): boolean {
@@ -157,22 +240,106 @@ export function pickDiverse<T extends { id: string; name: string }>(ranked: T[],
 }
 
 /** 특정 오행을 채우는 상위 상품 — 품절·무관(임계 미만) 상품은 제외한다.
- *  사주 항은 후보 최댓값 기준으로 정규화해 주 추천과 동일하게 85:10:5가 지켜지게 한다. */
+ *  프로필은 이미 0~100 절대점수이므로 후보군 정규화를 하지 않는다. 그래야 카탈로그가 빈약할 때
+ *  1위도 낮은 점수로 나와 "지금 맞는 꽃이 없다"가 점수에 드러난다. */
 export function topByOhaeng<T extends RankCandidate>(
   items: T[],
   target: Ohaeng,
   limit: number,
   exclude: Set<string> = new Set(),
-): T[] {
-  const eligible = items.filter(
-    (s) => s.stock > 0 && !exclude.has(s.id) && s.profile[target] >= OHAENG_RELEVANCE_MIN,
-  )
-  const norm = normalizeGains(eligible.map((s) => s.profile[target]))
-  const ranked = eligible
-    .map((s, i) => ({ s, score: blendScore(norm[i], s.stock, s.personal) }))
+): (T & { score: number })[] {
+  const ranked = items
+    .filter((s) => s.stock > 0 && !exclude.has(s.id) && s.profile[target] >= OHAENG_RELEVANCE_MIN)
+    .map((s) => ({ ...s, score: blendScore(s.profile[target] / 100, s.stock, s.personal) }))
     .sort((a, b) => b.score - a.score)
-    .map((x) => x.s)
   return pickDiverse(ranked, limit)
+}
+
+// ── 추천 근거 ─────────────────────────────────────────────────
+// 규칙: 근거는 점수식에서 실제로 0보다 큰 항에만 대응시킨다. 기여하지 않은 근거는 거짓말이다.
+const OHAENG_EMOJI: Record<Ohaeng, string> = { 목: "🌿", 화: "🔥", 토: "🌾", 금: "✨", 수: "💧" }
+const OHAENG_HANJA: Record<Ohaeng, string> = { 목: "木", 화: "火", 토: "土", 금: "金", 수: "水" }
+
+export interface RecommendReason {
+  icon: string
+  title: string
+  detail: string
+}
+
+export interface ReasonInput {
+  product: OhaengProfileInput
+  target: Ohaeng
+  profile: Record<Ohaeng, number>
+  stock: number
+  personal: PersonalDetail
+  /** 균형 리스트 한정 — 이 사주에서 가장 과한 오행. 다른 리스트는 need가 점수에 안 들어가므로 넘기지 않는다. */
+  excessOhaeng?: Ohaeng | null
+  /** 계절 리스트 한정 */
+  seasonal?: boolean
+}
+
+/** 추천 근거 목록. 순서는 가중치 순이 아니라 읽는 순서(서사)로 고정한다. */
+export function buildReasons(input: ReasonInput): RecommendReason[] {
+  const { product, target, profile, stock, personal, excessOhaeng, seasonal } = input
+  const reasons: RecommendReason[] = []
+
+  const basis = explainOhaeng(product, target)
+  if (basis) {
+    const keywords = OHAENG_PROFILE[target].keywords.slice(0, 2).join("·")
+    reasons.push({
+      icon: OHAENG_EMOJI[target],
+      title: `${target}(${OHAENG_HANJA[target]}) 기운 보완`,
+      detail: `${basis} — 부족한 ${keywords} 보강`,
+    })
+  }
+
+  // 과한 기운을 안 키우는 것도 균형 점수에 기여한다 — 단 그 오행 점수가 실제로 낮을 때만.
+  if (excessOhaeng && profile[excessOhaeng] < OHAENG_RELEVANCE_MIN) {
+    reasons.push({
+      icon: "⚖️",
+      title: `과한 ${excessOhaeng}(${OHAENG_HANJA[excessOhaeng]}) 기운은 안 키워요`,
+      detail: `이미 넘치는 기운을 더하지 않아 균형이 덜 깨져요`,
+    })
+  }
+
+  if (personal.color === 1) {
+    reasons.push({
+      icon: "🎨",
+      title: "탄생색상과 조화",
+      detail: `${personal.birthColorName} — 당신의 기본 색상 에너지와 일치`,
+    })
+  }
+
+  if (personal.flower > 0) {
+    const name = personal.birthFlowerName ?? "탄생화"
+    const detail =
+      personal.flower === 1 ? `오늘 생일의 탄생화예요`
+      : personal.flower === 0.7 ? `탄생화 ${name}와 같은 꽃이에요`
+      : `탄생화 ${name}와 같은 색이에요`
+    reasons.push({ icon: "🌸", title: "탄생화 연관", detail })
+  }
+
+  if (stock > 0) {
+    reasons.push({
+      icon: "🛒",
+      title: "현재 구매 가능",
+      detail: stock >= 10 ? "가까운 판매처에서 바로 받을 수 있어요" : `${stock}개 남았어요`,
+    })
+  }
+
+  if (seasonal) {
+    reasons.push({ icon: "🍃", title: "지금이 제철", detail: "이 계절에 가장 좋은 상태로 만나요" })
+  }
+
+  return reasons
+}
+
+// ── 추천 대상 필터 ────────────────────────────────────────────
+/** 사주 추천에 올리지 않을 용도 태그. 상품 목록(/products?use=추모) 탐색은 그대로 둔다. */
+export const EXCLUDED_USE_TAGS = ["추모"]
+
+export function isRecommendable(product: { useTags?: string[] | null }): boolean {
+  return !(product.useTags ?? []).some((t) => EXCLUDED_USE_TAGS.includes(t))
 }
 
 // ── 운세별 추천 오행 ──────────────────────────────────────────
