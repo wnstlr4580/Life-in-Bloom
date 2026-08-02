@@ -10,10 +10,17 @@ const OHAENG_ORDER: Ohaeng[] = ["목", "화", "토", "금", "수"]
 const OHAENG_IDX: Record<Ohaeng, number> = { 목: 0, 화: 1, 토: 2, 금: 3, 수: 4 }
 const EVEN_SHARE = 100 / OHAENG_ORDER.length // 균형 기준선 = 20%
 
-/** 사주 오행 분포(%)에서 부족분 벡터 — 5등분(20%) 대비 모자란 만큼만 양수. 부족할수록 큰 가중. */
+/** 과잉 오행에 주는 음의 가중 강도 — 부족 채우기가 주목적이라 절반만 반영한다. */
+export const EXCESS_PENALTY = 0.5
+
+/** 사주 오행 분포(%)에서 부족분 벡터 — 5등분(20%) 기준. 부족하면 양수(부족할수록 큰 가중),
+ *  이미 과잉이면 음수로 감점해 그 기운을 더 키우는 꽃이 밀리게 한다. */
 export function needVector(pct: Record<Ohaeng, number>): Record<Ohaeng, number> {
   return Object.fromEntries(
-    OHAENG_ORDER.map((o) => [o, Math.max(0, EVEN_SHARE - (pct[o] ?? 0))]),
+    OHAENG_ORDER.map((o) => {
+      const diff = EVEN_SHARE - (pct[o] ?? 0)
+      return [o, diff >= 0 ? diff : diff * EXCESS_PENALTY]
+    }),
   ) as Record<Ohaeng, number>
 }
 
@@ -22,10 +29,13 @@ export function balanceGain(profile: Record<Ohaeng, number>, need: Record<Ohaeng
   return OHAENG_ORDER.reduce((sum, o) => sum + profile[o] * need[o], 0)
 }
 
-/** 후보군 gain들을 0~1로 정규화 (최댓값 기준). 모두 0이면 전부 0. */
+/** 후보군 gain들을 0~1로 정규화. 과잉 오행 감점으로 음수 gain이 나올 수 있으므로 min-max를
+ *  쓰되 하한을 0으로 고정한다 — gain이 전부 양수인 경우 최댓값 기준 정규화와 동일하게 동작한다. */
 export function normalizeGains(gains: number[]): number[] {
   const max = Math.max(0, ...gains)
-  return gains.map((g) => (max > 0 ? g / max : 0))
+  const min = Math.min(0, ...gains)
+  const span = max - min
+  return gains.map((g) => (span > 0 ? (g - min) / span : 0))
 }
 
 // ── 재고(구매 가능성) ─────────────────────────────────────────

@@ -11,12 +11,12 @@ import type { Ohaeng } from "../saju"
 const zero: Record<Ohaeng, number> = { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 }
 
 describe("needVector", () => {
-  it("20% 미만인 오행만 양수, 충분/과잉은 0", () => {
+  it("부족은 양수, 딱 20은 0, 과잉은 음수(절반 강도)", () => {
     const need = needVector({ 목: 5, 화: 40, 토: 20, 금: 15, 수: 20 })
     expect(need.목).toBe(15) // 20-5
     expect(need.금).toBe(5) // 20-15
-    expect(need.화).toBe(0) // 과잉
-    expect(need.토).toBe(0) // 딱 20
+    expect(need.화).toBe(-10) // 과잉 → (20-40) * 0.5
+    expect(need.토).toBe(0) // 딱 20 = 중립
     expect(need.수).toBe(0)
   })
 })
@@ -27,7 +27,7 @@ describe("balanceGain", () => {
     const mokFlower = { ...zero, 목: 80 } // 목에 강함
     const hwaFlower = { ...zero, 화: 80 } // 이미 과잉인 화에 강함
     expect(balanceGain(mokFlower, need)).toBeGreaterThan(balanceGain(hwaFlower, need))
-    expect(balanceGain(hwaFlower, need)).toBe(0) // 화 need=0
+    expect(balanceGain(hwaFlower, need)).toBe(-800) // 화 과잉(need=-10) → 감점
   })
 
   it("실제 프로필과 연동: 목 부족 사주에 유칼립투스(목)가 해바라기(화·토)보다 높다", () => {
@@ -163,5 +163,32 @@ describe("topByOhaeng", () => {
     expect(first.id).toBe("top")
     // 정규화 전이라면 0.85*0.40 = 0.34 였을 항이 0.85*1 = 0.85 가 된다
     expect(blendScore(1, 50, 1)).toBeCloseTo(0.85 + 0.10 + 0.05)
+  })
+})
+
+describe("과잉 오행 감점", () => {
+  it("과잉 오행에 강한 꽃은 음수 gain을 받는다", () => {
+    const need = needVector({ 목: 0, 화: 50, 토: 25, 금: 13, 수: 12 })
+    expect(balanceGain({ ...zero, 화: 80 }, need)).toBeLessThan(0)
+  })
+
+  it("normalizeGains는 음수가 섞여도 순서를 보존한다", () => {
+    const [a, b, c] = normalizeGains([-4, 0, 10])
+    expect(a).toBe(0)
+    expect(c).toBe(1)
+    expect(b).toBeGreaterThan(a)
+    expect(b).toBeLessThan(c)
+  })
+
+  it("gain이 전부 양수면 기존(최댓값 기준) 정규화와 동일하다", () => {
+    expect(normalizeGains([0, 5, 10])).toEqual([0, 0.5, 1])
+  })
+
+  it("화가 과잉인 사주에서 빨간 장미가 흰 백합보다 낮게 평가된다", () => {
+    // 이 알고리즘의 핵심 주장 그 자체 — 과한 기운은 더 키우지 않는다
+    const need = needVector({ 목: 13, 화: 50, 토: 12, 금: 0, 수: 25 })
+    const rose = flowerOhaengProfile({ name: "빨간 장미", colorTags: ["레드"] })
+    const lily = flowerOhaengProfile({ name: "백합", colorTags: ["화이트"] })
+    expect(balanceGain(rose, need)).toBeLessThan(balanceGain(lily, need))
   })
 })
