@@ -146,6 +146,51 @@ describe("계절 축 (개화 적합도)", () => {
   })
 })
 
+describe("색태그 언어 (한글/영어 혼용)", () => {
+  it("영어 색태그는 같은 뜻의 한글 색태그와 동일한 프로필을 낸다", () => {
+    const ko = flowerOhaengProfile({ name: "해바라기", colorTags: ["옐로"], seasonTags: ["summer"] })
+    const en = flowerOhaengProfile({ name: "해바라기", colorTags: ["yellow"], seasonTags: ["summer"] })
+    expect(en).toEqual(ko)
+  })
+
+  it("영어 단색 8종이 모두 색상축에 잡힌다", () => {
+    // 형태·계절 큐레이션이 없는 이름을 써서 색상축만 남긴다
+    const cases: [string, string][] = [
+      ["red", "화"], ["yellow", "토"], ["green", "목"], ["blue", "수"],
+      ["white", "금"], ["orange", "토"], ["purple", "수"], ["pink", "화"],
+    ]
+    for (const [tag, ohaeng] of cases) {
+      const p = flowerOhaengProfile({ name: "무명 꽃", colorTags: [tag] })
+      expect(p[ohaeng as keyof typeof p], `${tag} → ${ohaeng}`).toBeGreaterThan(0)
+    }
+  })
+
+  it("대응 오행이 없는 색태그(beige/cream/파스텔/믹스)는 색상축 0을 유지한다", () => {
+    for (const tag of ["beige", "cream", "파스텔", "믹스"]) {
+      const p = flowerOhaengProfile({ name: "무명 꽃", colorTags: [tag] })
+      expect(Object.values(p).every((v) => v === 0), tag).toBe(true)
+    }
+  })
+})
+
+describe("꽃 이름 이표기 · 누락 특성", () => {
+  it("칼라/카모마일 이표기도 카라/캐모마일과 동일하게 매칭된다", () => {
+    expect(flowerOhaengProfile({ name: "흰 칼라" })).toEqual(flowerOhaengProfile({ name: "흰 카라" }))
+    expect(flowerOhaengProfile({ name: "카모마일" })).toEqual(flowerOhaengProfile({ name: "캐모마일" }))
+  })
+
+  it("이표기 꽃도 형태·계절축에서 점수를 받는다 (색상축만으로 결정되지 않는다)", () => {
+    const p = flowerOhaengProfile({ name: "카모마일" }) // 색 정보 없음
+    expect(Object.values(p).some((v) => v > 0)).toBe(true)
+  })
+
+  it("튤립은 외대 직립 구근꽃이라 목(수직성장) 점수를 갖는다", () => {
+    // flowers.ts·customFlowers.ts가 튤립을 목으로 분류하는 것과 방향이 일치해야 한다
+    const p = flowerOhaengProfile({ name: "튤립" })
+    expect(p.목).toBeGreaterThan(0)
+  })
+})
+
 describe("회귀: scoreOhaengMatch/classifyOhaeng 불변", () => {
   it("scoreOhaengMatch는 여전히 합≈1 분포를 반환", () => {
     const s = scoreOhaengMatch({ colorTags: ["화이트"], seasonTags: ["autumn"], flowerMeaning: "순수" })
