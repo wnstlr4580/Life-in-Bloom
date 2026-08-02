@@ -80,19 +80,21 @@ export function SellerMap({ latitude, longitude, radiusKm, sellers }: { latitude
   useEffect(() => {
     if (!clientId || !containerRef.current || latitude === null || longitude === null) return
 
-    const draw = () => {
-      if (!containerRef.current || !window.naver?.maps) {
-        setError("네이버 지도 SDK를 불러오지 못했어요. Client ID와 Web 서비스 URL을 확인해 주세요.")
-        return
-      }
-      setError("")
-      const maps = window.naver.maps
-      const currentPosition = new maps.LatLng(latitude, longitude)
-      const zoom = radiusKm <= 1 ? 15 : radiusKm <= 2 ? 14 : radiusKm <= 3 ? 13 : radiusKm <= 5 ? 12 : 11
-      // 전국 공판장 좌표의 평균이 아니라 사용자의 실제 GPS 좌표를 지도 중심으로 고정한다.
-      const map = new maps.Map(containerRef.current, { center: currentPosition, zoom })
+    let cancelled = false
 
-      new maps.Circle({
+    const draw = () => {
+      if (cancelled || !containerRef.current || !window.naver?.maps) return
+      try {
+        setError("")
+        const maps = window.naver.maps
+        const currentPosition = new maps.LatLng(latitude, longitude)
+        const zoom = radiusKm <= 1 ? 15 : radiusKm <= 2 ? 14 : radiusKm <= 3 ? 13 : radiusKm <= 5 ? 12 : 11
+        // React 재실행 시 이전 지도의 DOM을 남기지 않는다.
+        containerRef.current.replaceChildren()
+        // 전국 공판장 좌표의 평균이 아니라 사용자의 실제 GPS 좌표를 지도 중심으로 고정한다.
+        const map = new maps.Map(containerRef.current, { center: currentPosition, zoom })
+
+        new maps.Circle({
         map,
         center: currentPosition,
         radius: radiusKm * 1000,
@@ -103,7 +105,7 @@ export function SellerMap({ latitude, longitude, radiusKm, sellers }: { latitude
         fillOpacity: 0.08,
       })
 
-      new maps.Marker({
+        new maps.Marker({
         map,
         position: currentPosition,
         title: "내 현재 위치",
@@ -113,8 +115,8 @@ export function SellerMap({ latitude, longitude, radiusKm, sellers }: { latitude
         },
       })
 
-      let openedInfo: { close: () => void } | null = null
-      sellers.filter((seller) => seller.latitude !== null && seller.longitude !== null).forEach((seller) => {
+        let openedInfo: { close: () => void } | null = null
+        sellers.filter((seller) => seller.latitude !== null && seller.longitude !== null).forEach((seller) => {
         if (seller.latitude === null || seller.longitude === null) return
         const position = new maps.LatLng(seller.latitude, seller.longitude)
         const marker = new maps.Marker({
@@ -140,22 +142,44 @@ export function SellerMap({ latitude, longitude, radiusKm, sellers }: { latitude
           info.open(map, marker)
           openedInfo = info
         })
-      })
+        })
+      } catch (cause) {
+        console.error("[SellerMap] Naver map initialization failed", cause)
+        setError("네이버 지도 초기화에 실패했어요. 잠시 후 새로고침해 주세요.")
+      }
     }
 
-    if (window.naver?.maps) { draw(); return }
+    const waitForSdk = () => {
+      const startedAt = Date.now()
+      const check = () => {
+        if (cancelled) return
+        if (window.naver?.maps?.Map) {
+          draw()
+          return
+        }
+        if (Date.now() - startedAt >= 5000) {
+          setError("네이버 지도 SDK 초기화가 지연되고 있어요. Client ID와 Web 서비스 URL을 확인해 주세요.")
+          return
+        }
+        window.setTimeout(check, 50)
+      }
+      check()
+    }
+
+    if (window.naver?.maps?.Map) { draw(); return () => { cancelled = true } }
     const existing = document.querySelector<HTMLScriptElement>('script[data-naver-map="true"]')
     if (existing) {
-      existing.addEventListener("load", draw, { once: true })
-      return () => existing.removeEventListener("load", draw)
+      waitForSdk()
+      return () => { cancelled = true }
     }
     const script = document.createElement("script")
     script.dataset.naverMap = "true"
     script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(clientId)}`
     script.async = true
-    script.onload = draw
+    script.onload = waitForSdk
     script.onerror = () => setError("네이버 지도를 불러오지 못했어요. Web Dynamic Map 사용 설정과 등록 URL을 확인해 주세요.")
     document.head.appendChild(script)
+    return () => { cancelled = true }
   }, [clientId, latitude, longitude, radiusKm, sellers])
 
   if (!clientId) return <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-700">네이버 지도 Client ID가 설정되지 않았어요.</p>
