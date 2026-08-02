@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
 import {
-  ohaengBalance, balanceDelta, idealBalanceDelta, ohaengFit, NEUTRAL_FIT,
+  ohaengBalance, balanceDelta, idealBalanceDelta, ohaengFit, NEUTRAL_FIT, ohaengPctAfter,
   isRecommendable, personalPreferenceDetail, personalScore, buildReasons,
   stockScore, personalPreferenceScore, blendScore,
   wealthOhaeng, loveOhaeng, birthColorOhaeng,
@@ -351,5 +351,78 @@ describe("pickDiverse (추천 다양성)", () => {
     expect(flowerSpeciesKey("열정의 빨간 장미 다발")).toBe("장미")
     expect(flowerSpeciesKey("해바라기 미니 화분")).toBe("해바라기")
     expect(flowerSpeciesKey("파스텔 혼합 꽃다발")).toBeNull()
+  })
+})
+
+describe("ohaengPctAfter (차트 before/after)", () => {
+  const c = (목: number, 화: number, 토: number, 금: number, 수: number) => ({ 목, 화, 토, 금, 수 })
+
+  it("글자 하나 추가 모델 — 순수 금 꽃을 8자 사주에 더하면 금이 1/9", () => {
+    expect(ohaengPctAfter(c(1, 3, 2, 0, 2), { ...zero, 금: 100 }))
+      .toEqual({ 목: 11, 화: 33, 토: 22, 금: 11, 수: 22 })
+  })
+
+  it("모든 값은 0~100 정수이고 합은 반올림 오차 범위 안", () => {
+    const p = ohaengPctAfter(c(1, 3, 2, 0, 2), flowerOhaengProfile({ name: "백합", colorTags: ["화이트"] }))
+    const values = Object.values(p)
+    for (const v of values) {
+      expect(Number.isInteger(v)).toBe(true)
+      expect(v).toBeGreaterThanOrEqual(0)
+      expect(v).toBeLessThanOrEqual(100)
+    }
+    const sum = values.reduce((a, b) => a + b, 0)
+    expect(sum).toBeGreaterThanOrEqual(97)
+    expect(sum).toBeLessThanOrEqual(103)
+  })
+
+  it("오행 신호가 없는 꽃은 분포를 바꾸지 않는다 (balanceAfter 폴백과 일치)", () => {
+    const me = c(1, 3, 2, 0, 2)
+    expect(ohaengPctAfter(me, zero)).toEqual({ 목: 13, 화: 38, 토: 25, 금: 0, 수: 25 })
+    expect(balanceDelta(me, zero)).toBe(0)
+  })
+
+  it("어떤 꽃도 한 오행을 12%p 넘게 움직이지 못한다 (과장 배율 금지 회귀 가드)", () => {
+    // 글자 하나 추가 모델의 이론 상한은 100/(N+1) = 11.1%p
+    const profiles = [
+      { ...zero, 목: 100 }, { ...zero, 화: 100 }, { ...zero, 토: 100 },
+      { ...zero, 금: 100 }, { ...zero, 수: 100 },
+      { 목: 14, 화: 40, 토: 2, 금: 79, 수: 2 }, { 목: 40, 화: 30, 토: 20, 금: 10, 수: 5 },
+    ]
+    for (let a = 0; a <= 8; a++)
+      for (let b = 0; a + b <= 8; b++)
+        for (let d = 0; a + b + d <= 8; d++) {
+          const me = c(a, b, d, 8 - a - b - d, 0)
+          const before = ohaengPctAfter(me, zero)
+          for (const p of profiles) {
+            const after = ohaengPctAfter(me, p)
+            for (const o of ["목", "화", "토", "금", "수"] as const) {
+              expect(Math.abs(after[o] - before[o])).toBeLessThanOrEqual(12)
+            }
+          }
+        }
+  })
+
+  it("부족한 오행을 채우는 꽃은 그 오행이 가장 많이 늘어난다 (차트와 근거 문구의 정합)", () => {
+    // 각 꽃마다 그 오행이 0인 사주를 쓴다
+    for (const [name, tags, target, me] of [
+      ["백합", ["화이트"], "금", c(1, 3, 2, 0, 2)],
+      ["빨간 장미", ["레드"], "화", c(2, 0, 2, 2, 2)],
+      ["유칼립투스", ["그린"], "목", c(0, 2, 2, 2, 2)],
+    ] as const) {
+      const before = ohaengPctAfter(me, zero)
+      const after = ohaengPctAfter(me, flowerOhaengProfile({ name, colorTags: [...tags] }))
+      const grew = (["목", "화", "토", "금", "수"] as const)
+        .reduce((x, y) => (after[y] - before[y] > after[x] - before[x] ? y : x))
+      expect(grew, name).toBe(target)
+    }
+  })
+
+  it("이미 과잉인 오행은 그 기운의 꽃을 더해도 거의 안 는다", () => {
+    // 분포는 합이 100이라 Δ(o) ∝ (N·share_o − count_o) — 이미 많은 오행은 늘기 어렵다.
+    // 화 과잉 사주에 빨간 장미를 더하면 화는 +1%p인데 비어 있는 금이 훨씬 크게 는다.
+    const me = c(1, 3, 2, 0, 2) // 화 38% · 금 0%
+    const before = ohaengPctAfter(me, zero)
+    const after = ohaengPctAfter(me, flowerOhaengProfile({ name: "빨간 장미", colorTags: ["레드"] }))
+    expect(after.화 - before.화).toBeLessThan(after.금 - before.금)
   })
 })

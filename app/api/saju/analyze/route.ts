@@ -5,10 +5,9 @@ import { calculateSaju, getCurrentSeason } from "@/lib/saju"
 import type { Ohaeng } from "@/lib/saju"
 import { calcFortune } from "@/lib/fortune"
 import type { AnalyzeResult } from "@/types/saju"
-import { whoGenerates } from "@/lib/ohaengMatching"
 import { flowerOhaengProfile } from "@/lib/ohaengProfile"
 import {
-  ohaengBalance, balanceAfter, idealBalanceDelta, ohaengFit,
+  ohaengBalance, balanceAfter, ohaengPctAfter, idealBalanceDelta, ohaengFit,
   topByOhaeng, pickDiverse, blendScore, buildReasons, isRecommendable,
   personalPreferenceDetail, personalScore, wealthOhaeng, loveOhaeng,
   type UserPersonalization, type OhaengCounts,
@@ -116,17 +115,8 @@ export async function POST(req: NextRequest) {
     ...toCard(s, driverOhaeng(s.profile), { excess: true }),
     balanceBefore: Math.round(balance),
     balanceAfter: Math.round(balanceAfter(counts, s.profile)),
+    pctAfter: ohaengPctAfter(counts, s.profile),
   }))
-
-  // 부족한 기운에 맞는 상품이 모자라면, 그 기운을 낳아주는(상생) 오행 상품으로 채운다.
-  const lackingProducts = lackingOhaeng.map((o) => {
-    const exact = topByOhaeng(scored, o, 3)
-    if (exact.length >= 3) return { ohaeng: o, products: exact.map((s) => toCard(s, o)) }
-    // 폴백 상품은 실제 근거가 상생 오행이므로 그 오행으로 설명한다.
-    const helper = whoGenerates(o)
-    const filler = topByOhaeng(scored, helper, 3 - exact.length, new Set(exact.map((s) => s.id)))
-    return { ohaeng: o, products: [...exact.map((s) => toCard(s, o)), ...filler.map((s) => toCard(s, helper))] }
-  })
 
   // 운세별 추천 — 재물운(재성)·연애운(식상) 오행 프로필이 높은 꽃
   const wealth = wealthOhaeng(saju.mainOhaeng)
@@ -151,7 +141,8 @@ export async function POST(req: NextRequest) {
     city,
     calendarType,
     balance: Math.round(balance),
-    lackingProducts,
+    ohaengPct: pct,
+    lackingOhaeng,
     fortune,
     recommendedFlowers,
     wealthFlowers,

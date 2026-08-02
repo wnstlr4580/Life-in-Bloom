@@ -53,11 +53,6 @@ export function FlowerRecommendList({ title, products }: Props) {
                       {reasons[0].icon} {reasons[0].title}
                     </p>
                   )}
-                  {product.balanceAfter != null && (
-                    <p className="text-[10px] text-stone-400 mt-0.5">
-                      오행 균형 {product.balanceBefore} → {product.balanceAfter}
-                    </p>
-                  )}
                   <p className="text-sm font-bold text-rose-500 mt-1">
                     {product.price.toLocaleString()}원
                   </p>

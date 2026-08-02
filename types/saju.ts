@@ -19,11 +19,8 @@ export interface SajuProduct {
   /** 주 추천 한정 — 이 꽃을 더했을 때의 오행 균형 변화 */
   balanceBefore?: number
   balanceAfter?: number
-}
-
-export interface LackingEntry {
-  ohaeng: Ohaeng
-  products: SajuProduct[]
+  /** 주 추천 한정 — 이 꽃을 더했을 때의 오행 분포(%). 차트 before/after 비교용 */
+  pctAfter?: Record<Ohaeng, number>
 }
 
 export interface AnalyzeResult {
@@ -34,7 +31,11 @@ export interface AnalyzeResult {
   name?: string
   /** 현재 오행 균형도 0~100 */
   balance: number
-  lackingProducts: LackingEntry[]
+  /** 현재 오행 분포(%) — 오행마다 반올림돼 합이 100이 아닐 수 있다(표시 전용) */
+  ohaengPct: Record<Ohaeng, number>
+  /** 가장 부족한 오행(항상 0~1개). 상품이 아니라 값 자체가 필요하다 —
+   *  User.lackingOhaengType 저장(custom·diy "보충" 뱃지)과 FlowerGuide가 읽는다. */
+  lackingOhaeng: Ohaeng[]
   fortune: unknown
   recommendedFlowers: SajuProduct[]
   wealthFlowers: SajuProduct[]

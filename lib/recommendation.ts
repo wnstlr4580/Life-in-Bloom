@@ -62,6 +62,21 @@ export function balanceDelta(counts: OhaengCounts, profile: Record<Ohaeng, numbe
   return balanceAfter(counts, profile) - ohaengBalance(counts)
 }
 
+/** 그 꽃을 글자 하나로 더했을 때의 오행 분포(%) — 차트 before/after 비교용.
+ *  balanceAfter와 같은 모델(글자 하나 추가)을 쓴다 — 스칼라 균형도와 차트가 어긋나면 안 된다.
+ *  오행마다 반올림하므로 합이 정확히 100이 아닐 수 있다(표시 전용). */
+export function ohaengPctAfter(
+  counts: OhaengCounts,
+  profile: Record<Ohaeng, number>,
+): Record<Ohaeng, number> {
+  const share = flowerShare(profile)
+  const next = share ? addShare(counts, share) : counts
+  const total = OHAENG_ORDER.reduce((sum, o) => sum + next[o], 0)
+  return Object.fromEntries(
+    OHAENG_ORDER.map((o) => [o, total > 0 ? Math.round((100 * next[o]) / total) : 0]),
+  ) as Record<Ohaeng, number>
+}
+
 /** 합이 1이고 모든 성분이 0 이상인 심플렉스로의 유클리드 사영. */
 function projectOntoSimplex(v: number[]): number[] {
   const sorted = [...v].sort((a, b) => b - a)

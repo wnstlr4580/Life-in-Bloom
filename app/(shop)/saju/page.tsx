@@ -17,7 +17,7 @@ import type { AnalyzeResult as SharedAnalyzeResult } from "@/types/saju"
 type AnalyzeResult = Omit<SharedAnalyzeResult, "fortune"> & { fortune: FortuneData }
 
 // 응답 스키마를 바꾸면 뒤 숫자를 올린다 — 구버전 캐시가 read 경로에 도달하지 못하게 한다.
-const SAJU_CACHE_KEY = "lifeInBloomSajuStateV2"
+const SAJU_CACHE_KEY = "lifeInBloomSajuStateV3"
 
 interface SubmitData {
   name: string
@@ -69,7 +69,7 @@ function SajuPageContent() {
       if (!cached) return
       const state = JSON.parse(cached) as { input: SavedProfile; result: AnalyzeResult; birthYear: number; userName: string }
       // 스키마가 어긋난 캐시는 렌더 전에 버린다
-      if (!Array.isArray(state?.result?.recommendedFlowers) || !Array.isArray(state?.result?.lackingProducts)) {
+      if (!Array.isArray(state?.result?.recommendedFlowers) || !state?.result?.ohaengPct) {
         sessionStorage.removeItem(SAJU_CACHE_KEY); return
       }
       setSavedProfile(state.input); setResult(state.result); setBirthYear(state.birthYear); setUserName(state.userName); setLoadKey((key) => key + 1)
@@ -125,7 +125,7 @@ function SajuPageContent() {
           body: JSON.stringify({
             ...data,
             ohaengType: analyzed.ohaeng ?? null,
-            lackingOhaengType: analyzed.lackingProducts?.[0]?.ohaeng ?? null,
+            lackingOhaengType: analyzed.lackingOhaeng?.[0] ?? null,
           }),
         }).then(() => setSavedProfile(data)).catch(() => {})
       }
@@ -294,20 +294,13 @@ function SajuPageContent() {
             )}
           </div>
 
-          <OhaengBalance pillars={result.pillars} lackingProducts={result.lackingProducts} />
+          <OhaengBalance pct={result.ohaengPct} flowers={result.recommendedFlowers} />
 
           {/* 상품이 없어도 보여주는 꽃 사전 */}
           <FlowerGuide
             mainOhaeng={result.ohaeng}
-            lackingOhaeng={result.lackingProducts.map((l) => l.ohaeng)}
+            lackingOhaeng={result.lackingOhaeng}
           />
-
-          {result.recommendedFlowers.length > 0 && (
-            <FlowerRecommendList
-              title="🌿 내 사주 오행 균형을 채워주는 꽃"
-              products={result.recommendedFlowers}
-            />
-          )}
 
           {result.wealthFlowers.length > 0 && (
             <FlowerRecommendList
