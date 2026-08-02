@@ -6,7 +6,7 @@ import {
   wealthOhaeng, loveOhaeng, birthColorOhaeng,
   MONTH_TO_OHAENG, OBANGSAEK_OHAENG, topByOhaeng, OHAENG_RELEVANCE_MIN, pickDiverse,
 } from "../recommendation"
-import { flowerOhaengProfile, flowerSpeciesKey } from "../ohaengProfile"
+import { flowerOhaengProfile, flowerSpeciesKey, normalizeColorTag } from "../ohaengProfile"
 import type { Ohaeng } from "../saju"
 
 const zero: Record<Ohaeng, number> = { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 }
@@ -424,5 +424,67 @@ describe("ohaengPctAfter (차트 before/after)", () => {
     const before = ohaengPctAfter(me, zero)
     const after = ohaengPctAfter(me, flowerOhaengProfile({ name: "빨간 장미", colorTags: ["레드"] }))
     expect(after.화 - before.화).toBeLessThan(after.금 - before.금)
+  })
+})
+
+describe("개인화 매칭 — 색 표기·종 기준 (버그 회귀 가드)", () => {
+  const june = { monthDay: null, month: 6, mainOhaeng: "화" as const } // 6월=화=적(레드/핑크)
+
+  it("영어 색태그 상품에서도 탄생색상이 걸린다", () => {
+    // 시드·SQL 상품은 colorTags가 영어라, 정규화 없이는 오방색 비교가 구조적으로 0이었다
+    const ko = personalPreferenceDetail({ id: "a", name: "무명 꽃", colorTags: ["레드"] }, june)
+    const en = personalPreferenceDetail({ id: "b", name: "무명 꽃", colorTags: ["red"] }, june)
+    expect(en.color).toBe(1)
+    expect(en.color).toBe(ko.color)
+  })
+
+  it("영어·한글 표기가 같은 색으로 모인다", () => {
+    for (const [a, b] of [["pink", "핑크"], ["white", "화이트"], ["yellow", "옐로"], ["purple", "보라"]]) {
+      expect(normalizeColorTag(a), `${a}/${b}`).toBe(normalizeColorTag(b))
+    }
+    expect(normalizeColorTag("orange")).toBe(normalizeColorTag("오렌지"))
+    expect(normalizeColorTag("주황")).toBe(normalizeColorTag("orange"))
+    expect(normalizeColorTag("파스텔")).toBeNull()
+  })
+
+  it("짧은 탄생화명이 매장 이름과 오탐하지 않는다", () => {
+    // 10-20 탄생화는 "마"(마과 식물). 예전엔 "꽃담마켓"·"플라워마켓"이 전부 종 일치로 잡혔다
+    const d = personalPreferenceDetail(
+      { id: "x", name: "중구 꽃담마켓 데일리 꽃다발", colorTags: [] },
+      { monthDay: "10-20", month: null, mainOhaeng: "목" },
+    )
+    expect(d.flower).toBe(0)
+  })
+
+  it("종 일치는 큐레이션된 꽃 이름으로만 성립한다", () => {
+    // 01-07 탄생화는 "핑크 튤립"(pink) — 종(튤립)이 같으면 0.7 이상
+    const jan7 = { monthDay: "01-07", month: null, mainOhaeng: "목" as const }
+    const tulip = personalPreferenceDetail(
+      { id: "x", name: "관악구 봄꽃상점 흰 튤립 데일리 꽃다발", colorTags: ["화이트"] }, jan7,
+    )
+    expect(tulip.flower).toBeGreaterThanOrEqual(0.7)
+    // 종도 색도 다르면 0
+    const lily = personalPreferenceDetail(
+      { id: "y", name: "강남구 흰 백합 데일리 꽃다발", colorTags: ["화이트"] }, jan7,
+    )
+    expect(lily.flower).toBe(0)
+  })
+
+  it("종과 색이 모두 맞으면 최고 등급 1.0 — 도달 가능해야 한다", () => {
+    // 예전엔 상품 id로 비교해 교집합이 공집합이라 1.0이 영원히 안 나왔다
+    const d = personalPreferenceDetail(
+      { id: "x", name: "핑크 튤립 다발", colorTags: ["pink"] },
+      { monthDay: "01-07", month: null, mainOhaeng: "목" },
+    )
+    expect(d.flower).toBe(1)
+  })
+
+  it("판매하지 않는 야생화 탄생화는 종 일치가 안 된다 (정상)", () => {
+    // 05-13 산사나무처럼 366일 중 295일은 큐레이션 종이 아니다 — 색만 맞을 수 있다
+    const d = personalPreferenceDetail(
+      { id: "x", name: "흰 백합 다발", colorTags: ["화이트"] },
+      { monthDay: "05-13", month: null, mainOhaeng: "목" },
+    )
+    expect(d.flower).toBe(0.4) // 산사나무는 white → 색만 일치
   })
 })

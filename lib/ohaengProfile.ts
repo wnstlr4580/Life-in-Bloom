@@ -38,6 +38,28 @@ const PINK_FAMILY: [string[], ColorWeight][] = [
 ]
 const ALL_COLOR_WORDS = [...SIMPLE_COLORS, ...PURPLE_FAMILY, ...PINK_FAMILY].flatMap(([words]) => words)
 
+// 색태그 표기 통일 — 소스마다 한글/영어가 섞여 들어온다(시드·SQL은 영어, 판매자 UI는 한글).
+// 상품 색태그를 표준 대표어로 모아, 오방색·탄생화 색 비교가 표기에 걸려 실패하지 않게 한다.
+const COLOR_CANON: [string, string[]][] = [
+  ["레드", ["빨강", "빨간", "레드", "red"]],
+  ["옐로", ["노랑", "노란", "옐로", "yellow"]],
+  ["그린", ["초록", "연두", "그린", "green"]],
+  ["블루", ["파랑", "파란", "블루", "blue"]],
+  ["화이트", ["흰", "하얀", "하양", "화이트", "white"]],
+  ["오렌지", ["주황", "오렌지", "orange"]],
+  ["퍼플", ["보라", "퍼플", "purple"]],
+  ["핑크", ["핑크", "분홍", "pink"]],
+]
+
+/** 색태그 → 표준 대표어(레드·옐로·그린·블루·화이트·오렌지·퍼플·핑크). 대응 색이 없으면 null. */
+export function normalizeColorTag(tag: string): string | null {
+  const lower = (tag ?? "").toLowerCase()
+  for (const [canon, words] of COLOR_CANON) {
+    if (words.some((w) => lower.includes(w))) return canon
+  }
+  return null
+}
+
 // 꽃별 세부색 지정 — 상품 색태그는 보통 보라/핑크로만 등록되므로, 연/진 구분은 여기서 꽃별로 지정한다.
 // 지정한 꽃이라도 이름/대표색이 실제로 보라(연보라·진보라)나 핑크(연핑크·진핑크) 계열일 때만 적용된다.
 // (이름에 연/진이 직접 붙어 있으면 그게 우선.)
@@ -107,6 +129,21 @@ export const FORM_TRAITS: Record<FormTrait, { ohaeng: Ohaeng; points: number }> 
   길고곧은형태: { ohaeng: "금", points: 25 }, 작은꽃정돈: { ohaeng: "금", points: 20 },
   둥글고풍성한꽃: { ohaeng: "수", points: 30 }, 아래로늘어짐: { ohaeng: "수", points: 25 },
   부드러운곡선: { ohaeng: "수", points: 25 }, 습지물연관: { ohaeng: "수", points: 20 },
+}
+
+// 특성명은 점수 테이블 키라 붙여쓰기인데, 문장에 그대로 넣으면 "습지물연관을 가진 꽃"처럼 비문이 된다.
+// 스토리텔링 문구용 자연어 라벨을 따로 둔다 (키 누락은 테스트가 잡는다).
+export const FORM_TRAIT_LABEL: Record<FormTrait, string> = {
+  수직성장: "곧게 뻗어 자라는 힘", 잎풍성: "풍성한 잎", 가지확장: "넓게 뻗는 가지",
+  덩굴성: "감아 오르는 덩굴", 새순초록: "싱그러운 새순",
+  큰꽃송이: "크고 시원한 꽃송이", 선명한꽃잎: "선명한 꽃잎",
+  태양불꽃형태: "태양을 닮은 생김새", 위로활짝: "위를 향해 활짝 피는 모습",
+  화분분재: "곁에 두고 기르는 화분", 다육: "도톰하게 물을 머금은 잎",
+  둥근형태: "둥근 생김새", 오래키우는식물: "오래 함께하는 성질",
+  흰꽃: "새하얀 꽃빛", 좌우대칭: "단정한 좌우 대칭",
+  길고곧은형태: "길고 곧은 선", 작은꽃정돈: "작은 꽃이 단정히 모인 모습",
+  둥글고풍성한꽃: "둥글고 풍성한 꽃", 아래로늘어짐: "부드럽게 늘어지는 선",
+  부드러운곡선: "부드러운 곡선", 습지물연관: "물가에서 자라는 성질",
 }
 
 // (2) 꽃(이름 키워드) → 그 꽃이 가진 형태 특성. 주요 상업꽃 큐레이션.
@@ -188,7 +225,7 @@ export const FORM_OHAENG_MAX: Record<Ohaeng, number> = Object.values(FLOWER_FORM
 )
 
 /** 텍스트에 등장하는 꽃들의 형태 특성 — 여러 꽃이 잡히면 합집합. */
-function formTraitsIn(text: string): FormTrait[] {
+export function formTraitsIn(text: string): FormTrait[] {
   const lower = text.toLowerCase()
   const traits = new Set<FormTrait>()
   for (const [flower, list] of Object.entries(FLOWER_FORM)) {
@@ -339,6 +376,24 @@ function seasonAxis(name: string, seasonTags: string[]): Record<Ohaeng, number> 
   // 토 = 연중 상시성 (가장 약한 계절에도 남아 있는 만큼)
   result.토 = Math.min(...SEASON_ORDER.map((s) => grades[s])) / 100
   return result
+}
+
+/** 문장에 쓸 색 표현어 — 이름에 색이 있으면 그 색, 없으면 대표색. 꽃별 세부색(연보라 등)이 있으면 우선.
+ *  점수 계산이 아니라 스토리텔링 문구용이다. */
+export function flowerColorWord(name: string, colorTags: string[] = []): string | null {
+  const lower = (name ?? "").toLowerCase()
+  for (const fine of ["연보라", "진보라", "연핑크", "진핑크"]) {
+    if (lower.includes(fine)) return fine
+  }
+  const canon = normalizeColorTag(lower) ?? colorTags.map((t) => normalizeColorTag(t)).find(Boolean) ?? null
+  if (!canon) return null
+  // 보라·핑크 계열은 꽃별 세부색 지정이 있으면 그쪽이 더 구체적이다
+  if (canon === "퍼플" || canon === "핑크") {
+    for (const [flower, shade] of Object.entries(FLOWER_SHADE)) {
+      if (lower.includes(flower.toLowerCase())) return shade
+    }
+  }
+  return { 레드: "붉은", 옐로: "노란", 그린: "초록", 블루: "푸른", 화이트: "흰", 오렌지: "주황", 퍼플: "보라", 핑크: "분홍" }[canon] ?? canon
 }
 
 /** 상품명에서 꽃 종(種) 키를 뽑는다 — 추천 다양성 판정용. 큐레이션에 없으면 null. */

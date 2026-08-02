@@ -5,8 +5,8 @@
 // 를 블렌딩한다. 사용자 확정 비율: 사주(궁합) 85% · 재고 10% · 개인화 5%.
 import type { Ohaeng } from "./saju"
 import { OHAENG_PROFILE } from "./saju"
-import { birthFlowerSelection, isBirthFlower } from "./diyFlowerTags"
-import { flowerSpeciesKey, explainOhaeng, type OhaengProfileInput } from "./ohaengProfile"
+import { birthFlowerSelection } from "./diyFlowerTags"
+import { flowerSpeciesKey, explainOhaeng, normalizeColorTag, type OhaengProfileInput } from "./ohaengProfile"
 
 const OHAENG_ORDER: Ohaeng[] = ["목", "화", "토", "금", "수"]
 const OHAENG_IDX: Record<Ohaeng, number> = { 목: 0, 화: 1, 토: 2, 금: 3, 수: 4 }
@@ -152,9 +152,9 @@ export function birthColorOhaeng(user: UserPersonalization): Ohaeng {
   return (user.month != null && MONTH_TO_OHAENG[user.month]) || user.mainOhaeng
 }
 
-// 탄생화 프리셋의 영문 색상 → 상품 한글 색태그
-const KIOSK_COLOR_TO_TAG: Record<string, string> = {
-  white: "화이트", yellow: "옐로", pink: "핑크", purple: "퍼플", red: "레드", blue: "블루", green: "그린", orange: "주황",
+/** 상품 색태그 중 표준 대표어 집합. 한글·영어 표기가 섞여 들어오므로 반드시 정규화해서 비교한다. */
+function canonColors(colorTags: string[] = []): Set<string> {
+  return new Set(colorTags.map((t) => normalizeColorTag(t)).filter((c): c is string => c !== null))
 }
 
 interface PersonalizableProduct {
@@ -171,24 +171,32 @@ export interface PersonalDetail {
   birthColorName: string // 오방색 이름 (예: "적(赤)")
 }
 
-/** 사용자 생일 기반 개인화 내역. */
+/** 사용자 생일 기반 개인화 내역.
+ *  탄생화 매칭은 상품 id가 아니라 꽃 종(種)으로 한다 — 탄생화 사전 id(rose-red)와 DB 상품 id(cuid)는
+ *  체계가 달라 교집합이 없고, 이름 부분문자열은 1~2자 탄생화명("마")이 매장명과 오탐한다. */
 export function personalPreferenceDetail(
   product: PersonalizableProduct,
   user: UserPersonalization,
 ): PersonalDetail {
+  const productColors = canonColors(product.colorTags)
   let flower = 0
   let birthFlowerName: string | null = null
+
   if (user.monthDay) {
     const sel = birthFlowerSelection(user.monthDay)
     if (sel) {
       birthFlowerName = sel.name
-      if (isBirthFlower(product.id, user.monthDay)) flower = 1
-      else if (matchesSpecies(product.name, sel.name)) flower = 0.7
-      else if (matchesColor(product.colorTags, sel.color)) flower = 0.4
+      const sameSpecies =
+        flowerSpeciesKey(product.name) !== null &&
+        flowerSpeciesKey(product.name) === flowerSpeciesKey(sel.name)
+      const selColor = normalizeColorTag(sel.color)
+      const sameColor = selColor !== null && productColors.has(selColor)
+      flower = sameSpecies && sameColor ? 1 : sameSpecies ? 0.7 : sameColor ? 0.4 : 0
     }
   }
+
   const target = OBANGSAEK_OHAENG[birthColorOhaeng(user)]
-  const color = product.colorTags.some((t) => target.colorTags.includes(t)) ? 1 : 0
+  const color = target.colorTags.some((t) => productColors.has(normalizeColorTag(t) ?? t)) ? 1 : 0
 
   return { flower, color, birthFlowerName, birthColorName: target.name }
 }
@@ -201,16 +209,6 @@ export function personalScore(detail: PersonalDetail): number {
 /** 사용자 생일 기반 개인화 점수 0~1 — 탄생화(0.7) + 탄생컬러(0.3). */
 export function personalPreferenceScore(product: PersonalizableProduct, user: UserPersonalization): number {
   return personalScore(personalPreferenceDetail(product, user))
-}
-
-function matchesSpecies(productName: string, birthFlowerName: string): boolean {
-  if (!productName || !birthFlowerName) return false
-  return productName.includes(birthFlowerName) || birthFlowerName.includes(productName)
-}
-
-function matchesColor(colorTags: string[], kioskColor: string): boolean {
-  const tag = KIOSK_COLOR_TO_TAG[kioskColor]
-  return tag != null && colorTags.includes(tag)
 }
 
 // ── 최종 블렌딩 ───────────────────────────────────────────────
