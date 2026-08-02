@@ -58,6 +58,11 @@ export function OhaengBalance({ pct, flowers }: Props) {
   const afterPts = after ? ORDER.map((o) => vertex(o, scale(after[o]))) : null
   const shown = after ?? pct
 
+  const beforeD = toPath(beforePts)
+  const afterD = afterPts ? toPath(afterPts) : beforeD
+  // 두 폴리곤의 대칭차 = 바뀐 영역. evenodd라 한쪽에만 덮인 부분만 칠해진다.
+  const bandD = `${beforeD} ${afterD}`
+
   return (
     <div className="bg-white rounded-2xl border border-stone-100 p-6 space-y-6">
       <div className="flex items-baseline justify-between gap-3">
@@ -75,37 +80,63 @@ export function OhaengBalance({ pct, flowers }: Props) {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-6">
-        {/* 왼쪽 — 추천 꽃 썸네일 */}
-        {flowers.length > 0 && (
-          <div className="grid grid-cols-4 sm:grid-cols-2 gap-2 sm:w-44 shrink-0 self-start">
-            {flowers.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => setSelectedId(f.id)}
-                aria-pressed={f.id === selected?.id}
-                className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all ${
-                  f.id === selected?.id
-                    ? "border-rose-300 shadow-sm"
-                    : "border-stone-100 hover:border-rose-200 opacity-70 hover:opacity-100"
-                }`}
-              >
-                {f.images[0] ? (
-                  <Image src={f.images[0]} alt={f.name} fill sizes="(max-width: 640px) 22vw, 80px" className="object-cover" />
+        {/* 왼쪽 — 선택한 꽃을 크게, 아래에 나머지 후보 썸네일 */}
+        {selected && (
+          <div className="sm:w-56 shrink-0 space-y-3 self-start">
+            <Link href={`/products/${selected.id}`} className="group block">
+              <div className="relative aspect-square rounded-2xl overflow-hidden border border-stone-100 bg-stone-50">
+                {selected.images[0] ? (
+                  <Image src={selected.images[0]} alt={selected.name} fill
+                    sizes="(max-width: 640px) 90vw, 224px"
+                    className="object-cover group-hover:scale-105 transition-transform duration-300" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-xl bg-stone-50">🌸</div>
+                  <div className="w-full h-full flex items-center justify-center text-5xl">🌸</div>
                 )}
-                <span className="absolute bottom-0 inset-x-0 bg-black/45 text-white text-[10px] font-bold py-0.5">
-                  {f.score}점
+                <span className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm text-rose-500 text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
+                  {selected.score}점
                 </span>
-              </button>
-            ))}
+              </div>
+              <p className="text-sm font-bold text-stone-800 mt-2.5 leading-snug group-hover:text-rose-500 transition-colors">
+                {selected.name}
+              </p>
+              <p className="text-base font-bold text-rose-500 mt-0.5">
+                {selected.price.toLocaleString()}원 <span className="text-xs font-normal text-stone-400">보러가기 →</span>
+              </p>
+              {selected.flowerMeaning && (
+                <p className="text-xs text-stone-400 mt-1 line-clamp-2">{selected.flowerMeaning}</p>
+              )}
+            </Link>
+
+            {flowers.length > 1 && (
+              <div className="grid grid-cols-4 gap-1.5 pt-1">
+                {flowers.map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setSelectedId(f.id)}
+                    aria-pressed={f.id === selected.id}
+                    aria-label={`${f.name} 추천 근거 보기`}
+                    className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                      f.id === selected.id
+                        ? "border-rose-400"
+                        : "border-transparent opacity-55 hover:opacity-100"
+                    }`}
+                  >
+                    {f.images[0] ? (
+                      <Image src={f.images[0]} alt="" fill sizes="52px" className="object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-sm bg-stone-50">🌸</div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
         {/* 오른쪽 — 차트 + 오행 막대 */}
         <div className="flex-1 flex flex-col md:flex-row gap-6 items-center">
-          <div className="shrink-0 w-full max-w-[240px]">
+          <div className="shrink-0 w-full max-w-[280px]">
             <svg viewBox="0 0 260 260" className="w-full h-auto">
               {GRID_SCALES.map((s) => (
                 <polygon
@@ -122,18 +153,43 @@ export function OhaengBalance({ pct, flowers }: Props) {
                 return <line key={o} x1={CX} y1={CY} x2={v.x} y2={v.y} stroke="#e2e8f0" strokeWidth="1" />
               })}
 
+              {/* 바뀐 영역 — 지금과 더한 후의 차이. 없던 상태에서 자라나듯 재생된다. */}
+              {afterPts && (
+                <path key={`band-${selected?.id}`} d={bandD} fillRule="evenodd"
+                  fill="rgba(244,63,94,0.22)" stroke="none">
+                  <animate attributeName="d" from={`${beforeD} ${beforeD}`} to={bandD}
+                    dur="0.6s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.2 1" />
+                </path>
+              )}
+
+              {/* 이 꽃을 더하면 — 지금 모양에서 출발해 변형된다 */}
+              <path key={`after-${selected?.id}`} d={afterD} fill="rgba(251,113,133,0.10)"
+                stroke="rgba(244,63,94,0.6)" strokeWidth="2" strokeLinejoin="round">
+                {afterPts && (
+                  <animate attributeName="d" from={beforeD} to={afterD}
+                    dur="0.6s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.2 1" />
+                )}
+              </path>
+
               {/* 지금 — 꽃을 골라도 움직이지 않는 기준선 */}
               {afterPts && (
-                <path d={toPath(beforePts)} fill="none" stroke="#cbd5e1" strokeWidth="1.5"
+                <path d={beforeD} fill="none" stroke="#94a3b8" strokeWidth="1.5"
                   strokeDasharray="4,3" strokeLinejoin="round" />
               )}
-              {/* 이 꽃을 더하면 (꽃이 없으면 현재 분포) */}
-              <path d={toPath(afterPts ?? beforePts)} fill="rgba(251,113,133,0.13)"
-                stroke="rgba(244,63,94,0.5)" strokeWidth="2" strokeLinejoin="round" />
 
               {(afterPts ?? beforePts).map((p, i) => (
-                <circle key={ORDER[i]} cx={p.x} cy={p.y} r={shown[ORDER[i]] > 0 ? 5 : 3}
-                  fill={COLOR[ORDER[i]].hex} opacity={shown[ORDER[i]] > 0 ? 1 : 0.25} />
+                <circle key={`${ORDER[i]}-${selected?.id}`}
+                  cx={p.x} cy={p.y} r={shown[ORDER[i]] > 0 ? 5 : 3}
+                  fill={COLOR[ORDER[i]].hex} opacity={shown[ORDER[i]] > 0 ? 1 : 0.25}>
+                  {afterPts && (
+                    <>
+                      <animate attributeName="cx" from={beforePts[i].x} to={p.x}
+                        dur="0.6s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.2 1" />
+                      <animate attributeName="cy" from={beforePts[i].y} to={p.y}
+                        dur="0.6s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.2 1" />
+                    </>
+                  )}
+                </circle>
               ))}
               {ORDER.map((o) => {
                 const lv = vertex(o, 1.26)
@@ -148,7 +204,7 @@ export function OhaengBalance({ pct, flowers }: Props) {
             </svg>
             {afterPts && (
               <p className="text-[10px] text-stone-400 text-center mt-1">
-                <span className="text-stone-400">┈ 지금</span> · <span className="text-rose-400">▨ 이 꽃을 더하면</span>
+                <span className="text-stone-400">┈ 지금</span> · <span className="text-rose-400">▨ 이 꽃을 더하면 (색칠된 부분이 바뀐 만큼)</span>
               </p>
             )}
           </div>
@@ -183,30 +239,19 @@ export function OhaengBalance({ pct, flowers }: Props) {
         </div>
       </div>
 
-      {/* 하단 — 선택한 꽃과 추천 근거 */}
-      {selected && (
-        <div className="border-t border-stone-100 pt-5 space-y-3">
-          <Link
-            href={`/products/${selected.id}`}
-            className="flex items-baseline justify-between gap-3 group"
-          >
-            <span className="text-sm font-bold text-stone-800 group-hover:text-rose-500 transition-colors line-clamp-1">
-              {selected.name}
-            </span>
-            <span className="text-sm font-bold text-rose-500 shrink-0">
-              {selected.price.toLocaleString()}원 →
-            </span>
-          </Link>
-          {selected.flowerMeaning && (
-            <p className="text-xs text-stone-400">{selected.flowerMeaning}</p>
-          )}
-          <ul className="bg-stone-50/70 rounded-xl p-3 space-y-2">
+      {/* 하단 — 이 꽃이 추천된 이유 */}
+      {selected && (selected.reasons ?? []).length > 0 && (
+        <div className="border-t border-stone-100 pt-5">
+          <p className="text-sm font-bold text-stone-700 mb-3">
+            왜 <span className="text-rose-500">{selected.name}</span>일까요?
+          </p>
+          <ul className="grid sm:grid-cols-2 gap-2">
             {(selected.reasons ?? []).map((r, i) => (
-              <li key={i} className="flex gap-2 items-start">
-                <span className="text-base leading-none mt-0.5">{r.icon}</span>
+              <li key={i} className="flex gap-2.5 items-start bg-stone-50/70 rounded-xl p-3">
+                <span className="text-lg leading-none mt-0.5">{r.icon}</span>
                 <div>
-                  <p className="text-xs font-semibold text-stone-700">{r.title}</p>
-                  <p className="text-[11px] text-stone-400 leading-tight">{r.detail}</p>
+                  <p className="text-xs font-bold text-stone-700">{r.title}</p>
+                  <p className="text-[11px] text-stone-400 leading-snug mt-0.5">{r.detail}</p>
                 </div>
               </li>
             ))}
