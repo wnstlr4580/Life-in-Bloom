@@ -187,15 +187,20 @@ export const FORM_OHAENG_MAX: Record<Ohaeng, number> = Object.values(FLOWER_FORM
   { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 } as Record<Ohaeng, number>,
 )
 
-/** 형태 축 — 상품명(+카테고리·설명)에서 꽃을 찾아 그 형태 특성 점수를 오행별 합산 후 0~1 정규화. */
-function formAxis(text: string): Record<Ohaeng, number> {
+/** 텍스트에 등장하는 꽃들의 형태 특성 — 여러 꽃이 잡히면 합집합. */
+function formTraitsIn(text: string): FormTrait[] {
   const lower = text.toLowerCase()
   const traits = new Set<FormTrait>()
   for (const [flower, list] of Object.entries(FLOWER_FORM)) {
     if (lower.includes(flower.toLowerCase())) list.forEach((t) => traits.add(t))
   }
+  return [...traits]
+}
+
+/** 형태 축 — 상품명(+카테고리·설명)에서 꽃을 찾아 그 형태 특성 점수를 오행별 합산 후 0~1 정규화. */
+function formAxis(text: string): Record<Ohaeng, number> {
   const raw = { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 } as Record<Ohaeng, number>
-  for (const t of traits) {
+  for (const t of formTraitsIn(text)) {
     const { ohaeng, points } = FORM_TRAITS[t]
     raw[ohaeng] += points
   }
@@ -365,20 +370,24 @@ const SEASON_HINT: Record<Ohaeng, string> = {
  *  기여가 전혀 없으면 빈 문자열. 점수 계산과 같은 축 함수를 그대로 쓰므로 설명이 점수와 어긋나지 않는다. */
 export function explainOhaeng(input: OhaengProfileInput, target: Ohaeng): string {
   const name = input.name ?? ""
+  const formText = [input.name, input.category, input.description].filter(Boolean).join(" ")
   const color = colorAxis(name, input.colorTags ?? [])
-  const form = formAxis([input.name, input.category, input.description].filter(Boolean).join(" "))
+  const form = formAxis(formText)
   const season = seasonAxis(name, input.seasonTags ?? [])
 
-  // 형태는 근거가 되는 특성 이름을 그대로 보여준다 (예: 큰꽃송이, 둥근형태)
-  const traits = FLOWER_FORM[flowerSpeciesKey(name) ?? ""] ?? []
-  const topTrait = traits
+  // 형태는 근거가 되는 특성 이름을 그대로 보여준다 (예: 큰꽃송이, 둥근형태).
+  // formAxis와 같은 텍스트를 훑어야 한다 — 상품명에 꽃 종이 없고 설명에만 있는 경우가 흔하다.
+  const topTrait = formTraitsIn(formText)
     .filter((t) => FORM_TRAITS[t].ohaeng === target)
     .sort((a, b) => FORM_TRAITS[b].points - FORM_TRAITS[a].points)[0]
 
+  // 비수기(10) 수준의 미미한 기여를 "개화"라고 부르면 거짓말이 된다 — 주/보조 개화기만 근거로 삼는다.
+  const seasonWeight = season[target] >= BLOOM.보조 / 100 ? season[target] * PROFILE_WEIGHT.season : 0
+
   return [
     { weight: color[target] * PROFILE_WEIGHT.color, text: `${COLOR_HINT[target]} 색감` },
-    { weight: form[target] * PROFILE_WEIGHT.form, text: topTrait ?? "형태" },
-    { weight: season[target] * PROFILE_WEIGHT.season, text: SEASON_HINT[target] },
+    { weight: topTrait ? form[target] * PROFILE_WEIGHT.form : 0, text: topTrait ?? "" },
+    { weight: seasonWeight, text: SEASON_HINT[target] },
   ]
     .filter((p) => p.weight > 0)
     .sort((a, b) => b.weight - a.weight)

@@ -94,7 +94,14 @@ export async function POST(req: NextRequest) {
   const withReason = (items: typeof scored, target: Ohaeng) =>
     items.map((s) => ({ ...s.product, ohaengReason: explainOhaeng(s.product, target) }))
 
-  const recommendedFlowers = withReason(pickDiverse(rankedMain, 4), weakest)
+  // 주 추천은 최약 오행 하나가 아니라 전체 균형으로 뽑으므로, 그 꽃의 gain에 가장 크게
+  // 기여한 오행으로 설명해야 근거가 어긋나지 않는다.
+  const recommendedFlowers = pickDiverse(rankedMain, 4).map((s) => {
+    const driver = OHAENG_ALL.reduce((a, b) =>
+      s.profile[b] * need[b] > s.profile[a] * need[a] ? b : a,
+    )
+    return { ...s.product, ohaengReason: explainOhaeng(s.product, driver) }
+  })
 
   // 부족한 기운에 맞는 상품이 모자라면, 그 기운을 낳아주는(상생) 오행 상품으로 채운다.
   const lackingProducts = lackingOhaeng.map((o) => {

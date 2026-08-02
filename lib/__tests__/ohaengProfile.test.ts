@@ -244,12 +244,24 @@ describe("explainOhaeng (추천 이유 문구)", () => {
     expect(explainOhaeng({ name: "무명 꽃" }, "금")).toBe("")
   })
 
-  it("설명은 점수와 어긋나지 않는다 — 점수 0이면 설명도 비어 있다", () => {
-    const input = { name: "백합", colorTags: ["화이트"] }
-    const p = flowerOhaengProfile(input)
-    for (const o of ["목", "화", "토", "금", "수"] as const) {
-      if (p[o] === 0) expect(explainOhaeng(input, o), o).toBe("")
-      else expect(explainOhaeng(input, o), o).not.toBe("")
+  it("설명이 붙으면 그 오행 점수는 반드시 0이 아니다 (근거 없는 설명 금지)", () => {
+    for (const input of [
+      { name: "백합", colorTags: ["화이트"] },
+      { name: "해바라기 미니 화분", colorTags: ["yellow"] },
+      { name: "파스텔 혼합 꽃다발", colorTags: ["믹스"] },
+    ]) {
+      const p = flowerOhaengProfile(input)
+      for (const o of ["목", "화", "토", "금", "수"] as const) {
+        if (explainOhaeng(input, o) !== "") expect(p[o], `${input.name}/${o}`).toBeGreaterThan(0)
+      }
     }
+  })
+
+  it("비수기 수준의 미미한 기여는 '개화'라고 설명하지 않는다", () => {
+    // 해바라기는 여름 개화 — 봄은 비수기(10)라 목에 2점만 준다
+    const input = { name: "해바라기" }
+    expect(flowerOhaengProfile(input).목).toBeGreaterThan(0) // 점수는 남아 있지만
+    expect(explainOhaeng(input, "목")).toBe("") // "봄 개화"라고 하지 않는다
+    expect(explainOhaeng(input, "화")).toContain("여름 개화") // 진짜 주개화기는 설명한다
   })
 })
