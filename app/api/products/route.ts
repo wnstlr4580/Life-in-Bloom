@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase"
+import { getExposurePolicy, rankProducts, type UserProductSort } from "@/lib/exposureRanking"
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
@@ -14,7 +15,8 @@ export async function GET(req: NextRequest) {
   const inStock = searchParams.get("inStock") === "true"
   const q = searchParams.get("q")
   const uses = searchParams.getAll("use") // 복수 용도: 생일/축하/개업/결혼/추모/감사
-  const sort = searchParams.get("sort") // latest(기본) | price_asc | price_desc
+  const requestedSort = searchParams.get("sort") ?? "recommended"
+  const sort: UserProductSort = ["latest", "popular", "price_asc", "price_desc"].includes(requestedSort) ? requestedSort as UserProductSort : "recommended"
   const page = Number(searchParams.get("page") ?? "1")
   const limit = 12
   const now = new Date().toISOString()
@@ -26,18 +28,13 @@ export async function GET(req: NextRequest) {
 
   let query = supabaseAdmin
     .from("Product")
-    .select("id, name, price, images, flowerMeaning, category, stock, saleStatus, purchaseType, externalUrl, partnerName, partnerBadge, seller:Seller(marketName, productDeliveryScope, productDeliveryRegions), reviews:Review(rating)", { count: "exact" })
+    .select("id, name, price, images, flowerMeaning, category, stock, saleStatus, purchaseType, externalUrl, partnerName, partnerBadge, createdAt, isPromoted, exposurePriority, sellerPromoted, sellerPriority, seller:Seller(id, marketName, productDeliveryScope, productDeliveryRegions, productSortStrategy), reviews:Review(rating), orderItems:OrderItem(quantity), wishlist:WishlistItem(id)", { count: "exact" })
     .eq("isActive", true)
     .in("saleStatus", ["ON_SALE", "SOLD_OUT"])
     .or(`displayStartAt.is.null,displayStartAt.lte.${now}`)
     .or(`displayEndAt.is.null,displayEndAt.gte.${now}`)
 
-  query = query.order("isPromoted", { ascending: false }).order("exposurePriority", { ascending: false })
-  if (sort === "price_asc") query = query.order("price", { ascending: true })
-  else if (sort === "price_desc") query = query.order("price", { ascending: false })
-  else query = query.order("createdAt", { ascending: false })
-
-  query = query.range((page - 1) * limit, page * limit - 1)
+  query = query.limit(1000)
 
   if (category) query = query.eq("category", category)
   if (ohaeng) query = query.contains("ohaengTags", [ohaeng])
@@ -61,21 +58,25 @@ export async function GET(req: NextRequest) {
     query = query.or(clauses.join(","))
   }
 
-  const [{ data, count, error }, { data: facetRows }] = await Promise.all([
+  const [{ data, count, error }, { data: facetRows }, policy] = await Promise.all([
     query,
     supabaseAdmin.from("Product")
       .select("colorTags, useTags, partnerName, seller:Seller(marketName)")
       .eq("isActive", true).in("saleStatus", ["ON_SALE", "SOLD_OUT"])
       .or(`displayStartAt.is.null,displayStartAt.lte.${now}`)
       .or(`displayEndAt.is.null,displayEndAt.gte.${now}`),
+    getExposurePolicy(),
   ])
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   // 리뷰 평균 별점·후기 수 집계 (원본 리뷰 배열은 응답에서 제거)
-  const products = (data ?? []).map((p) => {
-    const { reviews, ...rest } = p as typeof p & { reviews: { rating: number }[] | null }
-    const list = reviews ?? []
+  const ranked = rankProducts(data ?? [], { policy, userSort: sort, page: "catalog" })
+  const paged = ranked.slice((page - 1) * limit, page * limit)
+  const products = paged.map((p) => {
+    const { reviews, orderItems, wishlist, ...rest } = p
+    void orderItems; void wishlist
+    const list = reviews
     return {
       ...rest,
       reviewCount: list.length,

@@ -4,7 +4,7 @@ import { requireSeller } from "@/lib/authorization"
 import { supabaseAdmin } from "@/lib/supabase"
 import { classifyProductOhaeng } from "@/lib/product-ohaeng"
 
-const FIELDS = "id, sellerId, name, description, composition, sizeGuide, substitutionNotice, originInfo, deliveryArea, sameDayCutoff, orderNotice, careInstructions, price, stock, category, images, detailImages, noticeImages, flowerMeaning, ohaengTags, seasonTags, colorTags, useTags, deliveryDays, deliveryStartTime, deliveryEndTime, displayStartAt, displayEndAt, saleStatus, isActive, createdAt"
+const FIELDS = "id, sellerId, name, description, composition, sizeGuide, substitutionNotice, originInfo, deliveryArea, sameDayCutoff, orderNotice, careInstructions, price, stock, category, images, detailImages, noticeImages, flowerMeaning, ohaengTags, seasonTags, colorTags, useTags, deliveryDays, deliveryStartTime, deliveryEndTime, displayStartAt, displayEndAt, saleStatus, isActive, sellerPromoted, sellerPriority, createdAt"
 const CATEGORIES = new Set(["bouquet", "plant", "wreath", "flower-box", "gift-set", "dried"])
 const DAYS = new Set(["월", "화", "수", "목", "금", "토", "일"])
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/
@@ -68,6 +68,8 @@ export async function POST(req: NextRequest) {
   const category = String(form.get("category") ?? "")
   const price = Number(form.get("price"))
   const stock = Number(form.get("stock"))
+  const sellerPromoted = String(form.get("sellerPromoted") ?? "false") === "true"
+  const sellerPriority = Math.min(100, Math.max(0, Number(form.get("sellerPriority") ?? 0)))
   const files = form.getAll("images").filter((value): value is File => value instanceof File && value.size > 0)
   const detailFiles = form.getAll("detailImages").filter((value): value is File => value instanceof File && value.size > 0)
   const noticeFiles = form.getAll("noticeImages").filter((value): value is File => value instanceof File && value.size > 0)
@@ -123,7 +125,7 @@ export async function POST(req: NextRequest) {
     ohaengTags: classifyProductOhaeng({ name, description, category, colorTags, seasonTags, useTags }),
     seasonTags, colorTags, useTags,
     deliveryDays, deliveryStartTime, deliveryEndTime,
-    displayStartAt, displayEndAt, saleStatus: stock === 0 ? "SOLD_OUT" : "ON_SALE", isActive: true,
+    displayStartAt, displayEndAt, saleStatus: stock === 0 ? "SOLD_OUT" : "ON_SALE", isActive: true, sellerPromoted, sellerPriority,
   }
   const { data, error } = await supabaseAdmin.from("Product").insert(payload).select(FIELDS).single()
   if (error) {
@@ -138,7 +140,7 @@ export async function PATCH(req: NextRequest) {
   if (!actor?.seller) return NextResponse.json({ error: "승인된 판매자만 이용할 수 있어요" }, { status: 403 })
   const { id, ...body } = await req.json()
   if (!id) return NextResponse.json({ error: "상품을 찾을 수 없어요" }, { status: 400 })
-  const allowed = ["name", "description", "composition", "sizeGuide", "substitutionNotice", "originInfo", "deliveryArea", "sameDayCutoff", "orderNotice", "careInstructions", "price", "stock", "category", "flowerMeaning", "seasonTags", "colorTags", "useTags", "deliveryDays", "deliveryStartTime", "deliveryEndTime", "displayStartAt", "displayEndAt", "saleStatus", "isActive"]
+  const allowed = ["name", "description", "composition", "sizeGuide", "substitutionNotice", "originInfo", "deliveryArea", "sameDayCutoff", "orderNotice", "careInstructions", "price", "stock", "category", "flowerMeaning", "seasonTags", "colorTags", "useTags", "deliveryDays", "deliveryStartTime", "deliveryEndTime", "displayStartAt", "displayEndAt", "saleStatus", "isActive", "sellerPromoted", "sellerPriority"]
   const update = Object.fromEntries(Object.entries(body).filter(([key]) => allowed.includes(key)))
   if (update.name !== undefined && (!String(update.name).trim() || String(update.name).trim().length > 100)) return NextResponse.json({ error: "상품명은 1~100자로 입력해주세요" }, { status: 400 })
   if (update.description !== undefined && (!String(update.description).trim() || String(update.description).trim().length > 10000)) return NextResponse.json({ error: "상세 설명은 1~10,000자로 입력해주세요" }, { status: 400 })
@@ -147,6 +149,7 @@ export async function PATCH(req: NextRequest) {
   }
   if (update.price !== undefined && (!Number.isInteger(update.price) || Number(update.price) < 100)) return NextResponse.json({ error: "판매가는 100원 이상의 정수여야 해요" }, { status: 400 })
   if (update.stock !== undefined && (!Number.isInteger(update.stock) || Number(update.stock) < 0)) return NextResponse.json({ error: "재고는 0 이상의 정수여야 해요" }, { status: 400 })
+  if (update.sellerPriority !== undefined && (!Number.isInteger(update.sellerPriority) || Number(update.sellerPriority) < 0 || Number(update.sellerPriority) > 100)) return NextResponse.json({ error: "우선순위는 0~100 사이의 정수여야 해요" }, { status: 400 })
   if (update.category !== undefined && !CATEGORIES.has(String(update.category))) return NextResponse.json({ error: "올바른 카테고리를 선택해주세요" }, { status: 400 })
   if (update.saleStatus !== undefined && !["ON_SALE", "SOLD_OUT", "PAUSED", "HIDDEN"].includes(String(update.saleStatus))) return NextResponse.json({ error: "올바른 판매 상태를 선택해주세요" }, { status: 400 })
   const { data: currentProduct } = await supabaseAdmin

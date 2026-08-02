@@ -77,10 +77,14 @@ export async function POST(req: NextRequest) {
   const birthColor = { name: OBANGSAEK_OHAENG[birthColorOh].name, ohaeng: birthColorOh }
 
   // 활성 상품 후보군을 넓게 가져와 꽃 오행 프로필로 점수화한다.
+  //
+  // 정렬은 오행 궁합(ohaengFit)으로 한다 — 상품 목록 화면의 노출 우선순위(lib/exposureRanking)와는
+  // 다른 화면의 다른 로직이라 여기서는 쓰지 않는다. 판매 상태 필터만 목록 화면과 기준을 맞춘다.
   const { data: candidates } = await supabaseAdmin
     .from("Product")
     .select("id, name, price, images, flowerMeaning, description, category, colorTags, seasonTags, useTags, stock")
     .eq("isActive", true)
+    .in("saleStatus", ["ON_SALE", "SOLD_OUT"])
     .order("createdAt", { ascending: false })
     .limit(300)
 

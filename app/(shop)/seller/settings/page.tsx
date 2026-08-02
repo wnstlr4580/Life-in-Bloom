@@ -16,6 +16,7 @@ type Seller = {
   sellsFinishedProducts: boolean; offersCustomBouquet: boolean; offersDiyFlowers: boolean
   customDeliveryScope: "NONE" | "NATIONWIDE" | "REGIONAL"; customDeliveryRegions: string[]
   productDeliveryScope: "NONE" | "NATIONWIDE" | "REGIONAL"; productDeliveryRegions: string[]
+  productSortStrategy: "MANUAL" | "LOW_STOCK" | "HIGH_STOCK" | "BEST_SELLING" | "LATEST"
 }
 const DELIVERY_REGIONS = ["서울", "경기", "인천", "강원", "대전", "세종", "충북", "충남", "광주", "전북", "전남", "대구", "경북", "부산", "울산", "경남", "제주"]
 
@@ -85,6 +86,12 @@ export default function SellerSettingsPage() {
           <Service checked={seller.offersCustomBouquet} onChange={(v) => set("offersCustomBouquet", v)} label="나만의 꽃다발 주문" />
           <Service checked={seller.offersDiyFlowers} onChange={(v) => set("offersDiyFlowers", v)} label="개별 꽃·소재 판매" />
         </div>
+      </Section>
+      <Section title="내 상품 노출 순서" icon={<Store size={18} />}>
+        <p className="mb-3 text-sm text-stone-500">관리자 정책과 고객이 선택한 정렬이 먼저 적용된 뒤, 내 상품끼리의 순서를 정합니다. 상품별 ‘우선노출’이 이 정렬보다 먼저 적용됩니다.</p>
+        <select value={seller.productSortStrategy ?? "MANUAL"} onChange={(e) => set("productSortStrategy", e.target.value as Seller["productSortStrategy"])} className="h-11 w-full rounded-xl border border-stone-200 bg-white px-3 text-sm">
+          <option value="MANUAL">직접 지정한 우선순위</option><option value="LOW_STOCK">재고 적은 상품 우선</option><option value="HIGH_STOCK">재고 많은 상품 우선</option><option value="BEST_SELLING">판매 많은 상품 우선</option><option value="LATEST">최근 등록 상품 우선</option>
+        </select>
       </Section>
       <Section title="배송 가능 지역" icon={<MapPin size={18} />}>
         <p className="mb-4 text-sm text-stone-500">주문제작 꽃다발과 완제품의 배송 범위를 각각 설정하세요. 지역 제한을 선택하면 고객 결제 주소도 해당 지역인지 확인합니다.</p>

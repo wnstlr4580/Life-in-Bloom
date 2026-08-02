@@ -59,10 +59,10 @@ export async function PATCH(req: Request) {
   if (nextStatus === "DELIVERED") {
     const deliveredAt = new Date()
     Object.assign(update, {
-      deliveredAt: deliveredAt.toISOString(), settlementStatus: "READY",
-      settlementDueAt: new Date(deliveredAt.getTime() + 7 * 86400000).toISOString(),
+      deliveredAt: deliveredAt.toISOString(), settlementStatus: "WAITING", settlementDueAt: null,
     })
   }
+  if (nextStatus === "CANCELLED") Object.assign(update, { settlementStatus: "CANCELLED", settlementDueAt: null, settlementAmount: 0 })
   const { error } = await supabaseAdmin.from("OrderItem").update(update).eq("id", id).eq("sellerId", actor.seller.id)
   if (error) return NextResponse.json({ error: "주문 상태를 변경하지 못했어요" }, { status: 500 })
   const { data: siblings } = await supabaseAdmin.from("OrderItem").select("fulfillmentStatus").eq("orderId", current.orderId)

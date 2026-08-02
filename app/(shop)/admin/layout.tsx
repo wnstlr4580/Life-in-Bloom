@@ -2,14 +2,16 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Activity, Boxes, ChevronRight, ClipboardList, FileClock, LayoutDashboard, MessageSquareWarning, Store, Users } from "lucide-react"
+import { Activity, Boxes, ChevronRight, CircleDollarSign, ClipboardList, FileClock, LayoutDashboard, MessageSquareWarning, SlidersHorizontal, Store, Users } from "lucide-react"
 
 const MENUS = [
   { href: "/admin", label: "운영 대시보드", icon: LayoutDashboard },
   { href: "/admin/sellers", label: "판매처 관리", icon: Store },
   { href: "/admin/users", label: "사용자 관리", icon: Users },
   { href: "/admin/products", label: "상품 현황", icon: Boxes },
+  { href: "/admin/exposure-policy", label: "노출 정책", icon: SlidersHorizontal },
   { href: "/admin/orders", label: "주문 현황", icon: ClipboardList },
+  { href: "/admin/settlements", label: "정산 운영", icon: CircleDollarSign },
   { href: "/admin/content", label: "리뷰·게시물", icon: MessageSquareWarning },
   { href: "/admin/audit", label: "운영 기록", icon: FileClock },
 ]

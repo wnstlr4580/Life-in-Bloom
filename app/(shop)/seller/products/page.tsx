@@ -24,6 +24,7 @@ type Product = {
   ohaengTags: string[]; seasonTags: string[]; colorTags: string[]
   useTags: string[]; deliveryDays: string[]; deliveryStartTime: string | null; deliveryEndTime: string | null
   displayStartAt: string | null; displayEndAt: string | null; saleStatus: "ON_SALE" | "SOLD_OUT" | "PAUSED" | "HIDDEN"; isActive: boolean; createdAt: string
+  sellerPromoted: boolean; sellerPriority: number
 }
 
 const emptyForm = {
@@ -33,6 +34,7 @@ const emptyForm = {
   seasonTags: ["all"] as string[], colorTags: [] as string[], useTags: [] as string[],
   deliveryDays: ["월", "화", "수", "목", "금"] as string[], deliveryStartTime: "09:00", deliveryEndTime: "18:00",
   displayStartAt: "", displayEndAt: "",
+  sellerPromoted: false, sellerPriority: "0",
 }
 
 export default function SellerProductsPage() {
@@ -73,7 +75,7 @@ export default function SellerProductsPage() {
     }
     setSaving(true)
     const body = new FormData()
-    Object.entries(form).forEach(([key, value]) => body.append(key, Array.isArray(value) ? JSON.stringify(value) : value))
+    Object.entries(form).forEach(([key, value]) => body.append(key, Array.isArray(value) ? JSON.stringify(value) : String(value)))
     files.forEach((file) => body.append("images", file))
     detailFiles.forEach((file) => body.append("detailImages", file))
     noticeFiles.forEach((file) => body.append("noticeImages", file))
@@ -133,6 +135,7 @@ export default function SellerProductsPage() {
                   <Field label="판매가(원) *"><Input type="number" min={100} value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="45000" className="h-11 border-stone-200" /></Field>
                   <Field label="판매 가능 수량 *"><Input type="number" min={0} value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} className="h-11 border-stone-200" /></Field>
                 </div>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2"><label className="flex items-center gap-3 rounded-xl bg-emerald-50 p-4 text-sm font-semibold text-emerald-800"><input type="checkbox" checked={form.sellerPromoted} onChange={(e) => setForm({ ...form, sellerPromoted: e.target.checked })} className="accent-emerald-700"/>내 상품 중 우선노출</label><Field label="판매자 직접 우선순위 (0~100)"><Input type="number" min={0} max={100} value={form.sellerPriority} onChange={(e) => setForm({ ...form, sellerPriority: e.target.value })}/></Field></div>
               </Section>
               <Section number="03" title="대표·갤러리 이미지" description="첫 사진은 대표 이미지입니다. 정면, 측면·포장, 크기 비교 사진을 포함해 3~5장 등록해주세요.">
                 <label className="min-h-36 rounded-xl border-2 border-dashed border-stone-200 bg-stone-50 flex flex-col items-center justify-center cursor-pointer hover:border-emerald-400">
@@ -252,7 +255,7 @@ function ProductList({ products, allProducts, query, setQuery, updateProduct, re
             <div className="w-20 h-20 rounded-xl overflow-hidden bg-stone-100 shrink-0">{product.images[0] ? <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" /> : <div className="w-full h-full grid place-items-center">🌸</div>}</div>
             <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="font-semibold text-stone-800 truncate">{product.name}</p><StatusBadge product={product} /></div><p className="text-sm font-bold text-stone-800 mt-2">{product.price.toLocaleString()}원</p><p className="text-xs text-stone-400 mt-1">{CATEGORIES.find(([value]) => value === product.category)?.[1]} · 재고 {product.stock}개</p></div><ChevronDown size={17} className={`text-stone-400 transition-transform ${expanded === product.id ? "rotate-180" : ""}`} />
           </button>
-          <div className="flex items-center gap-2"><Input type="number" min={0} defaultValue={product.stock} onBlur={(e) => updateProduct(product.id, { stock: Number(e.target.value) })} className="w-24 h-9" /><select value={product.stock === 0 && product.saleStatus === "ON_SALE" ? "SOLD_OUT" : product.saleStatus ?? (product.isActive ? "ON_SALE" : "PAUSED")} onChange={(e) => updateProduct(product.id, { saleStatus: e.target.value as Product["saleStatus"] })} className="h-9 rounded-lg border border-stone-200 bg-white px-3 text-xs"><option value="ON_SALE">판매 중</option><option value="SOLD_OUT" disabled>품절 (재고 0)</option><option value="PAUSED">판매 중지</option><option value="HIDDEN">숨김</option></select></div>
+          <div className="flex flex-wrap items-center gap-2"><label className="flex items-center gap-1 text-xs font-semibold text-emerald-700"><input type="checkbox" checked={product.sellerPromoted ?? false} onChange={(e) => updateProduct(product.id, { sellerPromoted: e.target.checked })} className="accent-emerald-700"/>우선노출</label><Input type="number" min={0} max={100} defaultValue={product.sellerPriority ?? 0} aria-label="판매자 우선순위" onBlur={(e) => updateProduct(product.id, { sellerPriority: Number(e.target.value) })} className="w-20 h-9" /><Input type="number" min={0} defaultValue={product.stock} onBlur={(e) => updateProduct(product.id, { stock: Number(e.target.value) })} className="w-24 h-9" /><select value={product.stock === 0 && product.saleStatus === "ON_SALE" ? "SOLD_OUT" : product.saleStatus ?? (product.isActive ? "ON_SALE" : "PAUSED")} onChange={(e) => updateProduct(product.id, { saleStatus: e.target.value as Product["saleStatus"] })} className="h-9 rounded-lg border border-stone-200 bg-white px-3 text-xs"><option value="ON_SALE">판매 중</option><option value="SOLD_OUT" disabled>품절 (재고 0)</option><option value="PAUSED">판매 중지</option><option value="HIDDEN">숨김</option></select></div>
         </div>
         {expanded === product.id && <ProductDetail product={product} reload={reload} />}
       </div>)}</div>}

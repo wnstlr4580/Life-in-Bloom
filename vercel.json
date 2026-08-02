@@ -1,5 +1,7 @@
 {
   "crons": [
-    { "path": "/api/cron/expire-points", "schedule": "0 0 * * *" }
+    { "path": "/api/cron/expire-points", "schedule": "0 0 * * *" },
+    { "path": "/api/cron/settlements", "schedule": "10 0 * * *" },
+    { "path": "/api/cron/public-market-prices", "schedule": "0 4 * * *" }
   ]
 }

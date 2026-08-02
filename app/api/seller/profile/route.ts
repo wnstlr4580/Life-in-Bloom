@@ -10,6 +10,7 @@ const FIELDS = [
   "customDeliveryScope", "customDeliveryRegions", "productDeliveryScope", "productDeliveryRegions",
   "isOpen", "businessHours", "settlementBank", "settlementAccount", "settlementHolder",
   "businessLicensePath",
+  "productSortStrategy",
 ].join(",")
 
 export async function GET() {
@@ -77,6 +78,7 @@ export async function PATCH(req: Request) {
     productDeliveryScope, productDeliveryRegions: productDeliveryScope === "REGIONAL" ? productDeliveryRegions : [],
     isOpen: body.isOpen !== false,
     businessHours: body.businessHours ?? null,
+    productSortStrategy: ["MANUAL", "LOW_STOCK", "HIGH_STOCK", "BEST_SELLING", "LATEST"].includes(String(body.productSortStrategy)) ? String(body.productSortStrategy) : "MANUAL",
     updatedAt: new Date().toISOString(),
   }
   const { data, error } = await supabaseAdmin.from("Seller").update(update).eq("id", sellerId).select(FIELDS).single()
