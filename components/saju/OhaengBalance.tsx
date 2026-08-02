@@ -1,44 +1,31 @@
 "use client"
 
+import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import type { PillarInfo, Ohaeng } from "@/lib/saju"
+import type { Ohaeng } from "@/lib/saju"
+import type { SajuProduct } from "@/types/saju"
 
 const ORDER: Ohaeng[] = ["목", "화", "토", "금", "수"]
 
 const ANGLE: Record<Ohaeng, number> = { 목: 90, 화: 18, 토: -54, 금: -126, 수: 162 }
 
-const COLOR: Record<Ohaeng, { hex: string; bar: string; light: string; text: string; border: string }> = {
-  목: { hex: "#10b981", bar: "bg-emerald-400", light: "bg-emerald-50",  text: "text-emerald-700", border: "border-emerald-200" },
-  화: { hex: "#f43f5e", bar: "bg-rose-400",    light: "bg-rose-50",     text: "text-rose-600",    border: "border-rose-200"    },
-  토: { hex: "#f59e0b", bar: "bg-amber-400",   light: "bg-amber-50",    text: "text-amber-700",   border: "border-amber-200"   },
-  금: { hex: "#94a3b8", bar: "bg-slate-400",   light: "bg-slate-50",    text: "text-slate-600",   border: "border-slate-200"   },
-  수: { hex: "#3b82f6", bar: "bg-blue-400",    light: "bg-blue-50",     text: "text-blue-700",    border: "border-blue-200"    },
+const COLOR: Record<Ohaeng, { hex: string; bar: string; text: string }> = {
+  목: { hex: "#10b981", bar: "bg-emerald-400", text: "text-emerald-700" },
+  화: { hex: "#f43f5e", bar: "bg-rose-400",    text: "text-rose-600"    },
+  토: { hex: "#f59e0b", bar: "bg-amber-400",   text: "text-amber-700"   },
+  금: { hex: "#94a3b8", bar: "bg-slate-400",   text: "text-slate-600"   },
+  수: { hex: "#3b82f6", bar: "bg-blue-400",    text: "text-blue-700"    },
 }
 
 const EMOJI: Record<Ohaeng, string> = { 목: "🌿", 화: "🔥", 토: "🌾", 금: "✨", 수: "💧" }
 
-const FLOWER_NAME: Record<Ohaeng, string> = {
-  목: "튤립 · 수선화",
-  화: "빨간 장미 · 거베라",
-  토: "국화 · 프리지아",
-  금: "백합 · 카네이션",
-  수: "수국 · 라벤더",
-}
-
-const FLOWER_DESC: Record<Ohaeng, string> = {
-  목: "성장과 생명력을 채워드립니다",
-  화: "열정과 활력을 불어넣어 줍니다",
-  토: "안정과 포용력을 더해드립니다",
-  금: "순수함과 결실의 기운을 드립니다",
-  수: "지혜와 유연함을 보충해 줍니다",
-}
-
 const CX = 130, CY = 130, R = 95
-
-// 격자 비율: 33% / 66% / 100%
 const GRID_SCALES = [1 / 3, 2 / 3, 1]
-const GRID_LABELS = ["33%", "66%", "100%"]
+/** 축을 잘랐을 때 최솟값이 갖는 반경. 0이면 그 축이 중심에 뭉쳐 오각형이 안 보인다. */
+const ZOOMED_FLOOR = 0.18
+/** 축을 안 잘랐을 때(최솟값이 0) 도트가 중심에 겹치지 않을 최소 반경. */
+const BASE_FLOOR = 0.04
 
 function vertex(o: Ohaeng, scale: number) {
   const a = (ANGLE[o] * Math.PI) / 180
@@ -49,189 +36,252 @@ function toPath(pts: { x: number; y: number }[]) {
   return pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ") + "Z"
 }
 
-interface Product {
-  id: string
-  name: string
-  price: number
-  images: string[]
-  flowerMeaning: string | null
-  category: string
-}
-
-interface LackingEntry {
-  ohaeng: Ohaeng
-  products: Product[]
-}
-
 interface Props {
-  pillars: PillarInfo[]
-  lackingProducts?: LackingEntry[]
+  /** 현재 오행 분포(%) — API가 계산한 값. 여기서 다시 계산하지 않는다. */
+  pct: Record<Ohaeng, number>
+  /** 오행 균형 추천 꽃 */
+  flowers: SajuProduct[]
 }
 
-export function OhaengBalance({ pillars, lackingProducts = [] }: Props) {
-  const raw: Record<Ohaeng, number> = { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 }
-  pillars.forEach(p => { raw[p.stemOhaeng]++; raw[p.branchOhaeng]++ })
-  const total = Object.values(raw).reduce((a, b) => a + b, 0)
-  const pct = Object.fromEntries(
-    ORDER.map(o => [o, total > 0 ? Math.round((raw[o] / total) * 100) : 0])
-  ) as Record<Ohaeng, number>
+export function OhaengBalance({ pct, flowers }: Props) {
+  const [selectedId, setSelectedId] = useState(flowers[0]?.id ?? null)
+  const selected = flowers.find((f) => f.id === selectedId) ?? flowers[0]
+  const after = selected?.pctAfter
 
-  // 가장 부족한 기운 하나만 꽃 추천에 사용
-  const weakest = ORDER.reduce((a, b) => (pct[b] < pct[a] ? b : a))
-  const needFlower = pct[weakest] < 20 ? [weakest] : []
+  // 눈금 범위는 현재 분포 + 후보 전부를 한 번에 훑어 고정한다.
+  // 선택한 꽃마다 다시 잡으면 기준선("지금" 폴리곤)이 같이 움직여 비교가 무의미해진다.
+  const shownValues = ORDER.flatMap((o) => [pct[o], ...flowers.map((f) => f.pctAfter?.[o] ?? pct[o])])
+  const axisMax = Math.max(...shownValues, 1)
+  // 축 확대 — 0%부터 그리지 않고 실제로 나타나는 값 범위만 펼친다.
+  // 변화가 잘 보이는 대신 축이 잘린 그래프이므로 눈금을 반드시 표기한다.
+  const axisMin = Math.min(...shownValues)
+  const zoomed = axisMin > 0
+  // 최솟값이 0이면 자를 축이 없다. 이때 안쪽 여백을 크게 잡으면 오히려 이동량만 깎인다.
+  const floor = zoomed ? ZOOMED_FLOOR : BASE_FLOOR
+  const span = axisMax - axisMin || 1
+  const scale = (v: number) =>
+    Math.min(1, Math.max(floor, floor + (1 - floor) * ((v - axisMin) / span)))
 
-  // 최댓값 기준 상대 스케일 — 가장 강한 기운이 외곽에 닿도록
-  const maxPct = Math.max(...ORDER.map(o => pct[o]), 1)
-  const relScale = (o: Ohaeng) => pct[o] === 0 ? 0.03 : Math.max(pct[o] / maxPct, 0.05)
+  const beforePts = ORDER.map((o) => vertex(o, scale(pct[o])))
+  const afterPts = after ? ORDER.map((o) => vertex(o, scale(after[o]))) : null
+  const shown = after ?? pct
 
-  const valuePts = ORDER.map(o => vertex(o, relScale(o)))
+  const beforeD = toPath(beforePts)
+  const afterD = afterPts ? toPath(afterPts) : beforeD
+  // 두 폴리곤의 대칭차 = 바뀐 영역. evenodd라 한쪽에만 덮인 부분만 칠해진다.
+  const bandD = `${beforeD} ${afterD}`
 
   return (
     <div className="bg-white rounded-2xl border border-stone-100 p-6 space-y-6">
-      <div>
-        <h3 className="font-bold text-stone-800">다섯 가지 기운 분포</h3>
-        <p className="text-xs text-stone-400 mt-0.5">
-          사주 {pillars.length}개 기둥 기준
-        </p>
+      <div className="flex items-baseline justify-between gap-3">
+        <div>
+          <h3 className="font-bold text-stone-800">이 꽃이 채워주는 오행 균형</h3>
+          <p className="text-xs text-stone-400 mt-0.5">
+            {flowers.length > 0 ? "꽃을 누르면 차트가 어떻게 바뀌는지 보여드려요" : "다섯 가지 기운 분포"}
+          </p>
+        </div>
+        {selected?.balanceAfter != null && (
+          <span className="text-xs font-bold text-rose-500 bg-rose-50 px-2.5 py-1 rounded-full shrink-0">
+            균형 {selected.balanceBefore} → {selected.balanceAfter}
+          </span>
+        )}
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-6 items-center">
-        {/* 오각형 레이더 차트 */}
-        <div className="shrink-0">
-          <svg viewBox="0 0 260 260" width="220" height="220">
-            {/* 격자 오각형 + 라벨 */}
-            {GRID_SCALES.map((s) => (
-              <polygon
-                key={s}
-                points={ORDER.map(o => { const v = vertex(o, s); return `${v.x},${v.y}` }).join(" ")}
-                fill="none"
-                stroke={s === 1 ? "#cbd5e1" : "#e2e8f0"}
-                strokeWidth={s === 1 ? "1.5" : "1"}
-                strokeDasharray={s === 1 ? "none" : "3,2"}
-              />
-            ))}
-            {/* 축 선 */}
-            {ORDER.map(o => {
-              const v = vertex(o, 1)
-              return <line key={o} x1={CX} y1={CY} x2={v.x} y2={v.y} stroke="#e2e8f0" strokeWidth="1" />
-            })}
-            {/* 실제 값 채움 */}
-            <path
-              d={toPath(valuePts)}
-              fill="rgba(251,113,133,0.13)"
-              stroke="rgba(244,63,94,0.5)"
-              strokeWidth="2"
-              strokeLinejoin="round"
-            />
-            {/* 꼭짓점 도트 */}
-            {ORDER.map((o, i) => (
-              <circle
-                key={o}
-                cx={valuePts[i].x} cy={valuePts[i].y}
-                r={pct[o] > 0 ? 5 : 3}
-                fill={COLOR[o].hex}
-                opacity={pct[o] > 0 ? 1 : 0.25}
-              />
-            ))}
-            {/* 오행 라벨 */}
-            {ORDER.map(o => {
-              const lv = vertex(o, 1.26)
-              return (
-                <text key={o} x={lv.x} y={lv.y} textAnchor="middle" dominantBaseline="middle"
-                  fontSize="12" fontWeight="700" fill={COLOR[o].hex}>
-                  {EMOJI[o]}{o}
-                </text>
-              )
-            })}
-            <circle cx={CX} cy={CY} r="2" fill="#cbd5e1" />
-          </svg>
-        </div>
-
-        {/* 퍼센트 바 */}
-        <div className="flex-1 w-full space-y-3">
-          {ORDER.map(o => (
-            <div key={o}>
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-xs font-medium text-stone-600">{EMOJI[o]} {o}</span>
-                <span className={`text-xs font-bold ${pct[o] === 0 ? "text-stone-300" : COLOR[o].text}`}>
-                  {pct[o]}%{pct[o] === 0 && <span className="font-normal ml-1 text-stone-300">없음</span>}
+      <div className="flex flex-col sm:flex-row gap-6">
+        {/* 왼쪽 — 선택한 꽃을 크게, 아래에 나머지 후보 썸네일 */}
+        {selected && (
+          <div className="sm:w-56 shrink-0 space-y-3 self-start">
+            <Link href={`/products/${selected.id}`} className="group block">
+              <div className="relative aspect-square rounded-2xl overflow-hidden border border-stone-100 bg-stone-50">
+                {selected.images[0] ? (
+                  <Image src={selected.images[0]} alt={selected.name} fill
+                    sizes="(max-width: 640px) 90vw, 224px"
+                    className="object-cover group-hover:scale-105 transition-transform duration-300" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-5xl">🌸</div>
+                )}
+                <span className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm text-rose-500 text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
+                  {selected.score}점
                 </span>
               </div>
-              <div className="h-3 bg-stone-100 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full ${COLOR[o].bar}`}
-                  style={{ width: `${pct[o]}%` }}
-                />
+              <p className="text-sm font-bold text-stone-800 mt-2.5 leading-snug group-hover:text-rose-500 transition-colors">
+                {selected.name}
+              </p>
+              <p className="text-base font-bold text-rose-500 mt-0.5">
+                {selected.price.toLocaleString()}원 <span className="text-xs font-normal text-stone-400">보러가기 →</span>
+              </p>
+              {selected.flowerMeaning && (
+                <p className="text-xs text-stone-400 mt-1 line-clamp-2">{selected.flowerMeaning}</p>
+              )}
+            </Link>
+
+            {flowers.length > 1 && (
+              <div className="grid grid-cols-4 gap-1.5 pt-1">
+                {flowers.map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setSelectedId(f.id)}
+                    aria-pressed={f.id === selected.id}
+                    aria-label={`${f.name} 추천 근거 보기`}
+                    className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                      f.id === selected.id
+                        ? "border-rose-400"
+                        : "border-transparent opacity-55 hover:opacity-100"
+                    }`}
+                  >
+                    {f.images[0] ? (
+                      <Image src={f.images[0]} alt="" fill sizes="52px" className="object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-sm bg-stone-50">🌸</div>
+                    )}
+                  </button>
+                ))}
               </div>
-            </div>
-          ))}
-        </div>
-      </div>
+            )}
+          </div>
+        )}
 
-      {/* 부족한 기운 + 상품 추천 */}
-      {needFlower.length > 0 ? (
-        <div className="border-t border-stone-100 pt-5 space-y-4">
-          <p className="text-sm font-bold text-stone-700">🌸 부족한 기운 채워줄 꽃</p>
-          {needFlower.map(o => {
-            const entry = lackingProducts.find(lp => lp.ohaeng === o)
-            const products = entry?.products ?? []
-            return (
-              <div key={o} className={`rounded-xl border p-4 space-y-3 ${COLOR[o].light} ${COLOR[o].border}`}>
-                {/* 헤더 */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">{EMOJI[o]}</span>
-                  <div>
-                    <span className={`text-sm font-bold ${COLOR[o].text}`}>{o} 기운이 부족해요</span>
-                    <span className={`ml-2 text-[11px] px-1.5 py-0.5 rounded-full bg-white/70 ${COLOR[o].text}`}>
-                      {pct[o] === 0 ? "전혀 없어요" : `${pct[o]}% — 조금 부족`}
-                    </span>
-                  </div>
-                </div>
-                <p className="text-xs text-stone-500">
-                  <span className="font-medium">{FLOWER_NAME[o]}</span>
-                  {" — "}{FLOWER_DESC[o]}
+        {/* 오른쪽 — 차트 + 오행 막대 */}
+        <div className="flex-1 flex flex-col md:flex-row gap-6 items-center">
+          <div className="shrink-0 w-full max-w-[280px]">
+            <svg viewBox="0 0 260 260" className="w-full h-auto">
+              {GRID_SCALES.map((s) => (
+                <polygon
+                  key={s}
+                  points={ORDER.map((o) => { const v = vertex(o, s); return `${v.x},${v.y}` }).join(" ")}
+                  fill="none"
+                  stroke={s === 1 ? "#cbd5e1" : "#e2e8f0"}
+                  strokeWidth={s === 1 ? "1.5" : "1"}
+                  strokeDasharray={s === 1 ? "none" : "3,2"}
+                />
+              ))}
+              {ORDER.map((o) => {
+                const v = vertex(o, 1)
+                return <line key={o} x1={CX} y1={CY} x2={v.x} y2={v.y} stroke="#e2e8f0" strokeWidth="1" />
+              })}
+
+              {/* 바뀐 영역 — 지금과 더한 후의 차이. 없던 상태에서 자라나듯 재생된다. */}
+              {afterPts && (
+                <path key={`band-${selected?.id}`} d={bandD} fillRule="evenodd"
+                  fill="rgba(244,63,94,0.22)" stroke="none">
+                  <animate attributeName="d" from={`${beforeD} ${beforeD}`} to={bandD}
+                    dur="0.6s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.2 1" />
+                </path>
+              )}
+
+              {/* 이 꽃을 더하면 — 지금 모양에서 출발해 변형된다 */}
+              <path key={`after-${selected?.id}`} d={afterD} fill="rgba(251,113,133,0.10)"
+                stroke="rgba(244,63,94,0.6)" strokeWidth="2" strokeLinejoin="round">
+                {afterPts && (
+                  <animate attributeName="d" from={beforeD} to={afterD}
+                    dur="0.6s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.2 1" />
+                )}
+              </path>
+
+              {/* 지금 — 꽃을 골라도 움직이지 않는 기준선 */}
+              {afterPts && (
+                <path d={beforeD} fill="none" stroke="#94a3b8" strokeWidth="1.5"
+                  strokeDasharray="4,3" strokeLinejoin="round" />
+              )}
+
+              {(afterPts ?? beforePts).map((p, i) => (
+                <circle key={`${ORDER[i]}-${selected?.id}`}
+                  cx={p.x} cy={p.y} r={shown[ORDER[i]] > 0 ? 5 : 3}
+                  fill={COLOR[ORDER[i]].hex} opacity={shown[ORDER[i]] > 0 ? 1 : 0.25}>
+                  {afterPts && (
+                    <>
+                      <animate attributeName="cx" from={beforePts[i].x} to={p.x}
+                        dur="0.6s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.2 1" />
+                      <animate attributeName="cy" from={beforePts[i].y} to={p.y}
+                        dur="0.6s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.2 1" />
+                    </>
+                  )}
+                </circle>
+              ))}
+              {ORDER.map((o) => {
+                const lv = vertex(o, 1.26)
+                return (
+                  <text key={o} x={lv.x} y={lv.y} textAnchor="middle" dominantBaseline="middle"
+                    fontSize="12" fontWeight="700" fill={COLOR[o].hex}>
+                    {EMOJI[o]}{o}
+                  </text>
+                )
+              })}
+              <circle cx={CX} cy={CY} r="2" fill="#cbd5e1" />
+            </svg>
+            {afterPts && (
+              <div className="text-center mt-1.5 space-y-0.5">
+                <p className="text-[10px] text-stone-400">
+                  <span>┈ 지금</span> · <span className="text-rose-400">▨ 이 꽃을 더하면 (색칠된 부분이 바뀐 만큼)</span>
                 </p>
-
-                {/* 상품 카드 */}
-                {products.length > 0 ? (
-                  <div className="grid grid-cols-3 gap-2">
-                    {products.map(p => (
-                      <Link
-                        key={p.id}
-                        href={`/products/${p.id}`}
-                        className="group bg-white rounded-xl overflow-hidden border border-white hover:border-stone-200 hover:shadow-md transition-all"
-                      >
-                        <div className="aspect-square relative overflow-hidden bg-stone-50">
-                          {p.images[0] ? (
-                            <Image
-                              src={p.images[0]} alt={p.name} fill sizes="(max-width: 640px) 30vw, 120px"
-                              className="object-cover group-hover:scale-105 transition-transform duration-300"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-2xl">🌸</div>
-                          )}
-                        </div>
-                        <div className="p-2">
-                          <p className="text-[11px] font-medium text-stone-700 line-clamp-2 leading-tight">{p.name}</p>
-                          <p className={`text-xs font-bold mt-1 ${COLOR[o].text}`}>
-                            {p.price.toLocaleString()}원
-                          </p>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-stone-400 text-center py-2">
-                    관련 상품 준비 중이에요 🌱
+                {/* 축이 잘린 그래프라는 사실을 반드시 밝힌다 — 안 그러면 "목이 절반이네" 같은 오독이 생긴다 */}
+                {zoomed && (
+                  <p className="text-[10px] text-stone-300">
+                    눈금 {axisMin}%~{axisMax}% · 변화가 잘 보이게 0%부터 그리지 않았어요
                   </p>
                 )}
               </div>
-            )
-          })}
+            )}
+          </div>
+
+          {/* 오행 막대 — 막대는 "더한 후", 세로 틱이 "지금" */}
+          <div className="flex-1 w-full space-y-3">
+            {ORDER.map((o) => {
+              const delta = after ? after[o] - pct[o] : 0
+              return (
+                <div key={o}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs font-medium text-stone-600">{EMOJI[o]} {o}</span>
+                    <span className={`text-xs font-bold ${shown[o] === 0 ? "text-stone-300" : COLOR[o].text}`}>
+                      {shown[o]}%
+                      {delta !== 0 && (
+                        <span className={`ml-1 font-semibold ${delta > 0 ? "text-emerald-600" : "text-stone-400"}`}>
+                          {delta > 0 ? "+" : ""}{delta}%p
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="h-3 bg-stone-100 rounded-full overflow-hidden relative">
+                    <div className={`h-full rounded-full ${COLOR[o].bar}`} style={{ width: `${shown[o]}%` }} />
+                    {after && (
+                      <div className="absolute inset-y-0 w-0.5 bg-stone-400/70" style={{ left: `${pct[o]}%` }} />
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
-      ) : (
-        <div className="border-t border-stone-100 pt-4 text-center py-3">
-          <p className="text-sm text-stone-500">⚖️ 다섯 가지 기운이 고르게 퍼져 있어요!</p>
+      </div>
+
+      {/* 하단 — 꽃말 스토리 + 추천 근거 */}
+      {selected && (selected.story ?? []).length > 0 && (
+        <div className="border-t border-stone-100 pt-5">
+          <div className="rounded-xl bg-gradient-to-br from-rose-50/60 to-stone-50/60 border border-rose-100/70 p-4 space-y-1.5">
+            {(selected.story ?? []).map((line, i) => (
+              <p key={i} className="text-[13px] text-stone-600 leading-relaxed">{line}</p>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {selected && (selected.reasons ?? []).length > 0 && (
+        <div className="border-t border-stone-100 pt-5">
+          <p className="text-sm font-bold text-stone-700 mb-3">
+            왜 <span className="text-rose-500">{selected.name}</span>일까요?
+          </p>
+          <ul className="grid sm:grid-cols-2 gap-2">
+            {(selected.reasons ?? []).map((r, i) => (
+              <li key={i} className="flex gap-2.5 items-start bg-stone-50/70 rounded-xl p-3">
+                <span className="text-lg leading-none mt-0.5">{r.icon}</span>
+                <div>
+                  <p className="text-xs font-bold text-stone-700">{r.title}</p>
+                  <p className="text-[11px] text-stone-400 leading-snug mt-0.5">{r.detail}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>

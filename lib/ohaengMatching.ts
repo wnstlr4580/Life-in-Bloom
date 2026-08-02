@@ -15,7 +15,7 @@ const TOTAL_WEIGHT = AXIS_WEIGHT.color + AXIS_WEIGHT.season + AXIS_WEIGHT.meanin
 // 파스텔·믹스는 특정 오행으로 단정할 수 없어 의도적으로 제외 → 평균치로 처리된다.
 // 보라/퍼플은 목·화 계열이 아니라 수(水)로 통일한다 — lib/flowers.ts 꽃 사전에서
 // 라벤더·아이리스·팬지·무스카리·리시안셔스·스타티스 등 보라 계열 다수가 이미 수(水)로 분류돼 있다.
-const COLOR_RULES: Record<Ohaeng, string[]> = {
+export const COLOR_RULES: Record<Ohaeng, string[]> = {
   목: ["그린"],
   화: ["레드", "핑크"],
   토: ["옐로"],
@@ -25,7 +25,7 @@ const COLOR_RULES: Record<Ohaeng, string[]> = {
 
 // 계절 — 실제 판매자가 고르는 계절 태그(spring/summer/autumn/winter/all) 기준.
 // 토(土)는 원래 환절기를 상징하는데 그런 태그가 없어, 사계절(all)을 대리 신호로 쓴다.
-const SEASON_RULES: Record<Ohaeng, string[]> = {
+export const SEASON_RULES: Record<Ohaeng, string[]> = {
   목: ["spring", "봄"],
   화: ["summer", "여름"],
   토: ["all", "사계절"],
@@ -35,7 +35,7 @@ const SEASON_RULES: Record<Ohaeng, string[]> = {
 
 // 꽃말(성질) — 색과 무관한 상징적 의미. lib/saju.ts의 OHAENG_PROFILE.keywords를 씨앗으로
 // 같은 주제의 동의어를 넓힌 것이라, 색상축과 겹치지 않는 독립된 신호다.
-const MEANING_RULES: Record<Ohaeng, string[]> = {
+export const MEANING_RULES: Record<Ohaeng, string[]> = {
   목: ["새로운 시작", "성장", "생명력", "도전", "희망", "다시 시작"],
   화: ["열정", "사랑", "고백", "뜨거운", "활력", "정열", "화려"],
   토: ["안정", "풍요", "포용", "편안", "든든", "신뢰", "감사"],

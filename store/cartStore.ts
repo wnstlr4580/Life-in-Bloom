@@ -44,6 +44,17 @@ interface CartStore {
   totalPrice: () => number
 }
 
+// v0 → v2 변경은 필드 추가뿐이라 기존 items를 그대로 살리고 신규 필드만 기본값으로 채운다
+export function migrateCartState(persisted: unknown) {
+  const state = (persisted ?? {}) as Partial<CartStore>
+  return {
+    ...state,
+    items: state.items ?? [],
+    activeUserId: state.activeUserId ?? null,
+    savedCarts: state.savedCarts ?? {},
+  }
+}
+
 export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
@@ -94,6 +105,6 @@ export const useCartStore = create<CartStore>()(
       totalPrice: () =>
         get().items.reduce((sum, i) => sum + i.product.price * i.quantity, 0),
     }),
-    { name: "cart", version: 2 }
+    { name: "cart", version: 2, migrate: migrateCartState }
   )
 )

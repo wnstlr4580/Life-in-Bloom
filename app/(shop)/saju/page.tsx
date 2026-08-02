@@ -10,34 +10,14 @@ import { FortuneResult } from "@/components/saju/FortuneResult"
 import { FlowerRecommendList } from "@/components/saju/FlowerRecommendList"
 import { FlowerGuide } from "@/components/saju/FlowerGuide"
 import { ShareCard } from "@/components/saju/ShareCard"
-import type { Ohaeng, OhaengProfile, PillarInfo } from "@/lib/saju"
 import type { FortuneResult as FortuneData } from "@/lib/fortune"
+import type { AnalyzeResult as SharedAnalyzeResult } from "@/types/saju"
 
-interface Product {
-  id: string
-  name: string
-  price: number
-  images: string[]
-  flowerMeaning: string | null
-  category: string
-}
+// 응답 스키마는 types/saju.ts가 단일 출처다 (라우트가 satisfies로 검증).
+type AnalyzeResult = Omit<SharedAnalyzeResult, "fortune"> & { fortune: FortuneData }
 
-interface LackingEntry {
-  ohaeng: Ohaeng
-  products: Product[]
-}
-
-interface AnalyzeResult {
-  ohaeng: Ohaeng
-  profile: OhaengProfile
-  pillars: PillarInfo[]
-  hasHour: boolean
-  name?: string
-  lackingProducts: LackingEntry[]
-  fortune: FortuneData
-  recommendedFlowers: Product[]
-  seasonalFlowers: Product[]
-}
+// 응답 스키마를 바꾸면 뒤 숫자를 올린다 — 구버전 캐시가 read 경로에 도달하지 못하게 한다.
+const SAJU_CACHE_KEY = "lifeInBloomSajuStateV4"
 
 interface SubmitData {
   name: string
@@ -85,11 +65,15 @@ function SajuPageContent() {
   useEffect(() => {
     if (kioskBirthDate) return
     try {
-      const cached = sessionStorage.getItem("lifeInBloomSajuState")
+      const cached = sessionStorage.getItem(SAJU_CACHE_KEY)
       if (!cached) return
       const state = JSON.parse(cached) as { input: SavedProfile; result: AnalyzeResult; birthYear: number; userName: string }
+      // 스키마가 어긋난 캐시는 렌더 전에 버린다
+      if (!Array.isArray(state?.result?.recommendedFlowers) || !state?.result?.ohaengPct) {
+        sessionStorage.removeItem(SAJU_CACHE_KEY); return
+      }
       setSavedProfile(state.input); setResult(state.result); setBirthYear(state.birthYear); setUserName(state.userName); setLoadKey((key) => key + 1)
-    } catch { sessionStorage.removeItem("lifeInBloomSajuState") }
+    } catch { sessionStorage.removeItem(SAJU_CACHE_KEY) }
   }, [kioskBirthDate])
 
   // 분석 완료 시 결과로 부드럽게 스크롤
@@ -131,7 +115,7 @@ function SajuPageContent() {
       if (!res.ok) throw new Error()
       const analyzed = await res.json()
       setResult(analyzed)
-      sessionStorage.setItem("lifeInBloomSajuState", JSON.stringify({ input: data, result: analyzed, birthYear: new Date(data.birthDate).getFullYear(), userName: data.name }))
+      sessionStorage.setItem(SAJU_CACHE_KEY, JSON.stringify({ input: data, result: analyzed, birthYear: new Date(data.birthDate).getFullYear(), userName: data.name }))
 
       // 로그인 상태이면 자동 저장
       if (session?.user) {
@@ -141,7 +125,7 @@ function SajuPageContent() {
           body: JSON.stringify({
             ...data,
             ohaengType: analyzed.ohaeng ?? null,
-            lackingOhaengType: analyzed.lackingProducts?.[0]?.ohaeng ?? null,
+            lackingOhaengType: analyzed.lackingOhaeng?.[0] ?? null,
           }),
         }).then(() => setSavedProfile(data)).catch(() => {})
       }
@@ -295,6 +279,8 @@ function SajuPageContent() {
                 pillars={result.pillars}
                 mainOhaeng={result.ohaeng}
                 name={userName}
+                birthFlower={result.birthFlower}
+                birthColor={result.birthColor}
               />
             </div>
             {birthYear && (
@@ -310,18 +296,25 @@ function SajuPageContent() {
             )}
           </div>
 
-          <OhaengBalance pillars={result.pillars} lackingProducts={result.lackingProducts} />
+          <OhaengBalance pct={result.ohaengPct} flowers={result.recommendedFlowers} />
 
           {/* 상품이 없어도 보여주는 꽃 사전 */}
           <FlowerGuide
             mainOhaeng={result.ohaeng}
-            lackingOhaeng={result.lackingProducts.map((l) => l.ohaeng)}
+            lackingOhaeng={result.lackingOhaeng}
           />
 
-          {result.recommendedFlowers.length > 0 && (
+          {result.wealthFlowers.length > 0 && (
             <FlowerRecommendList
-              title={`🛒 지금 바로 살 수 있는 ${result.ohaeng} 기운 꽃`}
-              products={result.recommendedFlowers}
+              title="💰 재물운을 부르는 꽃"
+              products={result.wealthFlowers}
+            />
+          )}
+
+          {result.loveFlowers.length > 0 && (
+            <FlowerRecommendList
+              title="💗 연애운을 부르는 꽃"
+              products={result.loveFlowers}
             />
           )}
 
