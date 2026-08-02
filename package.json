@@ -8,11 +8,17 @@
     "seed:flower-road-stock": "node scripts/seed-flower-road-stock.mjs",
     "dev": "next dev",
     "build": "prisma generate && next build",
+    "build:cloudflare": "prisma generate && opennextjs-cloudflare build",
+    "preview:cloudflare": "npm run build:cloudflare && opennextjs-cloudflare preview",
+    "deploy:cloudflare": "npm run build:cloudflare && opennextjs-cloudflare deploy",
+    "upload:cloudflare": "npm run build:cloudflare && opennextjs-cloudflare upload",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv --include-runtime=false cloudflare-env.d.ts",
     "start": "next start",
     "lint": "eslint",
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@opennextjs/cloudflare": "1.19.11",
     "@auth/prisma-adapter": "^2.11.2",
     "@base-ui/react": "^1.6.0",
     "@e965/xlsx": "^0.20.3",
@@ -21,7 +27,6 @@
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@supabase/supabase-js": "^2.108.2",
-    "@vercel/blob": "^0.27.3",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -61,6 +66,7 @@
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.118.0"
   }
 }

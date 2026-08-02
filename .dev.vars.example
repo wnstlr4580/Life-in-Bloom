@@ -1,0 +1,9 @@
+# Copy to .dev.vars for local Cloudflare preview only. Never commit real secrets.
+R2_PUBLIC_BASE_URL=https://uploads.example.com
+DATABASE_URL=
+NEXTAUTH_SECRET=
+NEXTAUTH_URL=http://localhost:8787
+AUTH_TRUST_HOST=true
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=

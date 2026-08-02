@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { put } from "@vercel/blob"
+import { putPublicObject } from "@/lib/object-storage"
 import { nanoid } from "nanoid"
 import { supabaseAdmin } from "@/lib/supabase"
 import { KIOSK_PHOTO_TTL_HOURS } from "@/lib/kiosk/constants"
@@ -16,10 +16,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const blob = await put(`kiosk/${nanoid()}.jpg`, file, {
-      access: "public",
-      contentType: "image/jpeg",
-    })
+    const blob = await putPublicObject(`kiosk/${nanoid()}.jpg`, file, "image/jpeg")
 
     const expiresAt = new Date(Date.now() + KIOSK_PHOTO_TTL_HOURS * 60 * 60 * 1000).toISOString()
 

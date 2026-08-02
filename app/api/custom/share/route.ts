@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getToken } from "next-auth/jwt"
-import { put } from "@vercel/blob"
+import { putPublicObject } from "@/lib/object-storage"
 import { nanoid } from "nanoid"
 import { supabaseAdmin } from "@/lib/supabase"
 
@@ -47,10 +47,7 @@ export async function POST(req: NextRequest) {
   const user = await getOptionalUser(req)
 
   try {
-    const blob = await put(`bouquet-shared/${nanoid()}.jpg`, file, {
-      access: "public",
-      contentType: file.type || "image/jpeg",
-    })
+    const blob = await putPublicObject(`bouquet-shared/${nanoid()}.jpg`, file, file.type || "image/jpeg")
 
     const { data, error } = await supabaseAdmin
       .from("BouquetPost")

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getToken } from "next-auth/jwt"
-import { put } from "@vercel/blob"
+import { putPublicObject } from "@/lib/object-storage"
 import { nanoid } from "nanoid"
 import { supabaseAdmin } from "@/lib/supabase"
 import { grantPointsOnce, POINT_POLICY } from "@/lib/points"
@@ -87,10 +87,7 @@ export async function POST(req: NextRequest) {
   let blobUrl: string | undefined
   try {
     const folder = isGalleryShare ? "bouquet-gallery" : "bouquet-posts"
-    const blob = await put(`${folder}/${nanoid()}.jpg`, file, {
-      access: "public",
-      contentType: file.type || "image/jpeg",
-    })
+    const blob = await putPublicObject(`${folder}/${nanoid()}.jpg`, file, file.type || "image/jpeg")
     blobUrl = blob.url
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)

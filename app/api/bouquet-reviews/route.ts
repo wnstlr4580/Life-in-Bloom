@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { put } from "@vercel/blob"
+import { putPublicObject } from "@/lib/object-storage"
 import { nanoid } from "nanoid"
 import { auth } from "@/lib/auth"
 import { supabaseAdmin } from "@/lib/supabase"
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
     .select("id, productId, confirmedAt, previewImageUrl, bouquetMode, composition, product:Product(images), order:Order!inner(userId)")
     .eq("id", orderItemId).eq("order.userId", session.user.id).maybeSingle()
   if (!item?.confirmedAt) return NextResponse.json({ error: "구매확정한 상품만 리뷰를 작성할 수 있어요" }, { status: 403 })
-  const uploaded = await Promise.all(files.map((file, index) => put(`bouquet-reviews/${session.user.id}/${nanoid()}-${index}.jpg`, file, { access: "public", contentType: file.type })))
+  const uploaded = await Promise.all(files.map((file, index) => putPublicObject(`bouquet-reviews/${session.user.id}/${nanoid()}-${index}.jpg`, file, file.type)))
   const product = Array.isArray(item.product) ? item.product[0] : item.product
   const reviewId = nanoid()
   const { data, error } = await supabaseAdmin.from("Review").insert({
