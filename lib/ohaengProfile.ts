@@ -174,8 +174,16 @@ export const FLOWER_FORM: Record<string, FormTrait[]> = {
 }
 
 // (3) 오행별 특성 점수 총합 — 정규화 분모(자동 계산)
-export const FORM_OHAENG_MAX: Record<Ohaeng, number> = Object.values(FORM_TRAITS).reduce(
-  (acc, { ohaeng, points }) => { acc[ohaeng] += points; return acc },
+// 정규화 분모 — "실제로 도달 가능한 최고점"(큐레이션된 꽃 중 그 오행 형태점이 가장 높은 값).
+// 특성 점수 총합을 쓰면 어떤 꽃도 도달할 수 없는 분모가 되고, 특히 목은 특성이 5개라 120이 되어
+// 다른 오행(100)보다 불리했다. 오행마다 "가장 그 형태다운 꽃"이 1.0을 받도록 맞춘다.
+export const FORM_OHAENG_MAX: Record<Ohaeng, number> = Object.values(FLOWER_FORM).reduce(
+  (acc, traits) => {
+    const raw = { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 } as Record<Ohaeng, number>
+    for (const t of traits) raw[FORM_TRAITS[t].ohaeng] += FORM_TRAITS[t].points
+    for (const o of OHAENG_ORDER) acc[o] = Math.max(acc[o], raw[o])
+    return acc
+  },
   { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 } as Record<Ohaeng, number>,
 )
 

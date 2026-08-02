@@ -9,9 +9,9 @@ describe("flowerOhaengProfile", () => {
       colorTags: ["화이트"],   // 금
       seasonTags: ["autumn"],  // (개화기 큐레이션이 우선 → 무시됨)
     })
-    // 금 = 색(0.45) + 형태(0.35*0.5) + 계절(가을 비수기) = 65
+    // 금 = 색(0.45) + 형태(0.35*30/55) + 계절(가을 비수기) = 79
     // 토 = 상시성(가장 약한 계절이 비수기 10) → 2
-    expect(p).toEqual({ 목: 14, 화: 34, 토: 2, 금: 65, 수: 2 })
+    expect(p).toEqual({ 목: 14, 화: 40, 토: 2, 금: 79, 수: 2 })
     expect(p.금).toBeGreaterThan(p.화)
   })
 
@@ -21,8 +21,8 @@ describe("flowerOhaengProfile", () => {
       colorTags: ["옐로"],       // 토
       seasonTags: ["summer"],
     })
-    // 토 = 색(0.45) + 형태(0.35*0.2) + 상시성(0.20*0.1) = 54, 화 = 계절(0.20) + 형태(0.35*0.7) = 44
-    expect(p).toEqual({ 목: 2, 화: 44, 토: 54, 금: 2, 수: 2 })
+    // 토 = 색(0.45) + 형태(0.35*20/60) + 상시성(0.20*0.1) = 59, 화 = 계절(0.20) + 형태(0.35*70/70) = 55
+    expect(p).toEqual({ 목: 2, 화: 55, 토: 59, 금: 2, 수: 2 })
     expect(p.토).toBeGreaterThan(p.화)
   })
 
@@ -32,9 +32,9 @@ describe("flowerOhaengProfile", () => {
       colorTags: ["블루", "퍼플"], // 블루=수1, 퍼플=수0.6·화0.4 → 수 캡1, 화0.4
       seasonTags: ["summer"],
     })
-    // 수 = 색(0.45) + 형태(0.35*0.3) + 계절(겨울 비수기) = 58
-    // 토 = 형태(둥근형태) + 상시성(0.20*0.1) = 9
-    expect(p).toEqual({ 목: 14, 화: 38, 토: 9, 금: 2, 수: 58 })
+    // 수 = 색(0.45) + 형태(0.35*30/55) + 계절(겨울 비수기) = 66
+    // 토 = 형태(둥근형태 20/60) + 상시성(0.20*0.1) = 14
+    expect(p).toEqual({ 목: 14, 화: 38, 토: 14, 금: 2, 수: 66 })
     expect(p.수).toBeGreaterThan(p.화)
   })
 
@@ -83,9 +83,9 @@ describe("flowerOhaengProfile", () => {
       name: "유칼립투스",   // 목(형태) + 잎식물(4계절 보조)
       colorTags: ["레드"],  // 화(색)
     })
-    // 화 = 색(0.45) + 계절(잎식물 보조 0.14) = 59, 목 = 계절(0.14) + 형태(0.35*0.5) = 31
+    // 화 = 색(0.45) + 계절(잎식물 보조 0.14) = 59, 목 = 계절(0.14) + 형태(0.35*60/80) = 40
     expect(p.화).toBe(59)
-    expect(p.목).toBe(31)
+    expect(p.목).toBe(40)
     expect(p.화).toBeGreaterThan(0)
     expect(p.목).toBeGreaterThan(0)
   })
@@ -103,8 +103,18 @@ describe("flowerOhaengProfile", () => {
     expect(PROFILE_WEIGHT).not.toHaveProperty("meaning")
   })
 
-  it("FORM_OHAENG_MAX는 특성 점수 총합 (목120·화100·토100·금100·수100)", () => {
-    expect(FORM_OHAENG_MAX).toEqual({ 목: 120, 화: 100, 토: 100, 금: 100, 수: 100 })
+  it("FORM_OHAENG_MAX는 큐레이션된 꽃이 실제로 도달 가능한 최고점", () => {
+    expect(FORM_OHAENG_MAX).toEqual({ 목: 80, 화: 70, 토: 60, 금: 55, 수: 55 })
+  })
+
+  it("분모는 특성 총합이 아니다 — 어떤 오행도 도달 불가능한 분모를 갖지 않는다", () => {
+    const total = { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 } as Record<string, number>
+    for (const { ohaeng, points } of Object.values(FORM_TRAITS)) total[ohaeng] += points
+    for (const o of Object.keys(total)) {
+      // 총합을 분모로 쓰면 어떤 꽃도 1.0에 못 닿는다. 달성 가능한 값이어야 한다.
+      expect(FORM_OHAENG_MAX[o as keyof typeof FORM_OHAENG_MAX], o).toBeLessThan(total[o])
+      expect(FORM_OHAENG_MAX[o as keyof typeof FORM_OHAENG_MAX], o).toBeGreaterThan(0)
+    }
   })
 
   it("FORM_TRAITS 각 특성은 유효한 오행과 양수 점수를 가진다", () => {
