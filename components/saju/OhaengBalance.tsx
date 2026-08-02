@@ -22,8 +22,10 @@ const EMOJI: Record<Ohaeng, string> = { 목: "🌿", 화: "🔥", 토: "🌾", �
 
 const CX = 130, CY = 130, R = 95
 const GRID_SCALES = [1 / 3, 2 / 3, 1]
-/** 값이 0이어도 도트가 중심에 뭉치지 않게 하는 최소 반경. before/after 동일 규칙이어야 이동량이 안 깎인다. */
-const MIN_SCALE = 0.04
+/** 축을 잘랐을 때 최솟값이 갖는 반경. 0이면 그 축이 중심에 뭉쳐 오각형이 안 보인다. */
+const ZOOMED_FLOOR = 0.18
+/** 축을 안 잘랐을 때(최솟값이 0) 도트가 중심에 겹치지 않을 최소 반경. */
+const BASE_FLOOR = 0.04
 
 function vertex(o: Ohaeng, scale: number) {
   const a = (ANGLE[o] * Math.PI) / 180
@@ -46,13 +48,19 @@ export function OhaengBalance({ pct, flowers }: Props) {
   const selected = flowers.find((f) => f.id === selectedId) ?? flowers[0]
   const after = selected?.pctAfter
 
-  // 분모는 현재 분포 + 후보 전부를 한 번에 훑어 고정한다.
+  // 눈금 범위는 현재 분포 + 후보 전부를 한 번에 훑어 고정한다.
   // 선택한 꽃마다 다시 잡으면 기준선("지금" 폴리곤)이 같이 움직여 비교가 무의미해진다.
-  const denom = Math.max(
-    ...ORDER.flatMap((o) => [pct[o], ...flowers.map((f) => f.pctAfter?.[o] ?? 0)]),
-    1,
-  )
-  const scale = (v: number) => Math.max(v / denom, MIN_SCALE)
+  const shownValues = ORDER.flatMap((o) => [pct[o], ...flowers.map((f) => f.pctAfter?.[o] ?? pct[o])])
+  const axisMax = Math.max(...shownValues, 1)
+  // 축 확대 — 0%부터 그리지 않고 실제로 나타나는 값 범위만 펼친다.
+  // 변화가 잘 보이는 대신 축이 잘린 그래프이므로 눈금을 반드시 표기한다.
+  const axisMin = Math.min(...shownValues)
+  const zoomed = axisMin > 0
+  // 최솟값이 0이면 자를 축이 없다. 이때 안쪽 여백을 크게 잡으면 오히려 이동량만 깎인다.
+  const floor = zoomed ? ZOOMED_FLOOR : BASE_FLOOR
+  const span = axisMax - axisMin || 1
+  const scale = (v: number) =>
+    Math.min(1, Math.max(floor, floor + (1 - floor) * ((v - axisMin) / span)))
 
   const beforePts = ORDER.map((o) => vertex(o, scale(pct[o])))
   const afterPts = after ? ORDER.map((o) => vertex(o, scale(after[o]))) : null
@@ -203,9 +211,17 @@ export function OhaengBalance({ pct, flowers }: Props) {
               <circle cx={CX} cy={CY} r="2" fill="#cbd5e1" />
             </svg>
             {afterPts && (
-              <p className="text-[10px] text-stone-400 text-center mt-1">
-                <span className="text-stone-400">┈ 지금</span> · <span className="text-rose-400">▨ 이 꽃을 더하면 (색칠된 부분이 바뀐 만큼)</span>
-              </p>
+              <div className="text-center mt-1.5 space-y-0.5">
+                <p className="text-[10px] text-stone-400">
+                  <span>┈ 지금</span> · <span className="text-rose-400">▨ 이 꽃을 더하면 (색칠된 부분이 바뀐 만큼)</span>
+                </p>
+                {/* 축이 잘린 그래프라는 사실을 반드시 밝힌다 — 안 그러면 "목이 절반이네" 같은 오독이 생긴다 */}
+                {zoomed && (
+                  <p className="text-[10px] text-stone-300">
+                    눈금 {axisMin}%~{axisMax}% · 변화가 잘 보이게 0%부터 그리지 않았어요
+                  </p>
+                )}
+              </div>
             )}
           </div>
 
