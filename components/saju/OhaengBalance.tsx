@@ -255,7 +255,17 @@ export function OhaengBalance({ pct, flowers }: Props) {
         </div>
       </div>
 
-      {/* 하단 — 이 꽃이 추천된 이유 */}
+      {/* 하단 — 꽃말 스토리 + 추천 근거 */}
+      {selected && (selected.story ?? []).length > 0 && (
+        <div className="border-t border-stone-100 pt-5">
+          <div className="rounded-xl bg-gradient-to-br from-rose-50/60 to-stone-50/60 border border-rose-100/70 p-4 space-y-1.5">
+            {(selected.story ?? []).map((line, i) => (
+              <p key={i} className="text-[13px] text-stone-600 leading-relaxed">{line}</p>
+            ))}
+          </div>
+        </div>
+      )}
+
       {selected && (selected.reasons ?? []).length > 0 && (
         <div className="border-t border-stone-100 pt-5">
           <p className="text-sm font-bold text-stone-700 mb-3">

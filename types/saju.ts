@@ -21,6 +21,8 @@ export interface SajuProduct {
   balanceAfter?: number
   /** 주 추천 한정 — 이 꽃을 더했을 때의 오행 분포(%). 차트 before/after 비교용 */
   pctAfter?: Record<Ohaeng, number>
+  /** 주 추천 한정 — 꽃말 기반 추천 스토리 2~3문장 */
+  story?: string[]
 }
 
 export interface AnalyzeResult {
@@ -36,6 +38,10 @@ export interface AnalyzeResult {
   /** 가장 부족한 오행(항상 0~1개). 상품이 아니라 값 자체가 필요하다 —
    *  User.lackingOhaengType 저장(custom·diy "보충" 뱃지)과 FlowerGuide가 읽는다. */
   lackingOhaeng: Ohaeng[]
+  /** 생년월일에서 나온 탄생화 (사전에 꽃말이 없으면 meaning은 null) */
+  birthFlower: { name: string; color: string | null; meaning: string | null } | null
+  /** 생월 기반 오방색 탄생색 */
+  birthColor: { name: string; ohaeng: Ohaeng }
   fortune: unknown
   recommendedFlowers: SajuProduct[]
   wealthFlowers: SajuProduct[]

@@ -29,9 +29,12 @@ interface Props {
   pillars: PillarInfo[]
   mainOhaeng: Ohaeng
   name?: string
+  /** 생년월일에서 나온 개인 정보 — 추천 가점에도 쓰인다 */
+  birthFlower?: { name: string; color: string | null; meaning: string | null } | null
+  birthColor?: { name: string } | null
 }
 
-export function OhaengResult({ pillars, mainOhaeng, name }: Props) {
+export function OhaengResult({ pillars, mainOhaeng, name, birthFlower, birthColor }: Props) {
   const mainColor = OHAENG_COLOR[mainOhaeng]
   const dayPillar = pillars.find((p) => p.pillar === "일주")
 
@@ -114,6 +117,24 @@ export function OhaengResult({ pillars, mainOhaeng, name }: Props) {
             </div>
           )
         })}
+
+        {(birthFlower || birthColor) && (
+          <div className="mt-1 rounded-xl bg-stone-50/80 border border-stone-100 px-4 py-3 flex flex-wrap items-center gap-x-5 gap-y-1.5">
+            {birthFlower && (
+              <p className="text-xs text-stone-600">
+                🌸 나의 탄생화 <span className="font-bold text-stone-800">{birthFlower.name}</span>
+                {birthFlower.meaning && (
+                  <span className="text-stone-400"> — &lsquo;{birthFlower.meaning}&rsquo;</span>
+                )}
+              </p>
+            )}
+            {birthColor && (
+              <p className="text-xs text-stone-600">
+                🎨 나의 탄생색 <span className="font-bold text-stone-800">{birthColor.name}</span>
+              </p>
+            )}
+          </div>
+        )}
 
         {pillars.length < 4 && (
           <div className="flex gap-3">

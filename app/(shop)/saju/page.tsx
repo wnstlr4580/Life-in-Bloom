@@ -17,7 +17,7 @@ import type { AnalyzeResult as SharedAnalyzeResult } from "@/types/saju"
 type AnalyzeResult = Omit<SharedAnalyzeResult, "fortune"> & { fortune: FortuneData }
 
 // 응답 스키마를 바꾸면 뒤 숫자를 올린다 — 구버전 캐시가 read 경로에 도달하지 못하게 한다.
-const SAJU_CACHE_KEY = "lifeInBloomSajuStateV3"
+const SAJU_CACHE_KEY = "lifeInBloomSajuStateV4"
 
 interface SubmitData {
   name: string
@@ -279,6 +279,8 @@ function SajuPageContent() {
                 pillars={result.pillars}
                 mainOhaeng={result.ohaeng}
                 name={userName}
+                birthFlower={result.birthFlower}
+                birthColor={result.birthColor}
               />
             </div>
             {birthYear && (

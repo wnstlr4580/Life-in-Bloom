@@ -2,14 +2,17 @@ import { NextRequest, NextResponse } from "next/server"
 import KoreanLunarCalendar from "korean-lunar-calendar"
 import { supabaseAdmin } from "@/lib/supabase"
 import { calculateSaju, getCurrentSeason } from "@/lib/saju"
+import { birthFlowerSelection } from "@/lib/diyFlowerTags"
 import type { Ohaeng } from "@/lib/saju"
 import { calcFortune } from "@/lib/fortune"
 import type { AnalyzeResult } from "@/types/saju"
-import { flowerOhaengProfile } from "@/lib/ohaengProfile"
+import { flowerOhaengProfile, flowerColorWord } from "@/lib/ohaengProfile"
+import { flowerStory, lookupFlowerMeaning } from "@/lib/flowerStory"
 import {
   ohaengBalance, balanceAfter, ohaengPctAfter, idealBalanceDelta, ohaengFit,
   topByOhaeng, pickDiverse, blendScore, buildReasons, isRecommendable,
   personalPreferenceDetail, personalScore, wealthOhaeng, loveOhaeng,
+  birthColorOhaeng, OBANGSAEK_OHAENG,
   type UserPersonalization, type OhaengCounts,
 } from "@/lib/recommendation"
 
@@ -60,6 +63,18 @@ export async function POST(req: NextRequest) {
   const excessOhaeng = OHAENG_ALL.reduce((a, b) => (counts[b] > counts[a] ? b : a))
   const balance = ohaengBalance(counts)
   const idealDelta = idealBalanceDelta(counts)
+
+  // 생년월일에서 나온 개인 정보 — 추천 가점에도 쓰이고 결과 화면에도 명시한다.
+  const birthSel = user.monthDay ? birthFlowerSelection(user.monthDay) : null
+  const birthFlower = birthSel
+    ? {
+        name: birthSel.name,
+        color: flowerColorWord(birthSel.name, [birthSel.color]),
+        meaning: lookupFlowerMeaning(birthSel.name, birthSel.color),
+      }
+    : null
+  const birthColorOh = birthColorOhaeng(user)
+  const birthColor = { name: OBANGSAEK_OHAENG[birthColorOh].name, ohaeng: birthColorOh }
 
   // 활성 상품 후보군을 넓게 가져와 꽃 오행 프로필로 점수화한다.
   const { data: candidates } = await supabaseAdmin
@@ -116,6 +131,10 @@ export async function POST(req: NextRequest) {
     balanceBefore: Math.round(balance),
     balanceAfter: Math.round(balanceAfter(counts, s.profile)),
     pctAfter: ohaengPctAfter(counts, s.profile),
+    story: flowerStory(s.product, driverOhaeng(s.profile), {
+      lacking: lackingOhaeng[0] ?? null,
+      excess: excessOhaeng,
+    }),
   }))
 
   // 운세별 추천 — 재물운(재성)·연애운(식상) 오행 프로필이 높은 꽃
@@ -143,6 +162,8 @@ export async function POST(req: NextRequest) {
     balance: Math.round(balance),
     ohaengPct: pct,
     lackingOhaeng,
+    birthFlower,
+    birthColor,
     fortune,
     recommendedFlowers,
     wealthFlowers,
