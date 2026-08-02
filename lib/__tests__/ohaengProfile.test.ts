@@ -10,7 +10,8 @@ describe("flowerOhaengProfile", () => {
       seasonTags: ["autumn"],  // (개화기 큐레이션이 우선 → 무시됨)
     })
     // 금 = 색(0.45) + 형태(0.35*0.5) + 계절(가을 비수기) = 65
-    expect(p).toEqual({ 목: 14, 화: 34, 토: 0, 금: 65, 수: 2 })
+    // 토 = 상시성(가장 약한 계절이 비수기 10) → 2
+    expect(p).toEqual({ 목: 14, 화: 34, 토: 2, 금: 65, 수: 2 })
     expect(p.금).toBeGreaterThan(p.화)
   })
 
@@ -20,8 +21,8 @@ describe("flowerOhaengProfile", () => {
       colorTags: ["옐로"],       // 토
       seasonTags: ["summer"],
     })
-    // 토 = 색(0.45) + 형태(0.35*0.2) = 52, 화 = 계절(0.20) + 형태(0.35*0.7) = 44
-    expect(p).toEqual({ 목: 2, 화: 44, 토: 52, 금: 2, 수: 2 })
+    // 토 = 색(0.45) + 형태(0.35*0.2) + 상시성(0.20*0.1) = 54, 화 = 계절(0.20) + 형태(0.35*0.7) = 44
+    expect(p).toEqual({ 목: 2, 화: 44, 토: 54, 금: 2, 수: 2 })
     expect(p.토).toBeGreaterThan(p.화)
   })
 
@@ -32,7 +33,8 @@ describe("flowerOhaengProfile", () => {
       seasonTags: ["summer"],
     })
     // 수 = 색(0.45) + 형태(0.35*0.3) + 계절(겨울 비수기) = 58
-    expect(p).toEqual({ 목: 14, 화: 38, 토: 7, 금: 2, 수: 58 })
+    // 토 = 형태(둥근형태) + 상시성(0.20*0.1) = 9
+    expect(p).toEqual({ 목: 14, 화: 38, 토: 9, 금: 2, 수: 58 })
     expect(p.수).toBeGreaterThan(p.화)
   })
 
@@ -114,18 +116,25 @@ describe("flowerOhaengProfile", () => {
 })
 
 describe("계절 축 (개화 적합도)", () => {
-  it("잎식물(대나무): 4계절 오행 균등(보조 0.7×0.20→14), 토 보너스 없음", () => {
+  it("잎식물(대나무): 4계절 오행 균등(보조 0.7×0.20→14), 상록이라 토도 최대치", () => {
     const p = flowerOhaengProfile({ name: "대나무" }) // 형태(목)+잎식물
     expect(p.화).toBe(14) // 여름=보조
     expect(p.금).toBe(14) // 가을=보조
     expect(p.수).toBe(14) // 겨울=보조
-    expect(p.토).toBe(0)  // 잎식물은 토 보너스 없음
+    expect(p.토).toBe(14) // 사계절 내내 유지 → 상시성 최대
   })
 
-  it("사계절 꽃(거베라)은 토에 보너스(+10→약 2점)", () => {
+  it("사계절 꽃(거베라)은 상시성이 가장 높아 토 최대치(14)", () => {
     const p = flowerOhaengProfile({ name: "거베라" })
-    expect(p.토).toBe(2)
-    expect(p.토).toBeGreaterThan(0)
+    expect(p.토).toBe(14)
+  })
+
+  it("토는 상시성 — 사계절 꽃 > 두 계절 꽃 > 단일 계절 꽃 순", () => {
+    const allSeason = flowerOhaengProfile({ name: "거베라" })   // 4계절 보조
+    const twoSeason = flowerOhaengProfile({ name: "장미" })     // 봄·가을 주 + 여름·겨울 보조
+    const oneSeason = flowerOhaengProfile({ name: "튤립" })     // 봄만, 나머지 비수기
+    expect(allSeason.토).toBeGreaterThanOrEqual(twoSeason.토)
+    expect(twoSeason.토).toBeGreaterThan(oneSeason.토)
   })
 
   it("미큐레이션 꽃은 상품 seasonTags로 폴백 (winter→수 주개화 0.20→20)", () => {

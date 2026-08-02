@@ -198,20 +198,23 @@ function formAxis(text: string): Record<Ohaeng, number> {
 
 // ── 계절 축 — 꽃별 개화 적합도 등급 ──────────────────────────────
 // "있다/없다"가 아니라 개화 적합도: 주개화기 100 · 보조 70 · 비수기 10 · 불가 0.
-// 각 계절은 오행 하나에 대응(봄=목·여름=화·가을=금·겨울=수). 토는 계절이 없어
-// 사계절 내내 피는 꽃에만 보너스로 준다. 잎식물(꽃 없음)은 상시성이라 4계절 보조(70) 균등.
+// 각 계절은 오행 하나에 대응(봄=목·여름=화·가을=금·겨울=수). 토(土)는 특정 계절이 아니라
+// 환절기·중앙 기운이므로 "사계절 내내 유지되는 정도" = 4계절 등급의 최솟값으로 준다
+// (recommendation.ts의 MONTH_TO_OHAENG도 1·4·7·10월 환절기를 토로 배정한다).
+// 잎식물(꽃 없음)은 상시성이라 4계절 보조(70) 균등.
 type Season = "spring" | "summer" | "autumn" | "winter"
 const SEASON_OHAENG: Record<Season, Ohaeng> = { spring: "목", summer: "화", autumn: "금", winter: "수" }
 const SEASON_ORDER: Season[] = ["spring", "summer", "autumn", "winter"]
 const BLOOM = { 주: 100, 보조: 70, 비수기: 10, 불가: 0 } as const
-const TOJI_ALLSEASON_BONUS = 10
 
 interface FlowerSeason {
   main?: Season[]     // 주개화기 (100)
   sub?: Season[]      // 보조개화기 (70)
   never?: Season[]    // 불가 (0) — 지정 안 한 계절은 비수기(10)
-  foliage?: boolean   // 잎식물: 4계절 보조(70), 토 보너스 없음
-  allSeason?: boolean // 사계절 개화: 4계절 보조(70) + 토 보너스
+  // foliage(잎식물)와 allSeason(사계절 개화)은 현재 동작이 같다 — 둘 다 4계절 보조(70).
+  // 구분을 남겨 둔 이유는 큐레이션 의도를 기록하기 위함이다.
+  foliage?: boolean
+  allSeason?: boolean
 }
 
 // 꽃(이름 키워드)별 개화기 큐레이션 (한국 절화 기준).
@@ -305,17 +308,14 @@ function seasonAxis(name: string, seasonTags: string[]): Record<Ohaeng, number> 
     if (lower.includes(flower.toLowerCase())) { spec = s; break }
   }
 
-  let tojiBonus = 0
   let grades: Record<Season, number>
   if (spec) {
     grades = seasonGrades(spec)
-    if (spec.allSeason) tojiBonus = TOJI_ALLSEASON_BONUS
   } else {
     // 폴백: 상품 seasonTags → 태그 계절=주개화기(100), all/사계절=사계절 취급
     const tags = (seasonTags ?? []).map((t) => t.toLowerCase())
     if (tags.includes("all") || tags.includes("사계절")) {
       grades = Object.fromEntries(SEASON_ORDER.map((s) => [s, BLOOM.보조])) as Record<Season, number>
-      tojiBonus = TOJI_ALLSEASON_BONUS
     } else {
       grades = Object.fromEntries(SEASON_ORDER.map((s) => [s, tags.includes(s) ? BLOOM.주 : 0])) as Record<Season, number>
     }
@@ -323,7 +323,8 @@ function seasonAxis(name: string, seasonTags: string[]): Record<Ohaeng, number> 
 
   const result = { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 } as Record<Ohaeng, number>
   for (const s of SEASON_ORDER) result[SEASON_OHAENG[s]] = grades[s] / 100
-  result.토 = tojiBonus / 100
+  // 토 = 연중 상시성 (가장 약한 계절에도 남아 있는 만큼)
+  result.토 = Math.min(...SEASON_ORDER.map((s) => grades[s])) / 100
   return result
 }
 
