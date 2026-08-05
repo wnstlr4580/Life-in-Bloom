@@ -58,12 +58,17 @@ export async function POST(req: NextRequest) {
 
   const payload = rows.map((item) => {
     const colorTags = split(item.colorTags)
+    const seasonTags = split(item.seasonTags)
     return {
       id: `prod_${nanoid(12)}`, sellerId: actor.seller!.id, name: item.name, category: item.category,
       price: Number(item.price), stock: Number(item.stock), description: item.description,
-      flowerMeaning: null, colorTags, seasonTags: split(item.seasonTags),
+      flowerMeaning: null, colorTags, seasonTags,
       useTags: split(item.useTags), images: [item.image1, item.image2, item.image3].filter(Boolean),
-      ohaengTags: classifyProductOhaeng({ ...item, colorTags }),
+      // 엑셀 한 행은 Record<string,string>이라 스프레드로 넘기면 태그가 배열이 아니라 문자열로 들어간다
+      // (인덱스 시그니처라 타입 검사도 통과해 버린다). 필드를 명시해 tsc가 잡게 한다.
+      ohaengTags: classifyProductOhaeng({
+        name: item.name, description: item.description, category: item.category, colorTags, seasonTags,
+      }),
       deliveryDays: split(item.deliveryDays), deliveryStartTime: item.deliveryStartTime || null,
       deliveryEndTime: item.deliveryEndTime || null, displayStartAt: item.displayStartAt || null,
       displayEndAt: item.displayEndAt || null, saleStatus: Number(item.stock) === 0 ? "SOLD_OUT" : "ON_SALE", isActive: true,

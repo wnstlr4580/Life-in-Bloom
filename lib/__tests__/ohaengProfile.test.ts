@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest"
-import { flowerOhaengProfile, FORM_TRAITS, FORM_OHAENG_MAX, FLOWER_SEASON, PROFILE_WEIGHT, explainOhaeng } from "../ohaengProfile"
-import { scoreOhaengMatch, classifyOhaeng } from "../ohaengMatching"
+import {
+  flowerOhaengProfile, FORM_TRAITS, FORM_OHAENG_MAX, FLOWER_SEASON, FLOWER_FORM, PROFILE_WEIGHT, explainOhaeng,
+  SEASON_MAIN_COUNT, SEASON_OHAENG_REACH,
+} from "../ohaengProfile"
 
 describe("flowerOhaengProfile", () => {
   it("백합: 색·형태=금, 개화기=여름(화)+봄보조(목) → 금 최고 (꽃말 미반영)", () => {
@@ -134,25 +136,30 @@ describe("계절 축 (개화 적합도)", () => {
     expect(p.토).toBe(14) // 사계절 내내 유지 → 상시성 최대
   })
 
-  it("사계절 꽃(거베라)은 상시성이 가장 높아 토 최대치(14)", () => {
+  it("사계절 개화 꽃(거베라)은 4계절 주개화라 토 상한(20)을 채운다", () => {
     const p = flowerOhaengProfile({ name: "거베라" })
-    expect(p.토).toBe(14)
+    expect(p.토).toBe(20)
   })
 
-  it("토는 상시성 — 사계절 꽃 > 두 계절 꽃 > 단일 계절 꽃 순", () => {
-    const allSeason = flowerOhaengProfile({ name: "거베라" })   // 4계절 보조
+  it("토는 상시성 — 사계절 개화 > 잎식물 > 두 계절 꽃 > 단일 계절 꽃 순", () => {
+    const allSeason = flowerOhaengProfile({ name: "거베라" })   // 4계절 주개화
+    const foliage = flowerOhaengProfile({ name: "대나무" })     // 4계절 보조(상록)
     const twoSeason = flowerOhaengProfile({ name: "장미" })     // 봄·가을 주 + 여름·겨울 보조
     const oneSeason = flowerOhaengProfile({ name: "튤립" })     // 봄만, 나머지 비수기
-    expect(allSeason.토).toBeGreaterThanOrEqual(twoSeason.토)
+    expect(allSeason.토).toBeGreaterThan(foliage.토)            // 예전엔 14 == 14 동률이라 검증되지 않았다
+    expect(foliage.토).toBeGreaterThanOrEqual(twoSeason.토)
     expect(twoSeason.토).toBeGreaterThan(oneSeason.토)
   })
 
   it("미큐레이션 꽃은 상품 seasonTags로 폴백 (winter→수 주개화 0.20→20)", () => {
     const p = flowerOhaengProfile({ name: "정체불명꽃", seasonTags: ["winter"] })
     expect(p.수).toBe(20) // 겨울 주개화 100 → 0.20
-    expect(p.목).toBe(0)
-    expect(p.화).toBe(0)
-    expect(p.금).toBe(0)
+    // 나머지 계절은 큐레이션 경로와 같은 비수기(10) — 예전엔 폴백만 0이라 미큐레이션 상품의
+    // 토 상시성이 구조적으로 0이었다.
+    expect(p.목).toBe(2)
+    expect(p.화).toBe(2)
+    expect(p.금).toBe(2)
+    expect(p.토).toBe(2)
   })
 
   it("FLOWER_SEASON 각 항목은 유효 계절 키만 사용", () => {
@@ -162,6 +169,69 @@ describe("계절 축 (개화 적합도)", () => {
         expect(valid.has(s)).toBe(true)
       }
     }
+  })
+})
+
+const OHAENG_ALL = ["목", "화", "토", "금", "수"] as const
+
+describe("계절축 구조적 균등성 (편향 재발 가드)", () => {
+  it("오행 5개의 계절축 상한이 모두 1.0 — 어떤 오행도 계절축에서 구조적으로 불리하지 않다", () => {
+    // 토는 4계절 등급의 최솟값이라, 4계절 주개화 꽃이 큐레이션에 없으면 0.7에 캡됐었다.
+    // 정규화 분모를 새로 두는 대신 실제로 1.0을 채우는 꽃이 존재하게 유지한다.
+    for (const o of OHAENG_ALL) expect(SEASON_OHAENG_REACH[o], o).toBe(1)
+  })
+
+  it("계절축 만점 기여는 오행마다 같은 20점이다 (가중치 0.20 × 상한 1.0)", () => {
+    for (const o of OHAENG_ALL) {
+      expect(Math.round(100 * SEASON_OHAENG_REACH[o] * PROFILE_WEIGHT.season), o).toBe(20)
+    }
+  })
+
+  it("토 상한은 실제 카탈로그 상품이 채운다 — 사전 속 종만으로 여는 상한이 아니다", () => {
+    // 거베라·카네이션은 kioskFlowers의 martFlower이고 scripts/add-use-tags-and-products.sql에 등록돼 있다
+    expect(flowerOhaengProfile({ name: "핑크 거베라 축하화환", colorTags: ["pink"] }).토).toBe(20)
+    expect(flowerOhaengProfile({ name: "감사 꽃다발 — 카네이션", colorTags: ["red"] }).토).toBe(20)
+  })
+
+  it("주개화 분포가 특정 계절에 3.2배 넘게 쏠리지 않는다", () => {
+    // 봄에만 쏠리면 계절축이 "봄이냐 아니냐"로 붕괴해 금·수는 색상축에만 의존하게 된다.
+    // 수치는 코드에서 센다 — 손으로 세던 시절 문서에 "봄26"으로 잘못 적혀 있었다.
+    // 임계 3.2의 근거: 봄을 강등하지 않고(자연 개화기 원칙) 가을·겨울을 10까지 올린 30/10 = 3.0.
+    const counts = Object.values(SEASON_MAIN_COUNT)
+    const label = JSON.stringify(SEASON_MAIN_COUNT)
+    expect(Math.min(...counts), label).toBeGreaterThanOrEqual(8)
+    expect(Math.max(...counts) / Math.min(...counts), label).toBeLessThanOrEqual(3.2)
+  })
+
+  it("계절 큐레이션과 형태 큐레이션의 종 집합이 같다 — 한쪽만 있으면 그 축이 통째로 0이 된다", () => {
+    // 유채꽃이 FLOWER_SEASON에만 있어 형태축 35%가 0이던 적이 있다
+    expect(Object.keys(FLOWER_SEASON).sort()).toEqual(Object.keys(FLOWER_FORM).sort())
+  })
+
+  it("폴백 경로도 큐레이션 경로와 같은 비수기 floor를 쓴다 (경로 비대칭 금지)", () => {
+    const fallback = flowerOhaengProfile({ name: "정체불명꽃", seasonTags: ["winter"] })
+    const curated = flowerOhaengProfile({ name: "포인세티아" }) // main: winter
+    expect(fallback.수).toBe(20)
+    expect(fallback.토).toBe(2) // 미큐레이션 상품의 상시성이 구조적으로 0이던 결함
+    expect(fallback.토).toBe(curated.토) // 같은 개화기면 경로가 달라도 상시성이 같다
+  })
+
+  it("계절 정보가 아예 없으면 계절축은 0 — 없는 정보로 점수를 만들지 않는다", () => {
+    const p = flowerOhaengProfile({ name: "정체불명꽃" })
+    expect(Object.values(p).every((v) => v === 0)).toBe(true)
+  })
+
+  it("계절 태그는 한글·영어·fall을 같게 읽고, fall을 사계절(all)로 오인하지 않는다", () => {
+    const en = flowerOhaengProfile({ name: "정체불명꽃", seasonTags: ["spring"] })
+    expect(flowerOhaengProfile({ name: "정체불명꽃", seasonTags: ["봄"] })).toEqual(en)
+
+    const autumn = flowerOhaengProfile({ name: "정체불명꽃", seasonTags: ["autumn"] })
+    const fall = flowerOhaengProfile({ name: "정체불명꽃", seasonTags: ["fall"] })
+    expect(fall).toEqual(autumn)
+    expect(flowerOhaengProfile({ name: "정체불명꽃", seasonTags: ["가을"] })).toEqual(autumn)
+    // "fall"은 "all"을 포함한다 — 부분일치로 읽으면 사계절이 되어 토가 올라간다
+    expect(fall.토).toBe(2)
+    expect(fall.토).toBeLessThan(flowerOhaengProfile({ name: "정체불명꽃", seasonTags: ["all"] }).토)
   })
 })
 
@@ -207,20 +277,6 @@ describe("꽃 이름 이표기 · 누락 특성", () => {
     // flowers.ts·customFlowers.ts가 튤립을 목으로 분류하는 것과 방향이 일치해야 한다
     const p = flowerOhaengProfile({ name: "튤립" })
     expect(p.목).toBeGreaterThan(0)
-  })
-})
-
-describe("회귀: scoreOhaengMatch/classifyOhaeng 불변", () => {
-  it("scoreOhaengMatch는 여전히 합≈1 분포를 반환", () => {
-    const s = scoreOhaengMatch({ colorTags: ["화이트"], seasonTags: ["autumn"], flowerMeaning: "순수" })
-    const sum = Object.values(s).reduce((a, b) => a + b, 0)
-    expect(sum).toBeCloseTo(1)
-    expect(s.금).toBeGreaterThan(s.목)
-  })
-
-  it("classifyOhaeng은 백합류를 금으로 분류", () => {
-    const tags = classifyOhaeng({ colorTags: ["화이트"], seasonTags: ["autumn"], flowerMeaning: "순수, 깨끗" })
-    expect(tags).toContain("금")
   })
 })
 
