@@ -153,6 +153,7 @@ export const FLOWER_FORM: Record<string, FormTrait[]> = {
   유칼립투스: ["잎풍성", "가지확장", "새순초록"],
   라일락: ["잎풍성", "작은꽃정돈"],
   미모사: ["잎풍성", "가지확장", "작은꽃정돈"],
+  유채꽃: ["수직성장", "가지확장", "작은꽃정돈"],
   // 수직 스파이크
   히아신스: ["수직성장", "작은꽃정돈"],
   무스카리: ["수직성장", "작은꽃정돈"],
@@ -208,6 +209,24 @@ export const FLOWER_FORM: Record<string, FormTrait[]> = {
   분재: ["화분분재", "오래키우는식물", "가지확장"],
   난초: ["부드러운곡선", "아래로늘어짐", "오래키우는식물"],
   수련: ["둥근형태", "습지물연관", "부드러운곡선"],
+  // 가을 절화·소재
+  과꽃: ["태양불꽃형태", "좌우대칭", "가지확장"],
+  용담: ["수직성장", "위로활짝", "작은꽃정돈"],
+  백일홍: ["둥글고풍성한꽃", "선명한꽃잎", "좌우대칭"],
+  목화: ["흰꽃", "둥근형태", "가지확장"],
+  에린지움: ["길고곧은형태", "태양불꽃형태", "가지확장"],
+  갈대: ["수직성장", "아래로늘어짐", "부드러운곡선"],
+  아마란서스: ["아래로늘어짐", "부드러운곡선", "선명한꽃잎"],
+  아마란스: ["아래로늘어짐", "부드러운곡선", "선명한꽃잎"], // 아마란서스의 이표기
+  // 겨울 절화·화분
+  시클라멘: ["화분분재", "아래로늘어짐", "잎풍성"],
+  크리스마스로즈: ["아래로늘어짐", "부드러운곡선", "오래키우는식물"],
+  헬레보루스: ["아래로늘어짐", "부드러운곡선", "오래키우는식물"], // 크리스마스로즈의 이표기
+  에리카: ["작은꽃정돈", "가지확장", "화분분재"],
+  스노드롭: ["흰꽃", "작은꽃정돈", "아래로늘어짐"],
+  납매: ["가지확장", "작은꽃정돈", "부드러운곡선"],
+  매화: ["가지확장", "좌우대칭", "작은꽃정돈"],
+  아마릴리스: ["큰꽃송이", "길고곧은형태", "위로활짝"],
 }
 
 // (3) 오행별 특성 점수 총합 — 정규화 분모(자동 계산)
@@ -251,27 +270,51 @@ function formAxis(text: string): Record<Ohaeng, number> {
 // 각 계절은 오행 하나에 대응(봄=목·여름=화·가을=금·겨울=수). 토(土)는 특정 계절이 아니라
 // 환절기·중앙 기운이므로 "사계절 내내 유지되는 정도" = 4계절 등급의 최솟값으로 준다
 // (recommendation.ts의 MONTH_TO_OHAENG도 1·4·7·10월 환절기를 토로 배정한다).
-// 잎식물(꽃 없음)은 상시성이라 4계절 보조(70) 균등.
-type Season = "spring" | "summer" | "autumn" | "winter"
+//
+// ※ 이 축이 재는 것은 "자연 개화기·계절 상징성"이고, "지금 살 수 있는가"가 아니다.
+//   유통 가능성은 stockScore(총점 10%)와 제철 리스트(seasonTags)가 이미 담당한다 — 계절축까지
+//   유통을 재면 같은 신호를 3중 계상하고, 주요 절화 대부분이 연중 시설재배라 금·수가 소멸한다.
+//   그래서 국화는 연중 유통이어도 main: ["autumn"]이다.
+export type Season = "spring" | "summer" | "autumn" | "winter"
 const SEASON_OHAENG: Record<Season, Ohaeng> = { spring: "목", summer: "화", autumn: "금", winter: "수" }
 const SEASON_ORDER: Season[] = ["spring", "summer", "autumn", "winter"]
 const BLOOM = { 주: 100, 보조: 70, 비수기: 10, 불가: 0 } as const
 
+// 계절 태그 표기 통일 — 판매자 UI는 영어(spring/summer/autumn/winter/all)를 고르게 하지만,
+// 엑셀 대량등록(api/seller/products/bulk)의 "계절태그" 열은 검증 없는 자유 텍스트라 한글도 들어온다.
+// 색태그(normalizeColorTag)와 달리 부분일치를 쓸 수 없다 — "fall"이 "all"을 포함해 사계절로 오인된다.
+const SEASON_CANON: [Season | "all", string[]][] = [
+  ["spring", ["spring", "봄"]],
+  ["summer", ["summer", "여름"]],
+  ["autumn", ["autumn", "fall", "가을"]],
+  ["winter", ["winter", "겨울"]],
+  ["all", ["all", "사계절", "연중"]],
+]
+
+/** 계절 태그 → 표준 계절 키(또는 사계절 "all"). 대응이 없으면 null. 정확일치만 인정한다. */
+export function normalizeSeasonTag(tag: string): Season | "all" | null {
+  const key = (tag ?? "").trim().toLowerCase()
+  for (const [canon, words] of SEASON_CANON) {
+    if (words.includes(key)) return canon
+  }
+  return null
+}
+
 interface FlowerSeason {
   main?: Season[]     // 주개화기 (100)
   sub?: Season[]      // 보조개화기 (70)
-  never?: Season[]    // 불가 (0) — 지정 안 한 계절은 비수기(10)
-  // foliage(잎식물)와 allSeason(사계절 개화)은 현재 동작이 같다 — 둘 다 4계절 보조(70).
-  // 구분을 남겨 둔 이유는 큐레이션 의도를 기록하기 위함이다.
-  foliage?: boolean
-  allSeason?: boolean
+  never?: Season[]    // 불가 (0) — 지정 안 한 계절은 비수기(10). 위 "자연 개화기" 원칙에서는
+                      // 비수기와 불가의 경계가 사실상 유통 개념이라 아직 쓰는 항목이 없다.
+  foliage?: boolean   // 잎식물·상록 — 꽃이 없어 "개화"가 아니므로 4계절 보조(70)
+  allSeason?: boolean // 사계절 개화 — 네 계절 모두가 주개화기이므로 4계절 주(100).
+                      // 이 등급이 토(4계절 최솟값)의 상한 1.0을 실제로 채운다(거베라·카네이션).
 }
 
 // 꽃(이름 키워드)별 개화기 큐레이션 (한국 절화 기준).
 export const FLOWER_SEASON: Record<string, FlowerSeason> = {
   // 봄 위주
   튤립: { main: ["spring"] },
-  수선화: { main: ["spring"], sub: ["winter"] },
+  수선화: { main: ["spring", "winter"] }, // 제주 수선화는 12~2월에 핀다 — 겨울도 주개화기다
   히아신스: { main: ["spring"], sub: ["winter"] },
   은방울꽃: { main: ["spring"] },
   스토크: { main: ["spring"], sub: ["winter"] },
@@ -303,10 +346,11 @@ export const FLOWER_SEASON: Record<string, FlowerSeason> = {
   수국: { main: ["summer"], sub: ["spring"] },
   라벤더: { main: ["summer"] },
   백합: { main: ["summer"], sub: ["spring"] },
-  달리아: { main: ["summer"], sub: ["autumn"] },
+  // 늦여름~가을이 성수기인 꽃들 — 가을도 주개화기로 본다
+  달리아: { main: ["summer", "autumn"] },
   글라디올러스: { main: ["summer"] },
-  맨드라미: { main: ["summer"], sub: ["autumn"] },
-  메리골드: { main: ["summer"], sub: ["autumn"] },
+  맨드라미: { main: ["summer", "autumn"] },
+  메리골드: { main: ["summer", "autumn"] },
   안개꽃: { main: ["summer"], sub: ["spring", "autumn"] },
   리시안셔스: { main: ["summer"], sub: ["autumn"] },
   스타티스: { main: ["summer"], sub: ["autumn"] },
@@ -314,13 +358,29 @@ export const FLOWER_SEASON: Record<string, FlowerSeason> = {
   // 가을 위주
   국화: { main: ["autumn"] },
   소국: { main: ["autumn"] },
+  과꽃: { main: ["autumn"], sub: ["summer"] },
+  용담: { main: ["autumn"] },
+  백일홍: { main: ["summer", "autumn"] }, // 백일(百日) 동안 핀다 — 6~10월
+  목화: { main: ["autumn"] },              // 꽃은 여름이지만 화훼로 쓰는 다래(솜)는 가을 수확 소재다
+  에린지움: { main: ["summer", "autumn"] },
+  갈대: { main: ["autumn"] },              // 이삭이 9~10월 — 가을 소재
+  아마란서스: { main: ["summer", "autumn"] },
+  아마란스: { main: ["summer", "autumn"] }, // 아마란서스의 이표기
   // 겨울 위주
   포인세티아: { main: ["winter"] },
   동백: { main: ["winter"], sub: ["spring"] },
   난초: { main: ["winter"], sub: ["spring"] },
+  시클라멘: { main: ["winter"], sub: ["spring"] },
+  크리스마스로즈: { main: ["winter"], sub: ["spring"] },
+  헬레보루스: { main: ["winter"], sub: ["spring"] }, // 크리스마스로즈의 이표기
+  에리카: { main: ["winter"] },
+  스노드롭: { main: ["winter"], sub: ["spring"] },
+  납매: { main: ["winter"] },
+  매화: { main: ["winter"], sub: ["spring"] },        // 설 무렵 가지 절화로 유통된다
+  아마릴리스: { main: ["winter"] },
   // 봄+가을 두 성수기
   장미: { main: ["spring", "autumn"], sub: ["summer", "winter"] },
-  // 사계절 개화(연중 절화) → 토 보너스
+  // 사계절 개화(연중 절화) → 4계절 주개화, 토(상시성) 상한 1.0을 채운다
   거베라: { allSeason: true },
   카네이션: { allSeason: true },
   // 잎식물 / 상록 → 4계절 보조
@@ -333,7 +393,10 @@ export const FLOWER_SEASON: Record<string, FlowerSeason> = {
 }
 
 function seasonGrades(spec: FlowerSeason): Record<Season, number> {
-  if (spec.foliage || spec.allSeason) {
+  if (spec.allSeason) {
+    return Object.fromEntries(SEASON_ORDER.map((s) => [s, BLOOM.주])) as Record<Season, number>
+  }
+  if (spec.foliage) {
     return Object.fromEntries(SEASON_ORDER.map((s) => [s, BLOOM.보조])) as Record<Season, number>
   }
   const main = new Set(spec.main ?? [])
@@ -350,6 +413,32 @@ function seasonGrades(spec: FlowerSeason): Record<Season, number> {
   ) as Record<Season, number>
 }
 
+// 주개화기(100)를 받는 꽃이 계절마다 몇 종인가 — 특정 계절로 쏠리면 계절축이 "그 계절이냐 아니냐"로
+// 붕괴하고 반대편 오행은 색상축에만 의존하게 된다. 문서 표와 테스트가 같은 값을 보도록 코드에서 센다
+// (손으로 세던 시절 문서에 "봄26"으로 잘못 적혀 있었다). allSeason은 4계절 전부 주개화로 계수한다.
+export const SEASON_MAIN_COUNT: Record<Season, number> = Object.values(FLOWER_SEASON).reduce(
+  (acc, spec) => {
+    for (const s of spec.allSeason ? SEASON_ORDER : (spec.main ?? [])) acc[s] += 1
+    return acc
+  },
+  { spring: 0, summer: 0, autumn: 0, winter: 0 } as Record<Season, number>,
+)
+
+// 오행별 계절축 도달 가능 최고점 — "상한이 균등한가"를 감시하는 관측값이다.
+// 형태축의 FORM_OHAENG_MAX와 달리 정규화 분모로 쓰지 않는다. 분모로 쓰면 목·화·금·수는 이미 1.0이라
+// 사실상 토만 ×1.43 보정하는 셈이고, 두 계절 성수기 꽃(장미, 최솟값 70)이 연중 개화 꽃과 동률 만점이
+// 되어 "상시성"의 뜻이 깨진다. 게다가 토는 최솟값에서 파생되므로 4계절 주개화 꽃이 하나 늘면 분모가
+// 뛰어 모든 상품의 토 계절점이 일괄 하락한다. 균등화는 allSeason 등급(주 100)으로 푼다.
+export const SEASON_OHAENG_REACH: Record<Ohaeng, number> = Object.values(FLOWER_SEASON).reduce(
+  (acc, spec) => {
+    const g = seasonGrades(spec)
+    for (const s of SEASON_ORDER) acc[SEASON_OHAENG[s]] = Math.max(acc[SEASON_OHAENG[s]], g[s] / 100)
+    acc.토 = Math.max(acc.토, Math.min(...SEASON_ORDER.map((s) => g[s])) / 100)
+    return acc
+  },
+  { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 } as Record<Ohaeng, number>,
+)
+
 /** 계절 축 — 꽃 개화기(FLOWER_SEASON)로 오행 점수(0~1). 미큐레이션이면 상품 seasonTags 폴백. */
 function seasonAxis(name: string, seasonTags: string[]): Record<Ohaeng, number> {
   const lower = (name ?? "").toLowerCase()
@@ -362,12 +451,20 @@ function seasonAxis(name: string, seasonTags: string[]): Record<Ohaeng, number> 
   if (spec) {
     grades = seasonGrades(spec)
   } else {
-    // 폴백: 상품 seasonTags → 태그 계절=주개화기(100), all/사계절=사계절 취급
-    const tags = (seasonTags ?? []).map((t) => t.toLowerCase())
-    if (tags.includes("all") || tags.includes("사계절")) {
+    // 폴백: 상품 seasonTags → 태그 계절=주개화기(100), 나머지는 큐레이션 경로와 같은 비수기(10).
+    // 인식되는 태그가 하나도 없으면 "정보 없음"이라 4계절 전부 0 — 없는 정보로 점수를 만들지 않는다.
+    // all/사계절은 판매자 등록 폼의 기본값이라 신뢰도가 낮다. 큐레이션 allSeason(주 100)과 달리 보조(70).
+    const tags = (seasonTags ?? []).map(normalizeSeasonTag)
+    if (tags.includes("all")) {
       grades = Object.fromEntries(SEASON_ORDER.map((s) => [s, BLOOM.보조])) as Record<Season, number>
     } else {
-      grades = Object.fromEntries(SEASON_ORDER.map((s) => [s, tags.includes(s) ? BLOOM.주 : 0])) as Record<Season, number>
+      const matched = SEASON_ORDER.filter((s) => tags.includes(s))
+      grades = Object.fromEntries(
+        SEASON_ORDER.map((s) => [
+          s,
+          matched.length === 0 ? BLOOM.불가 : matched.includes(s) ? BLOOM.주 : BLOOM.비수기,
+        ]),
+      ) as Record<Season, number>
     }
   }
 
