@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
     id: productId, sellerId: actor.seller.id, name, description, composition, sizeGuide, substitutionNotice, originInfo,
     deliveryArea, sameDayCutoff, orderNotice, careInstructions, category, price, stock, images, detailImages, noticeImages,
     flowerMeaning: null,
-    ohaengTags: classifyProductOhaeng({ name, description, category, colorTags, seasonTags, useTags }),
+    ohaengTags: classifyProductOhaeng({ name, description, category, colorTags, seasonTags }),
     seasonTags, colorTags, useTags,
     deliveryDays, deliveryStartTime, deliveryEndTime,
     displayStartAt, displayEndAt, saleStatus: stock === 0 ? "SOLD_OUT" : "ON_SALE", isActive: true, sellerPromoted, sellerPriority,
@@ -166,7 +166,9 @@ export async function PATCH(req: NextRequest) {
   if (update.deliveryStartTime && update.deliveryEndTime && String(update.deliveryStartTime) >= String(update.deliveryEndTime)) return NextResponse.json({ error: "배송 종료 시간은 시작 시간보다 뒤여야 해요" }, { status: 400 })
   if (!validDate(update.displayStartAt ? String(update.displayStartAt) : null) || !validDate(update.displayEndAt ? String(update.displayEndAt) : null)) return NextResponse.json({ error: "상품 노출 일시 형식이 올바르지 않아요" }, { status: 400 })
   if (update.displayStartAt && update.displayEndAt && new Date(String(update.displayStartAt)) >= new Date(String(update.displayEndAt))) return NextResponse.json({ error: "노출 종료일은 시작일보다 뒤여야 해요" }, { status: 400 })
-  if (body.name || body.description || body.category || body.flowerMeaning || body.colorTags) {
+  // 재태깅 트리거는 "태깅 입력 필드 목록"이어야 한다 — flowerMeaning은 이제 점수에 안 들어가고,
+  // 가중치를 가진 seasonTags가 빠져 있어 계절만 고치면 태그가 갱신되지 않았다.
+  if (body.name || body.description || body.category || body.colorTags || body.seasonTags) {
     update.ohaengTags = classifyProductOhaeng({ ...currentProduct, ...body })
   }
   const { data, error } = await supabaseAdmin

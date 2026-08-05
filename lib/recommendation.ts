@@ -6,7 +6,9 @@
 import type { Ohaeng } from "./saju"
 import { OHAENG_PROFILE } from "./saju"
 import { birthFlowerSelection } from "./diyFlowerTags"
-import { flowerSpeciesKey, explainOhaeng, normalizeColorTag, type OhaengProfileInput } from "./ohaengProfile"
+import {
+  flowerSpeciesKey, explainOhaeng, normalizeColorTag, OHAENG_RELEVANCE_MIN, type OhaengProfileInput,
+} from "./ohaengProfile"
 
 const OHAENG_ORDER: Ohaeng[] = ["목", "화", "토", "금", "수"]
 const OHAENG_IDX: Record<Ohaeng, number> = { 목: 0, 화: 1, 토: 2, 금: 3, 수: 4 }
@@ -218,9 +220,17 @@ export function blendScore(balanceScore: number, stock: number, personal: number
 }
 
 // ── 특정 오행을 채우는 상품 랭킹 ──────────────────────────────
-/** 이 값 미만이면 "그 오행 꽃"이라고 부르지 않는다.
- *  색상 한 축만 잡혀도 최소 22.5점, 계절 태그 하나만 있어도 20점이므로 "신호 있음"의 경계. */
-export const OHAENG_RELEVANCE_MIN = 20
+// 관련성 임계는 상품 자동 태깅과 공유하므로 ohaengProfile이 소유한다(재수출).
+export { OHAENG_RELEVANCE_MIN } from "./ohaengProfile"
+
+/** a가 b를 낳는(상생) 관계인가 — 목생화, 화생토, 토생금, 금생수, 수생목 */
+export function generates(a: Ohaeng, b: Ohaeng): boolean {
+  return (OHAENG_IDX[a] + 1) % 5 === OHAENG_IDX[b]
+}
+/** target을 낳아주는 오행 (부족한 기운을 보완하는 상생 오행) */
+export function whoGenerates(target: Ohaeng): Ohaeng {
+  return OHAENG_ORDER.find((o) => generates(o, target))!
+}
 
 export interface RankCandidate {
   id: string

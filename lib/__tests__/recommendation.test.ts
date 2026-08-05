@@ -5,6 +5,7 @@ import {
   stockScore, personalPreferenceScore, blendScore,
   wealthOhaeng, loveOhaeng, birthColorOhaeng,
   MONTH_TO_OHAENG, OBANGSAEK_OHAENG, topByOhaeng, OHAENG_RELEVANCE_MIN, pickDiverse,
+  generates, whoGenerates,
 } from "../recommendation"
 import { flowerOhaengProfile, flowerSpeciesKey, normalizeColorTag } from "../ohaengProfile"
 import type { Ohaeng } from "../saju"
@@ -486,5 +487,20 @@ describe("개인화 매칭 — 색 표기·종 기준 (버그 회귀 가드)", (
       { monthDay: "05-13", month: null, mainOhaeng: "목" },
     )
     expect(d.flower).toBe(0.4) // 산사나무는 white → 색만 일치
+  })
+})
+
+describe("상생(相生) 관계", () => {
+  it("목생화·화생토·토생금·금생수·수목 5순환이 닫힌다 — 각 오행은 정확히 하나를 낳고 하나에서 나온다", () => {
+    const all: Ohaeng[] = ["목", "화", "토", "금", "수"]
+    for (const a of all) {
+      expect(all.filter((b) => generates(a, b)), `${a}가 낳는 오행`).toHaveLength(1)
+      expect(all.filter((b) => generates(b, a)), `${a}를 낳는 오행`).toHaveLength(1)
+      expect(generates(a, a), `${a}는 스스로를 낳지 않는다`).toBe(false)
+      expect(generates(whoGenerates(a), a), `whoGenerates(${a})`).toBe(true)
+    }
+    expect(generates("목", "화")).toBe(true)
+    expect(generates("수", "목")).toBe(true)
+    expect(generates("화", "목")).toBe(false) // 방향이 있다
   })
 })

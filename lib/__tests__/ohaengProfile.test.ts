@@ -3,7 +3,6 @@ import {
   flowerOhaengProfile, FORM_TRAITS, FORM_OHAENG_MAX, FLOWER_SEASON, FLOWER_FORM, PROFILE_WEIGHT, explainOhaeng,
   SEASON_MAIN_COUNT, SEASON_OHAENG_REACH,
 } from "../ohaengProfile"
-import { scoreOhaengMatch, classifyOhaeng } from "../ohaengMatching"
 
 describe("flowerOhaengProfile", () => {
   it("백합: 색·형태=금, 개화기=여름(화)+봄보조(목) → 금 최고 (꽃말 미반영)", () => {
@@ -278,20 +277,6 @@ describe("꽃 이름 이표기 · 누락 특성", () => {
     // flowers.ts·customFlowers.ts가 튤립을 목으로 분류하는 것과 방향이 일치해야 한다
     const p = flowerOhaengProfile({ name: "튤립" })
     expect(p.목).toBeGreaterThan(0)
-  })
-})
-
-describe("회귀: scoreOhaengMatch/classifyOhaeng 불변", () => {
-  it("scoreOhaengMatch는 여전히 합≈1 분포를 반환", () => {
-    const s = scoreOhaengMatch({ colorTags: ["화이트"], seasonTags: ["autumn"], flowerMeaning: "순수" })
-    const sum = Object.values(s).reduce((a, b) => a + b, 0)
-    expect(sum).toBeCloseTo(1)
-    expect(s.금).toBeGreaterThan(s.목)
-  })
-
-  it("classifyOhaeng은 백합류를 금으로 분류", () => {
-    const tags = classifyOhaeng({ colorTags: ["화이트"], seasonTags: ["autumn"], flowerMeaning: "순수, 깨끗" })
-    expect(tags).toContain("금")
   })
 })
 

@@ -504,6 +504,12 @@ export function flowerSpeciesKey(name: string): string | null {
 
 export const PROFILE_WEIGHT = { color: 0.45, form: 0.35, season: 0.20 }
 
+/** 이 값 미만이면 "그 오행 꽃"이라고 부르지 않는다.
+ *  색상 한 축만 잡혀도 최소 22.5점, 계절 태그 하나만 있어도 20점이므로 "신호 있음"의 경계.
+ *  오행별 추천 리스트(topByOhaeng)와 상품 자동 태깅(classifyProductOhaeng)이 같은 값을 쓴다 —
+ *  두 벌로 두면 "추천 리스트엔 없는데 오행 더보기엔 뜨는 꽃"이 생긴다. */
+export const OHAENG_RELEVANCE_MIN = 20
+
 export interface OhaengProfileInput {
   name?: string | null
   category?: string | null
