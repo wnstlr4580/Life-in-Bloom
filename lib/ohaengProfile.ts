@@ -439,13 +439,27 @@ export const SEASON_OHAENG_REACH: Record<Ohaeng, number> = Object.values(FLOWER_
   { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 } as Record<Ohaeng, number>,
 )
 
+/** 이름에 걸리는 개화기 큐레이션 — 첫 매칭이 이긴다. 계절 축과 제철 판정이 이 lookup을 공유해야
+ *  "제철 리스트엔 있는데 계절 점수는 0"인 꽃이 생기지 않는다. */
+function lookupSeasonSpec(name: string): FlowerSeason | undefined {
+  const lower = (name ?? "").toLowerCase()
+  for (const [flower, spec] of Object.entries(FLOWER_SEASON)) {
+    if (lower.includes(flower.toLowerCase())) return spec
+  }
+  return undefined
+}
+
+/** 지금이 이 꽃의 성수기인가 — 제철 추천 선정용. 큐레이션에 없으면 false.
+ *  보조 개화기(70)는 제철이라 부르지 않는다. explainOhaeng이 "개화"라 부르는 경계와 일부러 다르다 —
+ *  근거 문구는 보조도 개화로 인정하지만, "지금이 제철"은 주개화기만 해당한다. */
+export function isPeakSeason(name: string, season: Season): boolean {
+  const spec = lookupSeasonSpec(name)
+  return spec ? seasonGrades(spec)[season] >= BLOOM.주 : false
+}
+
 /** 계절 축 — 꽃 개화기(FLOWER_SEASON)로 오행 점수(0~1). 미큐레이션이면 상품 seasonTags 폴백. */
 function seasonAxis(name: string, seasonTags: string[]): Record<Ohaeng, number> {
-  const lower = (name ?? "").toLowerCase()
-  let spec: FlowerSeason | undefined
-  for (const [flower, s] of Object.entries(FLOWER_SEASON)) {
-    if (lower.includes(flower.toLowerCase())) { spec = s; break }
-  }
+  const spec = lookupSeasonSpec(name)
 
   let grades: Record<Season, number>
   if (spec) {

@@ -6,7 +6,7 @@
 import type { Ohaeng } from "./saju"
 import { OHAENG_PROFILE } from "./saju"
 import {
-  FORM_TRAITS, FORM_TRAIT_LABEL, formTraitsIn, flowerSpeciesKey, flowerColorWord,
+  FORM_TRAITS, FORM_TRAIT_LABEL, FLOWER_FORM, formTraitsIn, flowerSpeciesKey, flowerColorWord,
   normalizeColorTag, type OhaengProfileInput,
 } from "./ohaengProfile"
 import kioskFlowers from "./kiosk/kioskFlowers.json"
@@ -20,17 +20,29 @@ const COLOR_TO_EN: Record<string, string> = {
   화이트: "white", 오렌지: "orange", 퍼플: "purple", 핑크: "pink",
 }
 
+// 사전 표기가 큐레이션 종 키와 아예 다른 경우의 별칭. 사전 파일을 손대지 않고 브리지에서 흡수한다.
+const KOREAN_ALIAS: Record<string, string> = { 달리아: "다알리아" }
+
 // 한글 종 키(라벤더) ↔ 영문 species(lavender) 브리지.
 // 손으로 테이블을 쓰지 않고 kioskFlowers의 name+species 쌍에서 유도한다 — 데이터가 늘면 자동으로 따라온다.
 const SPECIES_BY_KOREAN: Record<string, string> = (() => {
   const map: Record<string, string> = {}
-  for (const flower of kioskFlowers.flowers as { name?: string; species?: string }[]) {
+  const rows = kioskFlowers.flowers as { name?: string; species?: string }[]
+  for (const flower of rows) {
     if (!flower.name || !flower.species) continue
     // 큐레이션 종 키(장미)와 사전 이름 그대로(브리오니아) 둘 다 등록한다.
     // 후자가 없으면 판매하지 않는 야생화 탄생화의 꽃말을 못 찾는다.
     const korean = flowerSpeciesKey(flower.name)
     if (korean && !map[korean]) map[korean] = flower.species
     if (!map[flower.name]) map[flower.name] = flower.species
+  }
+  // 이름이 종 키와 정확히 같은 행으로 덮어쓴다. 위 루프는 부분일치라 사전에서 먼저 나온 행이 이기는데,
+  // 그 탓에 은매화(myrtle)가 "매화"를, 매쉬메리골드가 "메리골드"를 가로챘다.
+  for (const flower of rows) {
+    if (flower.name && flower.species && FLOWER_FORM[flower.name]) map[flower.name] = flower.species
+  }
+  for (const [key, alias] of Object.entries(KOREAN_ALIAS)) {
+    if (map[alias]) map[key] = map[alias]
   }
   return map
 })()
