@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, Suspense, type ReactNode } from "react"
 import { useSearchParams, usePathname, useRouter } from "next/navigation"
 import { ProductCard } from "@/components/shop/ProductCard"
 import { ChevronDown, RotateCcw, SlidersHorizontal, Store } from "lucide-react"
+import Link from "next/link"
+import { FLOWERS } from "@/lib/customFlowers"
 
 const CATEGORIES = [
   { value: "", label: "전체" },
@@ -84,6 +86,10 @@ function ProductsContent() {
   const category = mounted ? searchParams.get("category") ?? "" : ""
   const uses = mounted ? searchParams.getAll("use") : []
   const color = mounted ? searchParams.get("color") ?? "" : ""
+  // 사주 추천의 "이 꽃 사러가기"가 실어 보내는 꽃 id. 필터가 아니라 빈 결과 폴백 CTA 재료다 —
+  // /api/products는 이 값을 읽지 않는다.
+  const flowerId = mounted ? searchParams.get("flower") ?? "" : ""
+  const fallbackFlower = flowerId ? FLOWERS.find((f) => f.id === flowerId) ?? null : null
   const seller = mounted ? searchParams.get("seller") ?? "" : ""
   const minPrice = mounted ? searchParams.get("minPrice") ?? "" : ""
   const maxPrice = mounted ? searchParams.get("maxPrice") ?? "" : ""
@@ -243,6 +249,16 @@ function ProductsContent() {
         <div className="text-center py-32 text-stone-400">
           <p className="text-4xl mb-4">🌱</p>
           <p>{q ? `"${q}"에 맞는 상품이 없어요` : "선택한 조건에 맞는 상품이 없습니다"}</p>
+          {/* 추천받은 꽃의 완제품이 아직 없을 때 — 막다른 길 대신 그 꽃으로 꽃다발을 만들게 보낸다.
+              id는 /custom과 같은 방식으로 화이트리스트 검증한다. */}
+          {fallbackFlower && (
+            <Link
+              href={`/custom?flowers=${encodeURIComponent(fallbackFlower.id)}`}
+              className="mt-4 inline-block px-5 py-2.5 rounded-full bg-rose-400 hover:bg-rose-500 text-white text-sm font-semibold transition-colors"
+            >
+              💐 {fallbackFlower.name} 꽃다발 만들기
+            </Link>
+          )}
           {(q || ohaeng || seller || color || minPrice || maxPrice || inStock || category || uses.length > 0) && (
             <button onClick={clearFilter} className="mt-4 text-sm text-rose-500 font-medium hover:text-rose-600">
               전체 상품 보기

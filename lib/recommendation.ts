@@ -116,13 +116,6 @@ export function ohaengFit(
   return Math.min(1, Math.max(0, NEUTRAL_FIT + (1 - NEUTRAL_FIT) * ratio))
 }
 
-// ── 재고(구매 가능성) ─────────────────────────────────────────
-/** 재고 점수 0~1 — 품절(0)은 0, 재고가 늘수록 체감 증가(포화 로그, 50개 이상 ≈ 1). */
-export function stockScore(stock: number): number {
-  if (stock <= 0) return 0
-  return Math.min(1, Math.log10(stock + 1) / Math.log10(51)) // 1→~0.18, 10→~0.56, 50→~1.0
-}
-
 // ── 개인화(탄생화·탄생컬러) ───────────────────────────────────
 export interface UserPersonalization {
   monthDay: string | null // "MM-DD" — 탄생화 매칭
@@ -214,9 +207,14 @@ export function personalPreferenceScore(product: PersonalizableProduct, user: Us
 }
 
 // ── 최종 블렌딩 ───────────────────────────────────────────────
-/** 사주(균형) 85% + 재고 10% + 개인화 5%. balanceScore·personal은 0~1 정규화값을 받는다. */
-export function blendScore(balanceScore: number, stock: number, personal: number): number {
-  return 0.85 * balanceScore + 0.10 * stockScore(stock) + 0.05 * personal
+/** 사주(균형) 95% + 개인화 5%. balanceScore·personal은 0~1 정규화값을 받는다.
+ *  개인화 5%는 확정 비율 그대로 두고, 빠진 재고 10%를 궁합이 흡수한다 — 궁합:개인화가 17:1에서
+ *  19:1로 벌어지지만 개인화는 원래 동점 조정용이라 역할이 변하지 않는다.
+ *  재고를 뺀 이유: 추천 단위가 보유 상품이
+ *  아니라 보편적인 꽃이라 "이 꽃의 재고"가 정의되지 않는다. 구매 가능성은 점수가 아니라 카드 배지가
+ *  담당한다 — 재고는 휘발성 신호이고, 점수에 섞으면 "당신에게 맞는 꽃"이라는 질문이 오염된다. */
+export function blendScore(balanceScore: number, personal: number): number {
+  return 0.95 * balanceScore + 0.05 * personal
 }
 
 // ── 특정 오행을 채우는 상품 랭킹 ──────────────────────────────
@@ -236,7 +234,6 @@ export interface RankCandidate {
   id: string
   name: string
   profile: Record<Ohaeng, number>
-  stock: number
   personal: number
 }
 
@@ -262,7 +259,7 @@ export function pickDiverse<T extends { id: string; name: string }>(ranked: T[],
   return picked
 }
 
-/** 특정 오행을 채우는 상위 상품 — 품절·무관(임계 미만) 상품은 제외한다.
+/** 특정 오행을 채우는 상위 후보 — 무관(임계 미만)한 것은 제외한다.
  *  프로필은 이미 0~100 절대점수이므로 후보군 정규화를 하지 않는다. 그래야 카탈로그가 빈약할 때
  *  1위도 낮은 점수로 나와 "지금 맞는 꽃이 없다"가 점수에 드러난다. */
 export function topByOhaeng<T extends RankCandidate>(
@@ -272,8 +269,8 @@ export function topByOhaeng<T extends RankCandidate>(
   exclude: Set<string> = new Set(),
 ): (T & { score: number })[] {
   const ranked = items
-    .filter((s) => s.stock > 0 && !exclude.has(s.id) && s.profile[target] >= OHAENG_RELEVANCE_MIN)
-    .map((s) => ({ ...s, score: blendScore(s.profile[target] / 100, s.stock, s.personal) }))
+    .filter((s) => !exclude.has(s.id) && s.profile[target] >= OHAENG_RELEVANCE_MIN)
+    .map((s) => ({ ...s, score: blendScore(s.profile[target] / 100, s.personal) }))
     .sort((a, b) => b.score - a.score)
   return pickDiverse(ranked, limit)
 }
@@ -293,7 +290,6 @@ export interface ReasonInput {
   product: OhaengProfileInput
   target: Ohaeng
   profile: Record<Ohaeng, number>
-  stock: number
   personal: PersonalDetail
   /** 균형 리스트 한정 — 이 사주에서 가장 과한 오행. 다른 리스트는 need가 점수에 안 들어가므로 넘기지 않는다. */
   excessOhaeng?: Ohaeng | null
@@ -303,7 +299,7 @@ export interface ReasonInput {
 
 /** 추천 근거 목록. 순서는 가중치 순이 아니라 읽는 순서(서사)로 고정한다. */
 export function buildReasons(input: ReasonInput): RecommendReason[] {
-  const { product, target, profile, stock, personal, excessOhaeng, seasonal } = input
+  const { product, target, profile, personal, excessOhaeng, seasonal } = input
   const reasons: RecommendReason[] = []
 
   const basis = explainOhaeng(product, target)
@@ -342,14 +338,6 @@ export function buildReasons(input: ReasonInput): RecommendReason[] {
     reasons.push({ icon: "🌸", title: "탄생화 연관", detail })
   }
 
-  if (stock > 0) {
-    reasons.push({
-      icon: "🛒",
-      title: "현재 구매 가능",
-      detail: stock >= 10 ? "가까운 판매처에서 바로 받을 수 있어요" : `${stock}개 남았어요`,
-    })
-  }
-
   if (seasonal) {
     reasons.push({ icon: "🍃", title: "지금이 제철", detail: "이 계절에 가장 좋은 상태로 만나요" })
   }
@@ -357,14 +345,7 @@ export function buildReasons(input: ReasonInput): RecommendReason[] {
   return reasons
 }
 
-// ── 추천 대상 필터 ────────────────────────────────────────────
 /** 사주 추천에 올리지 않을 용도 태그. 상품 목록(/products?use=추모) 탐색은 그대로 둔다. */
-export const EXCLUDED_USE_TAGS = ["추모"]
-
-export function isRecommendable(product: { useTags?: string[] | null }): boolean {
-  return !(product.useTags ?? []).some((t) => EXCLUDED_USE_TAGS.includes(t))
-}
-
 // ── 운세별 추천 오행 ──────────────────────────────────────────
 /** 재물운 = 재성(財星) = 일간이 극(剋)하는 오행. */
 export function wealthOhaeng(main: Ohaeng): Ohaeng {

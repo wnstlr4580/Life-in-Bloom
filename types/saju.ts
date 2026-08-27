@@ -6,14 +6,25 @@ import type { RecommendReason } from "@/lib/recommendation"
 
 export type { RecommendReason }
 
-export interface SajuProduct {
+/** 추천 단위 = "ㅇㅇ색 ㅇㅇ꽃". 보유 상품이 아니라 보편적인 꽃이다.
+ *  그래서 price·images·category가 없고, 대신 사러가기 목적지를 만들 재료가 있다. */
+export interface SajuFlower {
+  /** 꽃 카탈로그 id(색 단위). 주문 가능 항목은 customFlowers id와 같다 —
+   *  재고 배지가 SellerStock.flowerCode로 조인하고 /custom?flowers=가 이 id로 검증한다. */
   id: string
+  /** "빨간 장미" — 색은 이름에만 담는다(색 칩을 따로 두지 않는다) */
   name: string
-  price: number
-  images: string[]
+  /** 종(種) — "장미". 같은 종 다른 색을 묶는 키이자 CTA 라벨에 쓴다 */
+  species: string
+  emoji: string
+  /** 확충 항목은 사진이 없다 → 화면이 emoji로 폴백한다 */
+  img: string | null
+  /** /products?q= 에 넣을 검색어 = 색 없는 종명(이표기 정규화됨) */
+  searchQuery: string
+  /** 이름에 그 종이 든 추천 가능 상품 수. 0이면 카드 CTA가 나만의 꽃다발로 분기한다 */
+  productCount: number
   flowerMeaning: string | null
-  category: string
-  /** 추천 총점 0~100 = 오행 궁합 85% + 재고 10% + 개인화 5% */
+  /** 추천 총점 0~100 = 오행 궁합 95% + 개인화 5% */
   score: number
   reasons: RecommendReason[]
   /** 주 추천 한정 — 이 꽃을 더했을 때의 오행 균형 변화 */
@@ -30,7 +41,14 @@ export interface AnalyzeResult {
   profile: OhaengProfile
   pillars: PillarInfo[]
   hasHour: boolean
+  // 입력 되돌려주기 — 화면은 캐시된 입력을 쓰지만 응답이 자기 완결적이도록 함께 실어 보낸다.
+  // satisfies를 좁히면서 드러난 필드들이다(예전엔 Record<string, unknown> 교집합에 숨어 있었다).
   name?: string
+  gender?: string
+  birthDate?: string
+  birthHour?: string
+  city?: string
+  calendarType?: string
   /** 현재 오행 균형도 0~100 */
   balance: number
   /** 현재 오행 분포(%) — 오행마다 반올림돼 합이 100이 아닐 수 있다(표시 전용) */
@@ -43,8 +61,8 @@ export interface AnalyzeResult {
   /** 생월 기반 오방색 탄생색 */
   birthColor: { name: string; ohaeng: Ohaeng }
   fortune: unknown
-  recommendedFlowers: SajuProduct[]
-  wealthFlowers: SajuProduct[]
-  loveFlowers: SajuProduct[]
-  seasonalFlowers: SajuProduct[]
+  recommendedFlowers: SajuFlower[]
+  wealthFlowers: SajuFlower[]
+  loveFlowers: SajuFlower[]
+  seasonalFlowers: SajuFlower[]
 }

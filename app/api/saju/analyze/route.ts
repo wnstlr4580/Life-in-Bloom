@@ -5,12 +5,14 @@ import { calculateSaju, getCurrentSeason } from "@/lib/saju"
 import { birthFlowerSelection } from "@/lib/diyFlowerTags"
 import type { Ohaeng } from "@/lib/saju"
 import { calcFortune } from "@/lib/fortune"
-import type { AnalyzeResult } from "@/types/saju"
-import { flowerOhaengProfile, flowerColorWord } from "@/lib/ohaengProfile"
+import type { AnalyzeResult, SajuFlower } from "@/types/saju"
+import { flowerOhaengProfile, flowerColorWord, isPeakSeason } from "@/lib/ohaengProfile"
+import { RECOMMENDABLE_CATALOG, catalogProfileInput } from "@/lib/flowerCatalog"
+import { speciesSearchQuery, countSpeciesProducts } from "@/lib/sajuFlowerLink"
 import { flowerStory, lookupFlowerMeaning } from "@/lib/flowerStory"
 import {
   ohaengBalance, balanceAfter, ohaengPctAfter, idealBalanceDelta, ohaengFit,
-  topByOhaeng, pickDiverse, blendScore, buildReasons, isRecommendable,
+  topByOhaeng, pickDiverse, blendScore, buildReasons,
   personalPreferenceDetail, personalScore, wealthOhaeng, loveOhaeng,
   birthColorOhaeng, OBANGSAEK_OHAENG,
   type UserPersonalization, type OhaengCounts,
@@ -76,36 +78,38 @@ export async function POST(req: NextRequest) {
   const birthColorOh = birthColorOhaeng(user)
   const birthColor = { name: OBANGSAEK_OHAENG[birthColorOh].name, ohaeng: birthColorOh }
 
-  // 활성 상품 후보군을 넓게 가져와 꽃 오행 프로필로 점수화한다.
-  //
-  // 정렬은 오행 궁합(ohaengFit)으로 한다 — 상품 목록 화면의 노출 우선순위(lib/exposureRanking)와는
-  // 다른 화면의 다른 로직이라 여기서는 쓰지 않는다. 판매 상태 필터만 목록 화면과 기준을 맞춘다.
-  const { data: candidates } = await supabaseAdmin
-    .from("Product")
-    .select("id, name, price, images, flowerMeaning, description, category, colorTags, seasonTags, useTags, stock")
-    .eq("isActive", true)
-    .in("saleStatus", ["ON_SALE", "SOLD_OUT"])
-    .order("createdAt", { ascending: false })
-    .limit(300)
-
-  // 후보별 프로필·개인화·재고를 미리 계산해둔다. 추모 상품은 사주 추천에 올리지 않는다.
-  const scored = (candidates ?? []).filter(isRecommendable).map((p) => {
-    const detail = personalPreferenceDetail(p, user)
+  // 추천 후보는 보유 상품이 아니라 꽃 카탈로그다 — 상품이 없는 꽃도 그 사람에게 맞으면 추천한다.
+  // 재고·판매상태 필터가 필요 없어졌고, 추모 연상 항목은 카탈로그가 이미 걸러 둔다.
+  const scored = RECOMMENDABLE_CATALOG.map((flower) => {
+    const input = catalogProfileInput(flower)
+    const detail = personalPreferenceDetail({ id: flower.id, name: flower.name, colorTags: [flower.color] }, user)
     return {
-      product: p,
-      id: p.id,
-      name: p.name,
-      profile: flowerOhaengProfile(p),
+      flower,
+      input,
+      id: flower.id,
+      name: flower.name,
+      profile: flowerOhaengProfile(input),
       detail,
       personal: personalScore(detail),
-      stock: p.stock ?? 0,
     }
   })
 
+  // "이 꽃 사러가기"가 상품 검색으로 갈지 나만의 꽃다발로 갈지 판정할 재료.
+  // 이미 메모리에 있는 상품명에서 세므로 추가 I/O가 없다. 조회가 실패하면 전부 0이 되어
+  // 모든 카드가 나만의 꽃다발로 향한다 — 추천 자체는 상품과 무관하므로 치명적이지 않다.
+  const { data: productRows } = await supabaseAdmin
+    .from("Product")
+    .select("name, useTags")
+    .eq("isActive", true)
+    .in("saleStatus", ["ON_SALE", "SOLD_OUT"])
+    .limit(1000)
+  const productNames = (productRows ?? [])
+    .filter((p) => !(p.useTags ?? []).includes("추모"))
+    .map((p) => p.name as string)
+
   // 오행 궁합 — 그 꽃을 더했을 때 사주 분포가 얼마나 고르게 되는가로 주 추천을 뽑는다.
-  const inStock = scored.filter((s) => s.stock > 0)
-  const rankedMain = inStock
-    .map((s) => ({ ...s, score: blendScore(ohaengFit(counts, s.profile, idealDelta), s.stock, s.personal) }))
+  const rankedMain = scored
+    .map((s) => ({ ...s, score: blendScore(ohaengFit(counts, s.profile, idealDelta), s.personal) }))
     .sort((a, b) => b.score - a.score)
 
   type Scored = (typeof rankedMain)[number]
@@ -116,14 +120,22 @@ export async function POST(req: NextRequest) {
       profile[b] * (EVEN_SHARE - pct[b]) > profile[a] * (EVEN_SHARE - pct[a]) ? b : a,
     )
 
-  const toCard = (s: Scored, target: Ohaeng, opts?: { excess?: boolean; seasonal?: boolean }) => ({
-    ...s.product,
+  // 필드를 명시해 조립한다 — 예전에는 상품 객체를 스프레드해서 useTags·stock·description까지
+  // 응답으로 새어나갔다. 명시 조립이라야 아래 satisfies가 드리프트를 실제로 잡는다.
+  const toCard = (s: Scored, target: Ohaeng, opts?: { excess?: boolean; seasonal?: boolean }): SajuFlower => ({
+    id: s.flower.id,
+    name: s.flower.name,
+    species: s.flower.species,
+    emoji: s.flower.emoji,
+    img: s.flower.img,
+    searchQuery: speciesSearchQuery(s.flower.species),
+    productCount: countSpeciesProducts(productNames, s.flower.species),
+    flowerMeaning: lookupFlowerMeaning(s.flower.name, s.flower.color),
     score: Math.round(100 * s.score),
     reasons: buildReasons({
-      product: s.product,
+      product: s.input,
       target,
       profile: s.profile,
-      stock: s.stock,
       personal: s.detail,
       excessOhaeng: opts?.excess ? excessOhaeng : null,
       seasonal: opts?.seasonal,
@@ -135,7 +147,7 @@ export async function POST(req: NextRequest) {
     balanceBefore: Math.round(balance),
     balanceAfter: Math.round(balanceAfter(counts, s.profile)),
     pctAfter: ohaengPctAfter(counts, s.profile),
-    story: flowerStory(s.product, driverOhaeng(s.profile), {
+    story: flowerStory(s.input, driverOhaeng(s.profile), {
       lacking: lackingOhaeng[0] ?? null,
       excess: excessOhaeng,
     }),
@@ -144,12 +156,16 @@ export async function POST(req: NextRequest) {
   // 운세별 추천 — 재물운(재성)·연애운(식상) 오행 프로필이 높은 꽃
   const wealth = wealthOhaeng(saju.mainOhaeng)
   const love = loveOhaeng(saju.mainOhaeng)
-  const wealthFlowers = topByOhaeng(scored, wealth, 4).map((s) => toCard(s, wealth))
-  const loveFlowers = topByOhaeng(scored, love, 4).map((s) => toCard(s, love))
+  // 주 추천에 이미 나온 꽃은 다른 리스트에서 뺀다 — 후보가 상품 수백 개에서 꽃 87개로 줄어
+  // 같은 꽃이 네 리스트에 반복되면 "아까 본 꽃"이라는 인상을 준다.
+  const shown = new Set(recommendedFlowers.map((f) => f.id))
+  const wealthFlowers = topByOhaeng(scored, wealth, 4, shown).map((s) => toCard(s, wealth))
+  const loveFlowers = topByOhaeng(scored, love, 4, shown).map((s) => toCard(s, love))
 
-  // 계절 추천 — 별도 쿼리 대신 같은 후보군에서 뽑는다. 품절 제외·추모 제외·점수·근거가 그대로 따라온다.
+  // 계절 추천 — 같은 후보군에서 지금이 주개화기인 꽃만. 개화기 큐레이션은 계절 축과 같은 lookup을
+  // 쓴다(isPeakSeason) — 그래야 "제철 리스트엔 있는데 계절 점수는 0"인 꽃이 생기지 않는다.
   const seasonalFlowers = pickDiverse(
-    rankedMain.filter((s) => (s.product.seasonTags ?? []).includes(currentSeason)), 4,
+    rankedMain.filter((s) => !shown.has(s.id) && isPeakSeason(s.name, currentSeason)), 4,
   ).map((s) => toCard(s, driverOhaeng(s.profile), { seasonal: true }))
 
   return NextResponse.json({
@@ -173,5 +189,5 @@ export async function POST(req: NextRequest) {
     wealthFlowers,
     loveFlowers,
     seasonalFlowers,
-  } satisfies AnalyzeResult & Record<string, unknown>)
+  } satisfies AnalyzeResult)
 }

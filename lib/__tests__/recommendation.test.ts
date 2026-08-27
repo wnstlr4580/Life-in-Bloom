@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest"
 import {
   ohaengBalance, balanceDelta, idealBalanceDelta, ohaengFit, NEUTRAL_FIT, ohaengPctAfter,
-  isRecommendable, personalPreferenceDetail, personalScore, buildReasons,
-  stockScore, personalPreferenceScore, blendScore,
+  personalPreferenceDetail, personalScore, buildReasons,
+  personalPreferenceScore, blendScore,
   wealthOhaeng, loveOhaeng, birthColorOhaeng,
   MONTH_TO_OHAENG, OBANGSAEK_OHAENG, topByOhaeng, OHAENG_RELEVANCE_MIN, pickDiverse,
   generates, whoGenerates,
@@ -114,26 +114,18 @@ describe("idealBalanceDelta · ohaengFit", () => {
   })
 })
 
-describe("stockScore", () => {
-  it("품절=0, 재고 늘수록 증가, 1 이하", () => {
-    expect(stockScore(0)).toBe(0)
-    expect(stockScore(1)).toBeGreaterThan(0)
-    expect(stockScore(1)).toBeLessThan(stockScore(10))
-    expect(stockScore(10)).toBeLessThan(stockScore(50))
-    expect(stockScore(1000)).toBeLessThanOrEqual(1)
-  })
-
-  it("동일 balance/개인화에서 품절이 재고 아이템보다 하위", () => {
-    const inStock = blendScore(0.5, 20, 0)
-    const outOfStock = blendScore(0.5, 0, 0)
-    expect(inStock).toBeGreaterThan(outOfStock)
-  })
-})
-
 describe("blendScore", () => {
-  it("비율 0.85/0.10/0.05 합산", () => {
-    expect(blendScore(1, 1000, 1)).toBeCloseTo(0.85 + 0.10 + 0.05)
-    expect(blendScore(1, 0, 0)).toBeCloseTo(0.85)
+  it("비율 0.95/0.05 합산 — 재고 항은 없다", () => {
+    expect(blendScore(1, 1)).toBeCloseTo(1)
+    expect(blendScore(1, 0)).toBeCloseTo(0.95)
+    expect(blendScore(0, 1)).toBeCloseTo(0.05)
+  })
+
+  it("개인화만으로는 궁합을 뒤집지 못한다 — 개인화는 동점 조정용이다", () => {
+    // 재고 10%를 궁합에 넘겼으므로 궁합:개인화가 17:1에서 19:1로 벌어졌다.
+    // 개인화 만점(0.05)이 궁합 5%p 차이도 못 메운다는 성질이 유지되는지가 실제 관심사다.
+    expect(blendScore(0.5, 1)).toBeLessThan(blendScore(0.6, 0))
+    expect(blendScore(1, 0) / blendScore(0, 1)).toBeCloseTo(19)
   })
 })
 
@@ -195,14 +187,14 @@ describe("운세별 오행", () => {
 })
 
 describe("topByOhaeng", () => {
-  // 프로필·재고·개인화만 갖는 최소 후보
-  const cand = (id: string, profile: Partial<Record<Ohaeng, number>>, stock = 10, personal = 0) =>
-    ({ id, name: id, profile: { ...zero, ...profile }, stock, personal })
+  // 프로필·개인화만 갖는 최소 후보 (재고는 점수에서 빠졌다)
+  const cand = (id: string, profile: Partial<Record<Ohaeng, number>>, personal = 0) =>
+    ({ id, name: id, profile: { ...zero, ...profile }, personal })
 
   it("프로필이 임계 미만인 상품은 그 오행 리스트에 들어가지 않는다", () => {
     const items = [
-      cand("무관", { 토: 0 }, 999, 1), // 재고·개인화 만점이어도 토가 0
-      cand("관련", { 토: 60 }, 1),
+      cand("무관", { 토: 0 }, 1), // 개인화 만점이어도 토가 0
+      cand("관련", { 토: 60 }),
     ]
     expect(topByOhaeng(items, "토", 3).map((s) => s.id)).toEqual(["관련"])
   })
@@ -217,36 +209,23 @@ describe("topByOhaeng", () => {
     expect(topByOhaeng(items, "수", 3)).toHaveLength(1)
   })
 
-  it("품절과 exclude는 제외한다", () => {
-    const items = [cand("품절", { 목: 90 }, 0), cand("제외", { 목: 80 }), cand("남음", { 목: 70 })]
+  it("exclude는 제외한다 — 주 추천에 이미 나온 꽃을 다른 리스트에서 뺄 때 쓴다", () => {
+    const items = [cand("제외", { 목: 80 }), cand("남음", { 목: 70 })]
     const got = topByOhaeng(items, "목", 3, new Set(["제외"]))
     expect(got.map((s) => s.id)).toEqual(["남음"])
   })
 
   it("점수는 절대값이다 — 후보군이 빈약하면 1위도 낮은 점수를 받는다", () => {
     // 상대 정규화였다면 두 경우 모두 1위가 만점을 받았을 것이다
-    const weak = topByOhaeng([cand("약함", { 목: 40 }, 50, 0)], "목", 1)[0]
-    const strong = topByOhaeng([cand("강함", { 목: 90 }, 50, 0)], "목", 1)[0]
+    const weak = topByOhaeng([cand("약함", { 목: 40 })], "목", 1)[0]
+    const strong = topByOhaeng([cand("강함", { 목: 90 })], "목", 1)[0]
     expect(weak.score).toBeLessThan(strong.score)
-    expect(weak.score).toBeCloseTo(blendScore(0.4, 50, 0))
+    expect(weak.score).toBeCloseTo(blendScore(0.4, 0))
   })
 
   it("계산된 점수를 그대로 실어 보낸다", () => {
-    const [top] = topByOhaeng([cand("a", { 수: 60 }, 20, 0.5)], "수", 1)
-    expect(top.score).toBeCloseTo(blendScore(0.6, 20, 0.5))
-  })
-})
-
-describe("isRecommendable (추모 제외)", () => {
-  it("추모 태그가 있으면 사주 추천 대상에서 뺀다", () => {
-    expect(isRecommendable({ useTags: ["추모"] })).toBe(false)
-    expect(isRecommendable({ useTags: ["축하", "추모"] })).toBe(false)
-  })
-  it("그 외 용도는 통과하고, 태그가 없거나 null이어도 통과한다", () => {
-    expect(isRecommendable({ useTags: ["생일", "감사"] })).toBe(true)
-    expect(isRecommendable({ useTags: [] })).toBe(true)
-    expect(isRecommendable({})).toBe(true)
-    expect(isRecommendable({ useTags: null })).toBe(true)
+    const [top] = topByOhaeng([cand("a", { 수: 60 }, 0.5)], "수", 1)
+    expect(top.score).toBeCloseTo(blendScore(0.6, 0.5))
   })
 })
 
@@ -277,7 +256,6 @@ describe("buildReasons", () => {
     product: { name: "백합", colorTags: ["화이트"] },
     target: "금" as const,
     profile: flowerOhaengProfile({ name: "백합", colorTags: ["화이트"] }),
-    stock: 20,
     personal: { flower: 0, color: 0, birthFlowerName: null, birthColorName: "적(赤)" },
   }
 
@@ -285,11 +263,11 @@ describe("buildReasons", () => {
     const reasons = buildReasons(base)
     expect(reasons.some((r) => r.icon === "🎨")).toBe(false) // 탄생색 미일치
     expect(reasons.some((r) => r.icon === "🌸")).toBe(false) // 탄생화 무관
-    expect(reasons.some((r) => r.icon === "🛒")).toBe(true) // 재고 20
   })
 
-  it("품절이면 구매 가능 근거가 없다", () => {
-    expect(buildReasons({ ...base, stock: 0 }).some((r) => r.icon === "🛒")).toBe(false)
+  it("구매 가능 근거는 만들지 않는다 — 재고가 점수식에서 빠졌다", () => {
+    // 근거는 점수에 실제로 기여한 항의 투영이다. 구매 가능성은 점수 근거가 아니라 카드 배지가 맡는다.
+    expect(buildReasons(base).some((r) => r.icon === "🛒")).toBe(false)
   })
 
   it("오행 근거는 그 오행에 실제 기여가 있을 때만", () => {
