@@ -120,3 +120,22 @@ describe("스토리 문구 다듬기", () => {
     expect(s[0]).not.toContain("새하얀 꽃빛")
   })
 })
+
+describe("종 키 ↔ 사전 표기 브리지 (오매핑 가드)", () => {
+  it("이름이 종 키와 정확히 같은 행이 부분일치 행을 이긴다", () => {
+    // 사전에 은매화(myrtle)가 매화(plum-blossom)보다, 매쉬메리골드가 메리골드보다 앞에 있어
+    // 부분일치만 쓰던 시절 두 종이 남의 꽃말을 받았다.
+    expect(lookupFlowerMeaning("흰 매화", "white")).toBe("맑은 마음")
+    expect(lookupFlowerMeaning("노란 메리골드", "yellow")).toBe("가엾은 애정")
+  })
+
+  it("사전 표기가 다른 종도 별칭으로 꽃말이 붙는다 (달리아 ↔ 다알리아)", () => {
+    expect(lookupFlowerMeaning("빨간 달리아", "red")).toBe("화려함")
+  })
+
+  it("기존 큐레이션 꽃의 꽃말은 그대로다", () => {
+    expect(lookupFlowerMeaning("빨간 장미", "red")).toBe("열정적인 사랑")
+    expect(lookupFlowerMeaning("흰 백합", "white")).toBe("순수, 깨끗한 마음")
+    expect(lookupFlowerMeaning("파란 수국", "blue")).toBe("진심, 한결같은 마음")
+  })
+})

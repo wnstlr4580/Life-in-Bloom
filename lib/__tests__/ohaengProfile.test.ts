@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest"
 import {
   flowerOhaengProfile, FORM_TRAITS, FORM_OHAENG_MAX, FLOWER_SEASON, FLOWER_FORM, PROFILE_WEIGHT, explainOhaeng,
-  SEASON_MAIN_COUNT, SEASON_OHAENG_REACH,
+  SEASON_MAIN_COUNT, SEASON_OHAENG_REACH, isPeakSeason,
 } from "../ohaengProfile"
 
 describe("flowerOhaengProfile", () => {
@@ -319,5 +319,43 @@ describe("explainOhaeng (추천 이유 문구)", () => {
     expect(flowerOhaengProfile(input).목).toBeGreaterThan(0) // 점수는 남아 있지만
     expect(explainOhaeng(input, "목")).toBe("") // "봄 개화"라고 하지 않는다
     expect(explainOhaeng(input, "화")).toContain("여름 개화") // 진짜 주개화기는 설명한다
+  })
+})
+
+describe("isPeakSeason (제철 판정)", () => {
+  it("주개화기만 제철이다 — 보조 개화기는 아니다", () => {
+    expect(isPeakSeason("포인세티아", "winter")).toBe(true)   // main: winter
+    expect(isPeakSeason("동백", "winter")).toBe(true)         // main: winter
+    expect(isPeakSeason("동백", "spring")).toBe(false)        // sub: spring — 제철이라 부르지 않는다
+    expect(isPeakSeason("튤립", "spring")).toBe(true)
+    expect(isPeakSeason("튤립", "autumn")).toBe(false)
+  })
+
+  it("사계절 개화 꽃은 네 계절 모두 제철이다", () => {
+    for (const s of ["spring", "summer", "autumn", "winter"] as const) {
+      expect(isPeakSeason("거베라", s), s).toBe(true)
+    }
+  })
+
+  it("잎식물은 어느 계절도 제철이 아니다 — 4계절 보조(70)라 개화가 아니다", () => {
+    for (const s of ["spring", "summer", "autumn", "winter"] as const) {
+      expect(isPeakSeason("유칼립투스", s), s).toBe(false)
+    }
+  })
+
+  it("큐레이션에 없는 이름은 false — 없는 정보로 제철이라 하지 않는다", () => {
+    expect(isPeakSeason("정체불명꽃", "spring")).toBe(false)
+  })
+
+  it("계절 축과 같은 lookup을 쓴다 — 제철이면 그 오행 계절 점수도 만점이다", () => {
+    // 어긋나면 "제철 리스트엔 있는데 계절 점수는 0"인 꽃이 생긴다
+    const SEASON_TO_OHAENG = { spring: "목", summer: "화", autumn: "금", winter: "수" } as const
+    for (const name of ["튤립", "해바라기", "국화", "포인세티아", "거베라"]) {
+      for (const s of ["spring", "summer", "autumn", "winter"] as const) {
+        if (!isPeakSeason(name, s)) continue
+        const contribution = Math.round(100 * PROFILE_WEIGHT.season)
+        expect(flowerOhaengProfile({ name })[SEASON_TO_OHAENG[s]], `${name}/${s}`).toBeGreaterThanOrEqual(contribution)
+      }
+    }
   })
 })

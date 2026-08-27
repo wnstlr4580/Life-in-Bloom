@@ -3,67 +3,80 @@
 import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import type { SajuProduct } from "@/types/saju"
+import type { SajuFlower } from "@/types/saju"
+import { flowerBuyHref } from "@/lib/sajuFlowerLink"
 
 interface Props {
   title: string
-  products: SajuProduct[]
+  flowers: SajuFlower[]
+  /** 지금 주문 가능한 꽃 id — 없으면 배지를 그리지 않는다(재고 조회 실패 포함) */
+  availableIds?: Set<string>
 }
 
-export function FlowerRecommendList({ title, products }: Props) {
+export function FlowerRecommendList({ title, flowers, availableIds }: Props) {
   // 한 번에 한 장만 펼친다 — 4장이 동시에 늘어나면 그리드 높이가 폭발한다.
   const [openId, setOpenId] = useState<string | null>(null)
 
-  if (products.length === 0) return null
+  if (flowers.length === 0) return null
 
   return (
     <div>
       <h3 className="text-base font-semibold text-stone-700 mb-3">{title}</h3>
       <div className="grid grid-cols-2 gap-3">
-        {products.map((product) => {
-          const reasons = product.reasons ?? []
-          const open = openId === product.id
+        {flowers.map((flower) => {
+          const reasons = flower.reasons ?? []
+          const open = openId === flower.id
 
           return (
             <div
-              key={product.id}
+              key={flower.id}
               className="bg-white rounded-xl overflow-hidden border border-stone-100 hover:border-rose-200 hover:shadow-md transition-all"
             >
-              <Link href={`/products/${product.id}`} className="group block">
+              {/* 카드 전체를 링크로 두지 않는다 — 목적지가 상품 검색·꽃다발 빌더로 갈리고,
+                  빌더는 진입만으로 선택 상태가 세팅돼서 모르고 떨어지면 놀란다. */}
+              <div>
                 <div className="aspect-square bg-stone-50 relative overflow-hidden">
-                  {product.images[0] ? (
+                  {flower.img ? (
                     <Image
-                      src={product.images[0]}
-                      alt={product.name}
+                      src={flower.img}
+                      alt={flower.name}
                       fill
                       sizes="(max-width: 640px) 45vw, 240px"
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      className="object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-3xl">🌸</div>
+                    <div className="w-full h-full flex items-center justify-center text-4xl">{flower.emoji}</div>
                   )}
                   <span className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm text-rose-500 text-[11px] font-bold px-2 py-0.5 rounded-full shadow-sm">
-                    {product.score}점
+                    {flower.score}점
                   </span>
+                  {availableIds?.has(flower.id) && (
+                    <span className="absolute top-2 left-2 bg-emerald-500/95 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                      지금 살 수 있어요
+                    </span>
+                  )}
                 </div>
                 <div className="px-3 pt-3">
-                  <p className="text-xs font-medium text-stone-800 line-clamp-1">{product.name}</p>
+                  <p className="text-xs font-medium text-stone-800 line-clamp-1">{flower.emoji} {flower.name}</p>
                   {reasons[0] && (
                     <p className="text-[11px] text-rose-400 mt-0.5 line-clamp-1">
                       {reasons[0].icon} {reasons[0].title}
                     </p>
                   )}
-                  <p className="text-sm font-bold text-rose-500 mt-1">
-                    {product.price.toLocaleString()}원
-                  </p>
                 </div>
-              </Link>
+              </div>
 
-              <div className="px-3 pb-3">
+              <div className="px-3 pb-3 pt-2 space-y-2">
+                <Link
+                  href={flowerBuyHref(flower)}
+                  className="block w-full text-center text-[11px] font-semibold rounded-lg bg-rose-400 hover:bg-rose-500 text-white py-1.5 transition-colors"
+                >
+                  {flower.productCount > 0 ? "🛒 이 꽃 사러가기" : "💐 이 꽃으로 꽃다발 만들기"}
+                </Link>
                 {reasons.length > 1 && (
                   <button
                     type="button"
-                    onClick={() => setOpenId(open ? null : product.id)}
+                    onClick={() => setOpenId(open ? null : flower.id)}
                     className="text-[10px] text-stone-400 hover:text-rose-400 transition-colors"
                   >
                     추천 근거 {reasons.length}개 {open ? "접기 ▴" : "보기 ▾"}

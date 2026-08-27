@@ -4,7 +4,8 @@ import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import type { Ohaeng } from "@/lib/saju"
-import type { SajuProduct } from "@/types/saju"
+import type { SajuFlower } from "@/types/saju"
+import { flowerBuyHref } from "@/lib/sajuFlowerLink"
 
 const ORDER: Ohaeng[] = ["목", "화", "토", "금", "수"]
 
@@ -40,10 +41,12 @@ interface Props {
   /** 현재 오행 분포(%) — API가 계산한 값. 여기서 다시 계산하지 않는다. */
   pct: Record<Ohaeng, number>
   /** 오행 균형 추천 꽃 */
-  flowers: SajuProduct[]
+  flowers: SajuFlower[]
+  /** 지금 주문 가능한 꽃 id — 없으면 배지를 그리지 않는다 */
+  availableIds?: Set<string>
 }
 
-export function OhaengBalance({ pct, flowers }: Props) {
+export function OhaengBalance({ pct, flowers, availableIds }: Props) {
   const [selectedId, setSelectedId] = useState(flowers[0]?.id ?? null)
   const selected = flowers.find((f) => f.id === selectedId) ?? flowers[0]
   const after = selected?.pctAfter
@@ -91,28 +94,34 @@ export function OhaengBalance({ pct, flowers }: Props) {
         {/* 왼쪽 — 선택한 꽃을 크게, 아래에 나머지 후보 썸네일 */}
         {selected && (
           <div className="sm:w-56 shrink-0 space-y-3 self-start">
-            <Link href={`/products/${selected.id}`} className="group block">
-              <div className="relative aspect-square rounded-2xl overflow-hidden border border-stone-100 bg-stone-50">
-                {selected.images[0] ? (
-                  <Image src={selected.images[0]} alt={selected.name} fill
-                    sizes="(max-width: 640px) 90vw, 224px"
-                    className="object-cover group-hover:scale-105 transition-transform duration-300" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-5xl">🌸</div>
-                )}
-                <span className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm text-rose-500 text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
-                  {selected.score}점
-                </span>
-              </div>
-              <p className="text-sm font-bold text-stone-800 mt-2.5 leading-snug group-hover:text-rose-500 transition-colors">
-                {selected.name}
-              </p>
-              <p className="text-base font-bold text-rose-500 mt-0.5">
-                {selected.price.toLocaleString()}원 <span className="text-xs font-normal text-stone-400">보러가기 →</span>
-              </p>
-              {selected.flowerMeaning && (
-                <p className="text-xs text-stone-400 mt-1 line-clamp-2">{selected.flowerMeaning}</p>
+            <div className="relative aspect-square rounded-2xl overflow-hidden border border-stone-100 bg-stone-50">
+              {selected.img ? (
+                <Image src={selected.img} alt={selected.name} fill
+                  sizes="(max-width: 640px) 90vw, 224px" className="object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-6xl">{selected.emoji}</div>
               )}
+              <span className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm text-rose-500 text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
+                {selected.score}점
+              </span>
+              {availableIds?.has(selected.id) && (
+                <span className="absolute top-2 left-2 bg-emerald-500/95 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                  지금 살 수 있어요
+                </span>
+              )}
+            </div>
+            <p className="text-sm font-bold text-stone-800 mt-2.5 leading-snug">
+              {selected.emoji} {selected.name}
+            </p>
+            {selected.flowerMeaning && (
+              <p className="text-xs text-stone-400 mt-1 line-clamp-2">{selected.flowerMeaning}</p>
+            )}
+            {/* 가격은 싣지 않는다 — 카탈로그의 값은 송이 단가라 완제품 가격으로 오해된다 */}
+            <Link
+              href={flowerBuyHref(selected)}
+              className="block text-center text-xs font-semibold rounded-xl bg-rose-400 hover:bg-rose-500 text-white py-2.5 transition-colors"
+            >
+              {selected.productCount > 0 ? `🛒 ${selected.species} 상품 보기` : "💐 이 꽃으로 꽃다발 만들기"}
             </Link>
 
             {flowers.length > 1 && (
@@ -130,10 +139,10 @@ export function OhaengBalance({ pct, flowers }: Props) {
                         : "border-transparent opacity-55 hover:opacity-100"
                     }`}
                   >
-                    {f.images[0] ? (
-                      <Image src={f.images[0]} alt="" fill sizes="52px" className="object-cover" />
+                    {f.img ? (
+                      <Image src={f.img} alt="" fill sizes="52px" className="object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-sm bg-stone-50">🌸</div>
+                      <div className="w-full h-full flex items-center justify-center text-lg bg-stone-50">{f.emoji}</div>
                     )}
                   </button>
                 ))}

@@ -17,7 +17,7 @@ import type { AnalyzeResult as SharedAnalyzeResult } from "@/types/saju"
 type AnalyzeResult = Omit<SharedAnalyzeResult, "fortune"> & { fortune: FortuneData }
 
 // 응답 스키마를 바꾸면 뒤 숫자를 올린다 — 구버전 캐시가 read 경로에 도달하지 못하게 한다.
-const SAJU_CACHE_KEY = "lifeInBloomSajuStateV4"
+const SAJU_CACHE_KEY = "lifeInBloomSajuStateV5"
 
 interface SubmitData {
   name: string
@@ -61,6 +61,9 @@ function SajuPageContent() {
   const [kioskPhotoExpired, setKioskPhotoExpired] = useState(false)
   const kioskAutoSubmitted = useRef(false)
   const resultRef = useRef<HTMLDivElement>(null)
+  // 지금 주문 가능한 꽃 — 응답에 싣지 않고 매번 새로 읽는다. 결과는 sessionStorage에 캐시되므로
+  // 응답에 넣으면 배지가 세션 내내 굳는다(재고를 점수에서 뺀 것과 같은 이유다).
+  const [availableIds, setAvailableIds] = useState<Set<string> | null>(null)
 
   useEffect(() => {
     if (kioskBirthDate) return
@@ -69,12 +72,25 @@ function SajuPageContent() {
       if (!cached) return
       const state = JSON.parse(cached) as { input: SavedProfile; result: AnalyzeResult; birthYear: number; userName: string }
       // 스키마가 어긋난 캐시는 렌더 전에 버린다
-      if (!Array.isArray(state?.result?.recommendedFlowers) || !state?.result?.ohaengPct) {
+      const cards = state?.result?.recommendedFlowers
+      if (!Array.isArray(cards) || !state?.result?.ohaengPct) {
+        sessionStorage.removeItem(SAJU_CACHE_KEY); return
+      }
+      // 상품 카드(price·images)를 담고 있던 구버전 캐시는 버린다 — 키를 올려도 가드는 자기 완결적이어야 한다
+      if (cards.length > 0 && typeof cards[0]?.searchQuery !== "string") {
         sessionStorage.removeItem(SAJU_CACHE_KEY); return
       }
       setSavedProfile(state.input); setResult(state.result); setBirthYear(state.birthYear); setUserName(state.userName); setLoadKey((key) => key + 1)
     } catch { sessionStorage.removeItem(SAJU_CACHE_KEY) }
   }, [kioskBirthDate])
+
+  useEffect(() => {
+    if (!result) return
+    fetch("/api/diy/available")
+      .then((r) => r.json())
+      .then((d) => setAvailableIds(new Set<string>(d.flowerIds ?? [])))
+      .catch(() => {}) // 배지는 부가정보다 — 실패하면 조용히 표시하지 않는다
+  }, [result])
 
   // 분석 완료 시 결과로 부드럽게 스크롤
   useEffect(() => {
@@ -296,7 +312,11 @@ function SajuPageContent() {
             )}
           </div>
 
-          <OhaengBalance pct={result.ohaengPct} flowers={result.recommendedFlowers} />
+          <OhaengBalance
+            pct={result.ohaengPct}
+            flowers={result.recommendedFlowers}
+            availableIds={availableIds ?? undefined}
+          />
 
           {/* 상품이 없어도 보여주는 꽃 사전 */}
           <FlowerGuide
@@ -307,21 +327,24 @@ function SajuPageContent() {
           {result.wealthFlowers.length > 0 && (
             <FlowerRecommendList
               title="💰 재물운을 부르는 꽃"
-              products={result.wealthFlowers}
+              flowers={result.wealthFlowers}
+              availableIds={availableIds ?? undefined}
             />
           )}
 
           {result.loveFlowers.length > 0 && (
             <FlowerRecommendList
               title="💗 연애운을 부르는 꽃"
-              products={result.loveFlowers}
+              flowers={result.loveFlowers}
+              availableIds={availableIds ?? undefined}
             />
           )}
 
           {result.seasonalFlowers.length > 0 && (
             <FlowerRecommendList
               title="🛒 이 계절에 피어나는 꽃"
-              products={result.seasonalFlowers}
+              flowers={result.seasonalFlowers}
+              availableIds={availableIds ?? undefined}
             />
           )}
         </div>

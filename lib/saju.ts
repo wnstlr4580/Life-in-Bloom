@@ -1,3 +1,7 @@
+// 계절 키는 개화기 큐레이션이 소유한다 — getCurrentSeason의 반환을 isPeakSeason이 그대로 받아야 한다.
+// 타입 전용 import라 런타임 순환은 생기지 않는다(ohaengProfile이 이 파일의 Ohaeng을 같은 방식으로 쓴다).
+import type { Season } from "./ohaengProfile"
+
 export type Ohaeng = "목" | "화" | "토" | "금" | "수"
 
 // 천간 (10 Heavenly Stems)
@@ -326,7 +330,7 @@ export function analyzeOhaeng(birthDate: Date): Ohaeng {
   return CHEONGAN[daySys.stem].ohaeng
 }
 
-export function getCurrentSeason(): string {
+export function getCurrentSeason(): Season {
   const month = new Date().getMonth() + 1
   if (month >= 3 && month <= 5) return "spring"
   if (month >= 6 && month <= 8) return "summer"
