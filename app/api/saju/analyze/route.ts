@@ -122,7 +122,11 @@ export async function POST(req: NextRequest) {
 
   // 필드를 명시해 조립한다 — 예전에는 상품 객체를 스프레드해서 useTags·stock·description까지
   // 응답으로 새어나갔다. 명시 조립이라야 아래 satisfies가 드리프트를 실제로 잡는다.
-  const toCard = (s: Scored, target: Ohaeng, opts?: { excess?: boolean; seasonal?: boolean }): SajuFlower => ({
+  const toCard = (
+    s: Scored,
+    target: Ohaeng,
+    opts?: { excess?: boolean; seasonal?: boolean; generatedFor?: Ohaeng },
+  ): SajuFlower => ({
     id: s.flower.id,
     name: s.flower.name,
     species: s.flower.species,
@@ -139,6 +143,7 @@ export async function POST(req: NextRequest) {
       personal: s.detail,
       excessOhaeng: opts?.excess ? excessOhaeng : null,
       seasonal: opts?.seasonal,
+      generatedFor: opts?.generatedFor,
     }),
   })
 
@@ -159,8 +164,14 @@ export async function POST(req: NextRequest) {
   // 주 추천에 이미 나온 꽃은 다른 리스트에서 뺀다 — 후보가 상품 수백 개에서 꽃 87개로 줄어
   // 같은 꽃이 네 리스트에 반복되면 "아까 본 꽃"이라는 인상을 준다.
   const shown = new Set(recommendedFlowers.map((f) => f.id))
-  const wealthFlowers = topByOhaeng(scored, wealth, 4, shown).map((s) => toCard(s, wealth))
-  const loveFlowers = topByOhaeng(scored, love, 4, shown).map((s) => toCard(s, love))
+  // 상생 폴백이 채운 카드는 matchedOhaeng(실제로 기여한 오행)으로 근거를 설명하고,
+  // 원래 목표(wealth/love)는 generatedFor로 넘겨 "OO 대신 상생 오행으로 보완" 문구를 만든다.
+  const wealthFlowers = topByOhaeng(scored, wealth, 4, shown).map((s) =>
+    toCard(s, s.matchedOhaeng, { generatedFor: wealth }),
+  )
+  const loveFlowers = topByOhaeng(scored, love, 4, shown).map((s) =>
+    toCard(s, s.matchedOhaeng, { generatedFor: love }),
+  )
 
   // 계절 추천 — 같은 후보군에서 지금이 주개화기인 꽃만. 개화기 큐레이션은 계절 축과 같은 lookup을
   // 쓴다(isPeakSeason) — 그래야 "제철 리스트엔 있는데 계절 점수는 0"인 꽃이 생기지 않는다.

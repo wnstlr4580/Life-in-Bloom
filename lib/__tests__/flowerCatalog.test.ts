@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest"
+import { existsSync } from "node:fs"
+import path from "node:path"
 import { FLOWER_CATALOG, RECOMMENDABLE_CATALOG, catalogProfile, catalogProfileInput } from "../flowerCatalog"
 import { FLOWERS } from "../customFlowers"
 import {
@@ -53,22 +55,28 @@ describe("꽃 카탈로그 무결성", () => {
     }
   })
 
-  it("확충 항목 표식이 일관된다 — 사진이 없으면 주문도 불가", () => {
+  it("전 항목에 사진이 있다 — 카탈로그는 곧 주문 가능 목록(FLOWERS) 그대로다", () => {
+    for (const f of FLOWER_CATALOG) expect(f.img, f.name).toBeTruthy()
+  })
+
+  it("img 경로가 가리키는 파일이 public/에 실제로 존재한다", () => {
     for (const f of FLOWER_CATALOG) {
-      expect(f.img === null, f.name).toBe(f.customFlowerId === null)
+      if (f.img) {
+        const file = path.join(process.cwd(), "public", decodeURIComponent(f.img))
+        expect(existsSync(file), `${f.name} ${f.img}`).toBe(true)
+      }
     }
   })
 
   it("customFlowerId는 주문 가능 목록의 id다", () => {
     const orderable = new Set(FLOWERS.map((f) => f.id))
-    for (const f of FLOWER_CATALOG) {
-      if (f.customFlowerId) expect(orderable.has(f.customFlowerId), f.name).toBe(true)
-    }
+    for (const f of FLOWER_CATALOG) expect(orderable.has(f.customFlowerId), f.name).toBe(true)
   })
 
-  it("주문 가능 47항목이 전부 카탈로그에 있다", () => {
+  it("FLOWERS 전 항목이 그대로 카탈로그에 있다 (카탈로그 = FLOWERS)", () => {
     const ids = new Set(FLOWER_CATALOG.map((f) => f.id))
     for (const f of FLOWERS) expect(ids.has(f.id), f.name).toBe(true)
+    expect(FLOWER_CATALOG.length).toBe(FLOWERS.length)
   })
 
   it("프로필 입력이 종·색·이름을 모두 싣는다 — 세 축이 같은 입력을 본다", () => {
