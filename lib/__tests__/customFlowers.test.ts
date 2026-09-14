@@ -55,7 +55,8 @@ describe("오행은 프로필에서 파생된다 (하드코딩 폐기)", () => {
     // argmax 단일 라벨을 유지하는지 감시한다. 임계 이상을 전부 인정하는 방식으로 바꾸면
     // 목 35·화 39가 걸려(카네이션·거베라는 5개 전부) 칩이 필터 기능을 잃는다.
     const dist = Object.fromEntries(OHAENG_ALL.map((o) => [o, FLOWERS.filter((f) => f.ohaeng === o).length]))
-    expect(dist).toEqual({ 목: 3, 화: 19, 토: 6, 금: 15, 수: 4 })
+    // 확충 41종(2026-09) 편입 이후 값 — 47종 스냅샷(목3·화19·토6·금15·수4)에서 갱신됨
+    expect(dist).toEqual({ 목: 4, 화: 31, 토: 11, 금: 29, 수: 13 })
     for (const o of OHAENG_ALL) expect(dist[o], o).toBeGreaterThan(0)
   })
 })

@@ -37,3 +37,8 @@ export function flowerBuyHref(flower: { id: string; searchQuery: string; product
   }
   return `/custom?flowers=${encodeURIComponent(flower.id)}`
 }
+
+/** 완제품 유무와 무관하게 항상 나만의 꽃다발 빌더로 보낸다. */
+export function flowerBouquetHref(flower: { id: string }): string {
+  return `/custom?flowers=${encodeURIComponent(flower.id)}`
+}

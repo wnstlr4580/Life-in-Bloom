@@ -4,7 +4,7 @@ import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import type { SajuFlower } from "@/types/saju"
-import { flowerBuyHref } from "@/lib/sajuFlowerLink"
+import { flowerBuyHref, flowerBouquetHref } from "@/lib/sajuFlowerLink"
 
 interface Props {
   title: string
@@ -73,6 +73,14 @@ export function FlowerRecommendList({ title, flowers, availableIds }: Props) {
                 >
                   {flower.productCount > 0 ? "🛒 이 꽃 사러가기" : "💐 이 꽃으로 꽃다발 만들기"}
                 </Link>
+                {flower.productCount > 0 && (
+                  <Link
+                    href={flowerBouquetHref(flower)}
+                    className="block w-full text-center text-[11px] font-semibold rounded-lg bg-white border border-rose-300 text-rose-500 hover:bg-rose-50 py-1.5 transition-colors"
+                  >
+                    💐 이 꽃으로 꽃다발 만들기
+                  </Link>
+                )}
                 {reasons.length > 1 && (
                   <button
                     type="button"

@@ -229,6 +229,51 @@ describe("topByOhaeng", () => {
   })
 })
 
+describe("topByOhaeng — 상생(相生) 폴백", () => {
+  const cand = (id: string, profile: Partial<Record<Ohaeng, number>>, personal = 0) =>
+    ({ id, name: id, profile: { ...zero, ...profile }, personal })
+
+  it("후보가 충분하면(3개 이상) 폴백이 발동하지 않는다 — matchedOhaeng은 전부 target", () => {
+    const items = [cand("a", { 금: 60 }), cand("b", { 금: 50 }), cand("c", { 금: 40 })]
+    const got = topByOhaeng(items, "금", 4)
+    expect(got.map((s) => s.id)).toEqual(["a", "b", "c"])
+    expect(got.every((s) => s.matchedOhaeng === "금")).toBe(true)
+  })
+
+  it("후보가 3개 미만이면 target을 낳는 오행(whoGenerates)에서 채운다", () => {
+    // whoGenerates("금") === "토" (토생금)
+    const items = [cand("금후보", { 금: 60 }), cand("토후보1", { 토: 50 }), cand("토후보2", { 토: 40 })]
+    const got = topByOhaeng(items, "금", 4)
+    expect(got.map((s) => s.id)).toEqual(["금후보", "토후보1", "토후보2"])
+    expect(got.find((s) => s.id === "금후보")?.matchedOhaeng).toBe("금")
+    expect(got.find((s) => s.id === "토후보1")?.matchedOhaeng).toBe("토")
+    expect(got.find((s) => s.id === "토후보2")?.matchedOhaeng).toBe("토")
+  })
+
+  it("폴백은 limit을 넘지 않는다", () => {
+    const items = [cand("금후보", { 금: 60 }), cand("토1", { 토: 50 }), cand("토2", { 토: 40 }), cand("토3", { 토: 30 })]
+    const got = topByOhaeng(items, "금", 2)
+    expect(got).toHaveLength(2)
+  })
+
+  it("생성 오행 후보도 없으면 있는 만큼만 반환한다 (2단계까지 거슬러 올라가지 않는다)", () => {
+    const items = [cand("금후보", { 금: 60 }), cand("무관", { 화: 50 })]
+    const got = topByOhaeng(items, "금", 4)
+    expect(got.map((s) => s.id)).toEqual(["금후보"])
+  })
+
+  it("exclude·종 다양성은 폴백 후보에도 그대로 적용된다", () => {
+    const items = [
+      cand("금후보", { 금: 60 }),
+      { id: "토장미1", name: "빨간 장미", profile: { ...zero, 토: 50 }, personal: 0 },
+      { id: "토장미2", name: "핑크 장미", profile: { ...zero, 토: 45 }, personal: 0 },
+      { id: "토백합", name: "흰 백합", profile: { ...zero, 토: 40 }, personal: 0 },
+    ]
+    const got = topByOhaeng(items, "금", 3)
+    expect(got.map((s) => s.id)).toEqual(["금후보", "토장미1", "토백합"]) // 장미는 하나만
+  })
+})
+
 describe("personalPreferenceDetail", () => {
   const user = { monthDay: null, month: 6, mainOhaeng: "화" as const } // 6월=화=적(레드/핑크)
 
@@ -299,6 +344,18 @@ describe("buildReasons", () => {
       expect(r.title.length).toBeGreaterThan(0)
       expect(r.detail.length).toBeGreaterThan(0)
     }
+  })
+
+  it("상생 폴백 근거는 generatedFor가 target과 다를 때만 붙는다", () => {
+    // target이 이미 matchedOhaeng(토)로 대체됐고, generatedFor(금)는 원래 부족했던 오행
+    const reasons = buildReasons({ ...base, target: "토", generatedFor: "금" })
+    const fallback = reasons.find((r) => r.icon === "🔄")
+    expect(fallback?.title).toContain("금(金)")
+    expect(fallback?.detail).toContain("토(土)")
+  })
+
+  it("폴백이 아니면(generatedFor === target) 상생 근거를 만들지 않는다", () => {
+    expect(buildReasons({ ...base, generatedFor: "금" }).some((r) => r.icon === "🔄")).toBe(false)
   })
 })
 

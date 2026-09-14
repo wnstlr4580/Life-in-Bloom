@@ -69,6 +69,67 @@ const RAW_FLOWERS = [
   { id: "freesia",              group: "프리지아", name: "프리지아",    engDesc: "yellow freesia with fragrant tubular blooms",                   emoji: "🌼", img: "/flowers/yellow_freesia.jpg",         color: "yellow", price: 2000 },
   { id: "chamomile",            group: "카모마일", name: "카모마일",    engDesc: "white chamomile flowers with yellow centers and daisy-like petals", emoji: "🌼", img: "/flowers/white_chamomile.jpg",     color: "white",  price: 1500 },
   { id: "eucalyptus",           group: "유칼립투스", name: "유칼립투스", engDesc: "green eucalyptus sprigs with silvery round leaves",            emoji: "🌿", img: "/flowers/green_eucalyptus.jpg",       color: "green",  price: 2000 },
+  // 확충 17종(사주 추천 후보 폭 확대용) — 사진(AI 생성 초안, 워터마크 있음)·가격을 갖춰 정식 주문 목록에
+  // 편입했다. 가격은 실제 시세 조사 전 임시값이다. lib/flowerCatalog.ts가 더는 이 종들을 별도
+  // "확충 전용(주문 불가)" 항목으로 다루지 않는다 — FLOWERS에 있으면 전부 주문 가능이다.
+  // 달리아
+  { id: "dahlia-red",           group: "달리아",   name: "빨간 달리아",   engDesc: "red dahlias with large round layered petals in a spiral pattern",         emoji: "🌹", img: "/flowers/red_dahlia.jpg",       color: "red",    price: 3000 },
+  { id: "dahlia-pink",          group: "달리아",   name: "핑크 달리아",   engDesc: "pink dahlias with large round layered petals in a spiral pattern",        emoji: "🌸", img: "/flowers/pink_dahlia.jpg",      color: "pink",   price: 3000 },
+  { id: "dahlia-white",         group: "달리아",   name: "흰 달리아",     engDesc: "white dahlias with large round layered petals in a spiral pattern",       emoji: "🤍", img: "/flowers/white_dahlia.jpg",     color: "white",  price: 3000 },
+  { id: "dahlia-yellow",        group: "달리아",   name: "노란 달리아",   engDesc: "yellow dahlias with large round layered petals in a spiral pattern",      emoji: "💛", img: "/flowers/yellow_dahlia.jpg",    color: "yellow", price: 3000 },
+  // 백일홍
+  { id: "zinnia-red",           group: "백일홍",   name: "빨간 백일홍",   engDesc: "red zinnias with round full ruffled blooms and many layered petals",      emoji: "🌹", img: "/flowers/red_zinnia.jpg",       color: "red",    price: 2000 },
+  { id: "zinnia-pink",          group: "백일홍",   name: "핑크 백일홍",   engDesc: "pink zinnias with round full ruffled blooms and many layered petals",     emoji: "🌸", img: "/flowers/pink_zinnia.jpg",      color: "pink",   price: 2000 },
+  { id: "zinnia-yellow",        group: "백일홍",   name: "노란 백일홍",   engDesc: "yellow zinnias with round full ruffled blooms and many layered petals",   emoji: "💛", img: "/flowers/yellow_zinnia.jpg",    color: "yellow", price: 2000 },
+  // 과꽃
+  { id: "aster-purple",         group: "과꽃",     name: "보라 과꽃",     engDesc: "purple China asters with daisy-like starburst blooms and slender petals", emoji: "💜", img: "/flowers/purple_aster.jpg",     color: "purple", price: 2000 },
+  { id: "aster-pink",           group: "과꽃",     name: "핑크 과꽃",     engDesc: "pink China asters with daisy-like starburst blooms and slender petals",   emoji: "🌸", img: "/flowers/pink_aster.jpg",       color: "pink",   price: 2000 },
+  { id: "aster-white",          group: "과꽃",     name: "흰 과꽃",       engDesc: "white China asters with daisy-like starburst blooms and slender petals",  emoji: "🤍", img: "/flowers/white_aster.jpg",      color: "white",  price: 2000 },
+  // 용담
+  { id: "gentian-blue",         group: "용담",     name: "파란 용담",     engDesc: "blue gentians with upright trumpet-shaped blooms in tight clusters",      emoji: "💙", img: "/flowers/blue_gentian.jpg",     color: "blue",   price: 2500 },
+  { id: "gentian-purple",       group: "용담",     name: "보라 용담",     engDesc: "purple gentians with upright trumpet-shaped blooms in tight clusters",    emoji: "💜", img: "/flowers/purple_gentian.jpg",   color: "purple", price: 2500 },
+  // 목화
+  { id: "cotton-white",         group: "목화",     name: "흰 목화",       engDesc: "cotton bolls with fluffy round tufts on woody stems",                     emoji: "🤍", img: "/flowers/white_cotton.jpg",     color: "white",  price: 2500 },
+  // 에린지움
+  { id: "eryngium-blue",        group: "에린지움", name: "파란 에린지움", engDesc: "eryngium sea holly with spiky thistle-like blooms and pointed bracts",    emoji: "💙", img: "/flowers/blue_eryngium.jpg",    color: "blue",   price: 2500 },
+  // 동백
+  { id: "camellia-red",         group: "동백",     name: "빨간 동백",     engDesc: "red camellias with large glossy round blooms and waxy petals",           emoji: "🌹", img: "/flowers/red_camellia.jpg",     color: "red",    price: 3500 },
+  { id: "camellia-pink",        group: "동백",     name: "핑크 동백",     engDesc: "pink camellias with large glossy round blooms and waxy petals",          emoji: "🌸", img: "/flowers/pink_camellia.jpg",    color: "pink",   price: 3500 },
+  { id: "camellia-white",       group: "동백",     name: "흰 동백",       engDesc: "white camellias with large glossy round blooms and waxy petals",         emoji: "🤍", img: "/flowers/white_camellia.jpg",   color: "white",  price: 3500 },
+  // 시클라멘
+  { id: "cyclamen-red",         group: "시클라멘", name: "빨간 시클라멘", engDesc: "potted red cyclamen flowers with swept-back petals on slender curving stems", emoji: "🌹", img: "/flowers/red_cyclamen.jpg",   color: "red",    price: 2500 },
+  { id: "cyclamen-pink",        group: "시클라멘", name: "핑크 시클라멘", engDesc: "potted pink cyclamen flowers with swept-back petals on slender curving stems", emoji: "🌸", img: "/flowers/pink_cyclamen.jpg",  color: "pink",   price: 2500 },
+  { id: "cyclamen-white",       group: "시클라멘", name: "흰 시클라멘",   engDesc: "potted white cyclamen flowers with swept-back petals on slender curving stems", emoji: "🤍", img: "/flowers/white_cyclamen.jpg", color: "white",  price: 2500 },
+  // 크리스마스로즈
+  { id: "hellebore-white",      group: "크리스마스로즈", name: "흰 크리스마스로즈", engDesc: "white hellebores with nodding cup-shaped blooms on gentle curving stems",  emoji: "🤍", img: "/flowers/white_hellebore.jpg",  color: "white",  price: 3000 },
+  { id: "hellebore-purple",     group: "크리스마스로즈", name: "보라 크리스마스로즈", engDesc: "purple hellebores with nodding cup-shaped blooms on gentle curving stems", emoji: "💜", img: "/flowers/purple_hellebore.jpg", color: "purple", price: 3000 },
+  // 매화
+  { id: "plum-white",           group: "매화",     name: "흰 매화",       engDesc: "white plum blossoms on bare branches with small delicate five-petaled flowers", emoji: "🤍", img: "/flowers/white_plum.jpg",     color: "white",  price: 2500 },
+  { id: "plum-pink",            group: "매화",     name: "핑크 매화",     engDesc: "pink plum blossoms on bare branches with small delicate five-petaled flowers",  emoji: "🌸", img: "/flowers/pink_plum.jpg",      color: "pink",   price: 2500 },
+  // 수선화
+  { id: "narcissus-yellow",     group: "수선화",   name: "노란 수선화",   engDesc: "yellow narcissus flowers with trumpet-shaped centers and star-shaped petals", emoji: "💛", img: "/flowers/yellow_narcissus.jpg", color: "yellow", price: 2000 },
+  { id: "narcissus-white",      group: "수선화",   name: "흰 수선화",     engDesc: "white narcissus flowers with trumpet-shaped centers and star-shaped petals",  emoji: "🤍", img: "/flowers/white_narcissus.jpg",  color: "white",  price: 2000 },
+  // 아이리스
+  { id: "iris-purple",          group: "아이리스", name: "보라 아이리스", engDesc: "purple irises with tall elegant blooms and long slender drooping petals", emoji: "💜", img: "/flowers/purple_iris.jpg",      color: "purple", price: 2500 },
+  { id: "iris-blue",            group: "아이리스", name: "파란 아이리스", engDesc: "blue irises with tall elegant blooms and long slender drooping petals",   emoji: "💙", img: "/flowers/blue_iris.jpg",        color: "blue",   price: 2500 },
+  { id: "iris-white",           group: "아이리스", name: "흰 아이리스",   engDesc: "white irises with tall elegant blooms and long slender drooping petals",  emoji: "🤍", img: "/flowers/white_iris.jpg",       color: "white",  price: 2500 },
+  // 히아신스
+  { id: "hyacinth-purple",      group: "히아신스", name: "보라 히아신스", engDesc: "purple hyacinths with dense spikes of small tightly clustered star-shaped florets", emoji: "💜", img: "/flowers/purple_hyacinth.jpg", color: "purple", price: 2000 },
+  { id: "hyacinth-pink",        group: "히아신스", name: "핑크 히아신스", engDesc: "pink hyacinths with dense spikes of small tightly clustered star-shaped florets",   emoji: "🌸", img: "/flowers/pink_hyacinth.jpg",   color: "pink",   price: 2000 },
+  { id: "hyacinth-white",       group: "히아신스", name: "흰 히아신스",   engDesc: "white hyacinths with dense spikes of small tightly clustered star-shaped florets",  emoji: "🤍", img: "/flowers/white_hyacinth.jpg",  color: "white",  price: 2000 },
+  // 라일락
+  { id: "lilac-purple",         group: "라일락",   name: "보라 라일락",   engDesc: "purple lilacs with clusters of tiny fragrant florets on full branching stems", emoji: "💜", img: "/flowers/purple_lilac.jpg",     color: "purple", price: 3000 },
+  { id: "lilac-white",          group: "라일락",   name: "흰 라일락",     engDesc: "white lilacs with clusters of tiny fragrant florets on full branching stems",  emoji: "🤍", img: "/flowers/white_lilac.jpg",      color: "white",  price: 3000 },
+  // 미모사
+  { id: "mimosa-yellow",        group: "미모사",   name: "노란 미모사",   engDesc: "yellow mimosa sprigs with fluffy round pompom-like blooms and feathery leaves", emoji: "💛", img: "/flowers/yellow_mimosa.jpg",   color: "yellow", price: 2000 },
+  // 글라디올러스
+  { id: "gladiolus-red",        group: "글라디올러스", name: "빨간 글라디올러스", engDesc: "red gladiolus spikes with tall upright ruffled blooms stacked along the stem",   emoji: "🌹", img: "/flowers/red_gladiolus.jpg",   color: "red",    price: 2500 },
+  { id: "gladiolus-pink",       group: "글라디올러스", name: "핑크 글라디올러스", engDesc: "pink gladiolus spikes with tall upright ruffled blooms stacked along the stem",  emoji: "🌸", img: "/flowers/pink_gladiolus.jpg",  color: "pink",   price: 2500 },
+  { id: "gladiolus-white",      group: "글라디올러스", name: "흰 글라디올러스",   engDesc: "white gladiolus spikes with tall upright ruffled blooms stacked along the stem", emoji: "🤍", img: "/flowers/white_gladiolus.jpg", color: "white",  price: 2500 },
+  // 금어초
+  { id: "snapdragon-yellow",    group: "금어초",   name: "노란 금어초",   engDesc: "yellow snapdragons with tall upright spikes of dragon-mouth shaped blooms", emoji: "💛", img: "/flowers/yellow_snapdragon.jpg", color: "yellow", price: 2000 },
+  { id: "snapdragon-pink",      group: "금어초",   name: "핑크 금어초",   engDesc: "pink snapdragons with tall upright spikes of dragon-mouth shaped blooms",   emoji: "🌸", img: "/flowers/pink_snapdragon.jpg",   color: "pink",   price: 2000 },
+  { id: "snapdragon-white",     group: "금어초",   name: "흰 금어초",     engDesc: "white snapdragons with tall upright spikes of dragon-mouth shaped blooms",  emoji: "🤍", img: "/flowers/white_snapdragon.jpg",  color: "white",  price: 2000 },
 ]
 
 // 오행은 리터럴이 아니라 파생값이다 — 색·형태·계절 프로필(flowerOhaengProfile) 하나에서 계산한다.

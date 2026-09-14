@@ -259,20 +259,50 @@ export function pickDiverse<T extends { id: string; name: string }>(ranked: T[],
   return picked
 }
 
+function rankForOhaeng<T extends RankCandidate>(
+  items: T[],
+  target: Ohaeng,
+  exclude: Set<string>,
+): (T & { score: number })[] {
+  return items
+    .filter((s) => !exclude.has(s.id) && s.profile[target] >= OHAENG_RELEVANCE_MIN)
+    .map((s) => ({ ...s, score: blendScore(s.profile[target] / 100, s.personal) }))
+    .sort((a, b) => b.score - a.score)
+}
+
+/** 관련 후보가 이 개수 미만이면 상생 폴백이 발동한다 — 오행추천개선.md §4. */
+const OHAENG_FALLBACK_MIN = 3
+
 /** 특정 오행을 채우는 상위 후보 — 무관(임계 미만)한 것은 제외한다.
  *  프로필은 이미 0~100 절대점수이므로 후보군 정규화를 하지 않는다. 그래야 카탈로그가 빈약할 때
- *  1위도 낮은 점수로 나와 "지금 맞는 꽃이 없다"가 점수에 드러난다. */
+ *  1위도 낮은 점수로 나와 "지금 맞는 꽃이 없다"가 점수에 드러난다.
+ *
+ *  관련 후보가 `OHAENG_FALLBACK_MIN`개 미만이면 target을 낳는 오행(상생, `whoGenerates`)에서
+ *  나머지를 채운다 — 한 단계만 거슬러 올라간다. 근거(buildReasons)는 실제로 기여한 오행
+ *  (`matchedOhaeng`) 기준으로 설명해야 하므로, 더 거슬러 올라갈수록 "왜 이 꽃인가"가 흐려진다. */
 export function topByOhaeng<T extends RankCandidate>(
   items: T[],
   target: Ohaeng,
   limit: number,
   exclude: Set<string> = new Set(),
-): (T & { score: number })[] {
-  const ranked = items
-    .filter((s) => !exclude.has(s.id) && s.profile[target] >= OHAENG_RELEVANCE_MIN)
-    .map((s) => ({ ...s, score: blendScore(s.profile[target] / 100, s.personal) }))
-    .sort((a, b) => b.score - a.score)
-  return pickDiverse(ranked, limit)
+): (T & { score: number; matchedOhaeng: Ohaeng })[] {
+  const primary = pickDiverse(rankForOhaeng(items, target, exclude), limit).map((s) => ({
+    ...s,
+    matchedOhaeng: target,
+  }))
+  if (primary.length >= Math.min(limit, OHAENG_FALLBACK_MIN)) return primary
+
+  const generating = whoGenerates(target)
+  const primarySpecies = new Set(primary.map((s) => flowerSpeciesKey(s.name) ?? s.id))
+  const exhausted = new Set([...exclude, ...primary.map((s) => s.id)])
+  const fallbackCandidates = rankForOhaeng(items, generating, exhausted).filter(
+    (s) => !primarySpecies.has(flowerSpeciesKey(s.name) ?? s.id),
+  )
+  const fallback = pickDiverse(fallbackCandidates, limit - primary.length).map((s) => ({
+    ...s,
+    matchedOhaeng: generating,
+  }))
+  return [...primary, ...fallback]
 }
 
 // ── 추천 근거 ─────────────────────────────────────────────────
@@ -295,11 +325,13 @@ export interface ReasonInput {
   excessOhaeng?: Ohaeng | null
   /** 계절 리스트 한정 */
   seasonal?: boolean
+  /** 상생 폴백으로 채워진 카드 한정 — 후보가 부족했던 원래 목표 오행(target은 이미 상생 오행으로 대체됨) */
+  generatedFor?: Ohaeng
 }
 
 /** 추천 근거 목록. 순서는 가중치 순이 아니라 읽는 순서(서사)로 고정한다. */
 export function buildReasons(input: ReasonInput): RecommendReason[] {
-  const { product, target, profile, personal, excessOhaeng, seasonal } = input
+  const { product, target, profile, personal, excessOhaeng, seasonal, generatedFor } = input
   const reasons: RecommendReason[] = []
 
   const basis = explainOhaeng(product, target)
@@ -309,6 +341,16 @@ export function buildReasons(input: ReasonInput): RecommendReason[] {
       icon: OHAENG_EMOJI[target],
       title: `${target}(${OHAENG_HANJA[target]}) 기운 보완`,
       detail: `${basis} — 부족한 ${keywords} 보강`,
+    })
+  }
+
+  // 상생 폴백 — target은 이미 실제로 기여한 오행(matchedOhaeng)으로 대체돼 있다.
+  // generatedFor는 후보가 부족했던 원래 오행이라 target과 다르다.
+  if (generatedFor && generatedFor !== target) {
+    reasons.push({
+      icon: "🔄",
+      title: `${generatedFor}(${OHAENG_HANJA[generatedFor]}) 대신 상생 오행으로 보완`,
+      detail: `${generatedFor} 기운과 어울리는 꽃이 부족해, ${generatedFor}을 낳는 ${target}(${OHAENG_HANJA[target]}) 기운의 꽃으로 채웠어요`,
     })
   }
 
