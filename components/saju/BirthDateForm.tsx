@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Search, Clock } from "lucide-react"
+import { Clock } from "lucide-react"
 
 interface SubmitData {
   name: string
@@ -29,30 +29,6 @@ interface Props {
   defaultValues?: DefaultValues
   submitLabel?: string
 }
-
-const ALL_CITIES = [
-  "서울", "부산", "대구", "인천", "광주", "대전", "울산", "세종",
-  "수원", "성남", "고양", "용인", "안산", "안양", "부천", "화성", "남양주",
-  "의정부", "시흥", "파주", "김포", "광명", "군포", "오산", "이천", "양주",
-  "구리", "안성", "포천", "의왕", "하남", "여주", "평택", "동두천", "과천",
-  "춘천", "원주", "강릉", "동해", "태백", "속초", "삼척", "홍천", "횡성",
-  "영월", "평창", "정선", "철원", "화천", "양구", "인제", "양양",
-  "청주", "충주", "제천", "보은", "옥천", "영동", "증평", "진천", "괴산", "음성", "단양",
-  "천안", "공주", "보령", "아산", "서산", "논산", "계룡", "당진", "금산",
-  "부여", "서천", "청양", "홍성", "예산", "태안",
-  "전주", "군산", "익산", "정읍", "남원", "김제", "완주", "진안", "무주",
-  "장수", "임실", "순창", "고창", "부안",
-  "목포", "여수", "순천", "나주", "광양", "담양", "곡성", "구례", "고흥",
-  "보성", "화순", "장흥", "강진", "해남", "영암", "무안", "함평", "영광",
-  "장성", "완도", "진도", "신안",
-  "포항", "경주", "김천", "안동", "구미", "영주", "영천", "상주", "문경",
-  "경산", "의성", "청송", "영양", "영덕", "청도", "고령", "성주", "칠곡",
-  "예천", "봉화", "울진", "울릉",
-  "창원", "진주", "통영", "사천", "김해", "밀양", "거제", "양산", "의령",
-  "함안", "창녕", "남해", "하동", "산청", "함양", "거창", "합천",
-  "제주시", "서귀포시",
-  "해외",
-]
 
 function getDaysInMonth(year: number, month: number) {
   return new Date(year, month, 0).getDate()
@@ -88,42 +64,9 @@ export function BirthDateForm({ onSubmit, loading, defaultValues, submitLabel }:
     if (!defaultValues?.birthHour || defaultValues.birthHour === "unknown") return ""
     return defaultValues.birthHour.includes(":") ? defaultValues.birthHour.split(":")[1].padStart(2, "0") : ""
   })
-  const [cityQuery, setCityQuery] = useState(defaultValues?.city ?? "")
-  const [cityOpen, setCityOpen] = useState(false)
-  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 })
-
-  const cityInputRef = useRef<HTMLInputElement>(null)
-
-  // 도시 드롭다운 위치를 input 기준으로 계산
-  const openCityDropdown = () => {
-    if (cityInputRef.current) {
-      const rect = cityInputRef.current.getBoundingClientRect()
-      setDropdownPos({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.left + window.scrollX,
-        width: rect.width,
-      })
-    }
-    setCityOpen(true)
-  }
-
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (cityInputRef.current && !cityInputRef.current.contains(e.target as Node)) {
-        setCityOpen(false)
-      }
-    }
-    document.addEventListener("mousedown", handleClick)
-    return () => document.removeEventListener("mousedown", handleClick)
-  }, [])
-
   const days = year && month
     ? Array.from({ length: getDaysInMonth(+year, +month) }, (_, i) => i + 1)
     : Array.from({ length: 31 }, (_, i) => i + 1)
-
-  const filteredCities = cityQuery.trim()
-    ? ALL_CITIES.filter((c) => c.includes(cityQuery)).slice(0, 8)
-    : ALL_CITIES.slice(0, 8)
 
   const birthDate = year && month && day
     ? `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`
@@ -141,13 +84,12 @@ export function BirthDateForm({ onSubmit, loading, defaultValues, submitLabel }:
       birthHour: timeKnown && timeHour && timeMin
         ? `${ampm === "오후" && timeHour !== "12" ? +timeHour + 12 : ampm === "오전" && timeHour === "12" ? 0 : +timeHour}:${timeMin}`
         : "unknown",
-      city: cityQuery.trim() || "미입력",
+      city: "미입력",
       calendarType,
     })
   }
 
   return (
-    <>
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* 이름 */}
         <div className="space-y-2">
@@ -284,23 +226,6 @@ export function BirthDateForm({ onSubmit, loading, defaultValues, submitLabel }:
           )}
         </div>
 
-        {/* 태어난 도시 */}
-        <div className="space-y-2">
-          <Label className="text-sm font-medium text-stone-700">태어난 도시</Label>
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
-            <input
-              ref={cityInputRef}
-              type="text"
-              placeholder="도시 검색 (예: 서울, 수원, 해외)"
-              value={cityQuery}
-              onChange={(e) => { setCityQuery(e.target.value); openCityDropdown() }}
-              onFocus={openCityDropdown}
-              className="w-full rounded-lg border border-stone-200 pl-8 pr-3 py-2 text-sm text-stone-700 placeholder:text-stone-400 focus:outline-none focus:border-rose-300"
-            />
-          </div>
-        </div>
-
         <Button
           type="submit"
           disabled={!canSubmit || loading}
@@ -309,36 +234,5 @@ export function BirthDateForm({ onSubmit, loading, defaultValues, submitLabel }:
           {loading ? "저장 중..." : submitLabel ?? "나의 꽃 찾기 🌸"}
         </Button>
       </form>
-
-      {/* 도시 드롭다운 — fixed 포지션으로 카드 밖에 렌더링 */}
-      {cityOpen && filteredCities.length > 0 && (
-        <ul
-          style={{
-            position: "fixed",
-            top: dropdownPos.top,
-            left: dropdownPos.left,
-            width: dropdownPos.width,
-            zIndex: 9999,
-          }}
-          className="bg-white border border-stone-200 rounded-xl shadow-xl overflow-hidden"
-        >
-          {filteredCities.map((c) => (
-            <li
-              key={c}
-              onMouseDown={(e) => {
-                e.preventDefault()
-                setCityQuery(c)
-                setCityOpen(false)
-              }}
-              className={`px-3 py-2.5 text-sm cursor-pointer transition-colors hover:bg-rose-50 hover:text-rose-600 ${
-                cityQuery === c ? "bg-rose-50 text-rose-600 font-medium" : "text-stone-700"
-              }`}
-            >
-              {c}
-            </li>
-          ))}
-        </ul>
-      )}
-    </>
   )
 }

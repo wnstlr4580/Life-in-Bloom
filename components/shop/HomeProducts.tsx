@@ -28,7 +28,7 @@ export function HomeProducts() {
   if (!loading && products.length === 0) return null
 
   return (
-    <section className="py-20 px-6 bg-white">
+    <section className="py-20 px-6">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-end justify-between mb-8">
           <div>

@@ -17,7 +17,7 @@ import type { AnalyzeResult as SharedAnalyzeResult } from "@/types/saju"
 type AnalyzeResult = Omit<SharedAnalyzeResult, "fortune"> & { fortune: FortuneData }
 
 // 응답 스키마를 바꾸면 뒤 숫자를 올린다 — 구버전 캐시가 read 경로에 도달하지 못하게 한다.
-const SAJU_CACHE_KEY = "lifeInBloomSajuStateV5"
+const SAJU_CACHE_KEY = "lifeInBloomSajuStateV6"
 
 interface SubmitData {
   name: string
@@ -44,7 +44,7 @@ interface KioskPhoto {
 }
 
 function SajuPageContent() {
-  const { data: session } = useSession()
+  const { data: session, status: sessionStatus } = useSession()
   const searchParams = useSearchParams()
   const kioskBirthDate = searchParams.get("birthDate")
   const kioskPhotoId = searchParams.get("kiosk")
@@ -67,10 +67,12 @@ function SajuPageContent() {
 
   useEffect(() => {
     if (kioskBirthDate) return
+    // 세션 판정 전에는 캐시를 읽지 않는다 — "로그인 안 됨"으로 잘못 판정해 남의 계정 캐시를 지우면 안 된다
+    if (sessionStatus === "loading") return
     try {
       const cached = sessionStorage.getItem(SAJU_CACHE_KEY)
       if (!cached) return
-      const state = JSON.parse(cached) as { input: SavedProfile; result: AnalyzeResult; birthYear: number; userName: string }
+      const state = JSON.parse(cached) as { input: SavedProfile; result: AnalyzeResult; birthYear: number; userName: string; userId: string | null }
       // 스키마가 어긋난 캐시는 렌더 전에 버린다
       const cards = state?.result?.recommendedFlowers
       if (!Array.isArray(cards) || !state?.result?.ohaengPct) {
@@ -80,9 +82,29 @@ function SajuPageContent() {
       if (cards.length > 0 && typeof cards[0]?.searchQuery !== "string") {
         sessionStorage.removeItem(SAJU_CACHE_KEY); return
       }
+      // 로그인 계정이 바뀌면 이전 계정의 결과를 이어보면 안 된다 — sessionStorage는 로그인/로그아웃과 무관하게 탭에 남는다
+      if ((state.userId ?? null) !== (session?.user?.id ?? null)) {
+        sessionStorage.removeItem(SAJU_CACHE_KEY); return
+      }
       setSavedProfile(state.input); setResult(state.result); setBirthYear(state.birthYear); setUserName(state.userName); setLoadKey((key) => key + 1)
     } catch { sessionStorage.removeItem(SAJU_CACHE_KEY) }
-  }, [kioskBirthDate])
+  }, [kioskBirthDate, sessionStatus, session?.user?.id])
+
+  // 페이지를 새로 불러오지 않고 로그인 계정만 바뀐 경우(로그아웃 → 다른 계정 로그인) 대비 —
+  // 화면에 이미 떠 있는 이전 계정의 결과를 지운다. 최초 마운트 때는 지우지 않는다(막 복원한 캐시를 날리면 안 된다).
+  const lastUserIdRef = useRef<string | null | undefined>(undefined)
+  useEffect(() => {
+    if (sessionStatus === "loading") return
+    const currentUserId = session?.user?.id ?? null
+    if (lastUserIdRef.current === undefined) {
+      lastUserIdRef.current = currentUserId
+      return
+    }
+    if (lastUserIdRef.current === currentUserId) return
+    lastUserIdRef.current = currentUserId
+    sessionStorage.removeItem(SAJU_CACHE_KEY)
+    setResult(null); setSavedProfile(null); setBirthYear(null); setUserName(""); setFortuneOpen(false)
+  }, [sessionStatus, session?.user?.id])
 
   useEffect(() => {
     if (!result) return
@@ -131,7 +153,7 @@ function SajuPageContent() {
       if (!res.ok) throw new Error()
       const analyzed = await res.json()
       setResult(analyzed)
-      sessionStorage.setItem(SAJU_CACHE_KEY, JSON.stringify({ input: data, result: analyzed, birthYear: new Date(data.birthDate).getFullYear(), userName: data.name }))
+      sessionStorage.setItem(SAJU_CACHE_KEY, JSON.stringify({ input: data, result: analyzed, birthYear: new Date(data.birthDate).getFullYear(), userName: data.name, userId: session?.user?.id ?? null }))
 
       // 로그인 상태이면 자동 저장
       if (session?.user) {
@@ -306,6 +328,7 @@ function SajuPageContent() {
                   ohaeng={result.ohaeng}
                   profile={result.profile}
                   birthYear={birthYear}
+                  lackingOhaeng={result.lackingOhaeng}
                   name={userName}
                 />
               </div>

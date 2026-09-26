@@ -8,12 +8,15 @@ import { ArrowRight, Flower2, Sparkles } from "lucide-react"
 
 export default function HomePage() {
   return (
-    <>
+    <div className="relative">
+      {/* 전체 배경 — 히어로에서 시작해 아래 패널들까지 은은하게 이어지는 그라데이션 */}
+      <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-b from-rose-50 via-white to-stone-50" />
+
       {/* 기획전 배너 */}
       <EventBanner />
 
       {/* 히어로 섹션 */}
-      <section className="bg-gradient-to-br from-rose-50 via-white to-stone-50 py-24 px-6">
+      <section className="py-24 px-6">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-12">
           <div className="flex-1 space-y-6">
             <div className="inline-flex items-center gap-2 bg-rose-100 text-rose-600 text-sm font-medium px-3 py-1 rounded-full">
@@ -65,7 +68,7 @@ export default function HomePage() {
       <HomeProducts />
 
       {/* 서비스 바로가기 */}
-      <section className="py-20 px-6 bg-stone-50">
+      <section className="py-20 px-6">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl font-bold text-stone-800 text-center mb-3">인생내꽃에서 할 수 있어요</h2>
           <p className="text-stone-500 text-center mb-12">꽃을 고르는 새로운 방법을 만나보세요</p>
@@ -92,6 +95,6 @@ export default function HomePage() {
 
       {/* 손님들이 만든 꽃다발 후기 */}
       <BouquetGallery showViewAll />
-    </>
+    </div>
   )
 }
