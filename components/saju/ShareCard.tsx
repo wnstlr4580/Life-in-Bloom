@@ -46,12 +46,18 @@ function typeName(main: Ohaeng, lacking: Ohaeng[]): string {
 }
 
 // AI로 유형별 포토카드를 만드는 대로 여기 추가한다 — 파일은 public/sns-card/{key}.png,
-// key는 "목목"처럼 일간+부족기운 조합, 균형(부족 없음)은 "균형_목"처럼 짓는다.
-const CARD_IMAGE_KEYS = new Set(["목목", "목화", "토목", "화토"])
+// key는 "목목"처럼 일간+부족기운 조합, 균형(부족 없음)은 "목균형"처럼 짓는다.
+const CARD_IMAGE_KEYS = new Set([
+  "목목", "목화", "목토", "목금", "목수",
+  "화목", "화화", "화토", "화금", "화수",
+  "토목", "토화", "토토", "토금", "토수",
+  // 금·수 조합은 아직 이미지가 없다 — 완성되는 대로 여기 추가
+  "목균형", "화균형", "토균형", "금균형", "수균형",
+])
 
 function cardImageSrc(main: Ohaeng, lacking: Ohaeng[]): string | null {
   const weak = lacking[0]
-  const key = weak ? `${main}${weak}` : `균형_${main}`
+  const key = weak ? `${main}${weak}` : `${main}균형`
   return CARD_IMAGE_KEYS.has(key) ? `/sns-card/${key}.png` : null
 }
 
@@ -65,28 +71,47 @@ interface Props {
 }
 
 export function ShareCard({ ohaeng, profile, birthYear, lackingOhaeng, name }: Props) {
-  const cardRef = useRef<HTMLDivElement>(null)
+  // 화면에 보이는 앞면은 뒤집기 3D 변형 아래 있어서 html2canvas가 안정적으로 못 찍는다 —
+  // 캡처 전용으로 변형 없는 사본을 화면 밖에 따로 둔다(AI 포토카드가 있으면 이쪽은 아예 안 쓴다).
+  const captureRef = useRef<HTMLDivElement>(null)
   const [saving, setSaving] = useState(false)
+  const [sharing, setSharing] = useState(false)
   const [flipped, setFlipped] = useState(false)
   const type = typeName(ohaeng, lackingOhaeng)
   const weak = lackingOhaeng[0]
   const imageSrc = cardImageSrc(ohaeng, lackingOhaeng)
+  const fileName = `인생내꽃_${type}_${birthYear}.png`
+
+  /** 카드를 이미지 파일(Blob)로 만든다 — 포토카드가 있으면 원본 그대로, 없으면 뒷면 디자인을 캡처한다. */
+  const getCardBlob = async (): Promise<Blob> => {
+    if (imageSrc) {
+      const res = await fetch(imageSrc)
+      return res.blob()
+    }
+    if (!captureRef.current) throw new Error("카드를 찾을 수 없어요")
+    const { default: html2canvas } = await import("html2canvas")
+    const canvas = await html2canvas(captureRef.current, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: null,
+    })
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("이미지 생성 실패"))), "image/png")
+    })
+  }
 
   const downloadCard = async () => {
-    if (!cardRef.current) return
     setSaving(true)
     try {
-      const { default: html2canvas } = await import("html2canvas")
-      const canvas = await html2canvas(cardRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: null,
-      })
-      const url = canvas.toDataURL("image/png")
+      const blob = await getCardBlob()
+      const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `인생내꽃_${type}_${birthYear}.png`
+      a.download = fileName
       a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      alert("이미지 저장에 실패했어요. 다시 시도해 주세요.")
     } finally {
       setSaving(false)
     }
@@ -94,11 +119,30 @@ export function ShareCard({ ohaeng, profile, birthYear, lackingOhaeng, name }: P
 
   const shareToWeb = async () => {
     const text = `나는 [${type}]!\n${profile.description}\n\n인생내꽃에서 나의 유형을 확인해보세요 🌸`
-    if (navigator.share) {
-      await navigator.share({ title: `인생내꽃 — 나는 ${type}`, text, url: window.location.href })
-    } else {
-      await navigator.clipboard.writeText(text + "\n" + window.location.href)
-      alert("링크가 복사됐어요!")
+    setSharing(true)
+    try {
+      // 이미지를 함께 공유하면 모바일 공유 시트에서 인스타그램 스토리/피드로 바로 보낼 수 있다.
+      const blob = await getCardBlob()
+      const file = new File([blob], fileName, { type: blob.type })
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: `인생내꽃 — 나는 ${type}`, text })
+        return
+      }
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return // 사용자가 공유 시트를 닫음
+    } finally {
+      setSharing(false)
+    }
+    // 파일 공유를 지원하지 않으면 텍스트 공유나 링크 복사로 대체한다
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `인생내꽃 — 나는 ${type}`, text, url: window.location.href })
+      } else {
+        await navigator.clipboard.writeText(text + "\n" + window.location.href)
+        alert("링크가 복사됐어요!")
+      }
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return
     }
   }
 
@@ -173,10 +217,7 @@ export function ShareCard({ ohaeng, profile, birthYear, lackingOhaeng, name }: P
           }`}
         >
           {/* 앞면 */}
-          <div
-            ref={cardRef}
-            className="absolute inset-0 [backface-visibility:hidden] rounded-[32px] overflow-hidden select-none shadow-2xl bg-stone-900"
-          >
+          <div className="absolute inset-0 [backface-visibility:hidden] rounded-[32px] overflow-hidden select-none shadow-2xl bg-stone-900">
             {imageSrc ? (
               <Image src={imageSrc} alt={type} fill sizes="288px" className="object-cover" />
             ) : (
@@ -194,15 +235,26 @@ export function ShareCard({ ohaeng, profile, birthYear, lackingOhaeng, name }: P
         <RotateCw size={11} /> 카드를 눌러 사주 설명 보기
       </p>
 
+      {/* 캡처 전용 사본 — 3D 변형이 없어야 html2canvas가 제대로 찍는다. 포토카드가 있으면 안 쓰인다. */}
+      {!imageSrc && (
+        <div
+          ref={captureRef}
+          aria-hidden
+          className="fixed -left-[9999px] top-0 w-72 aspect-[2/3] rounded-[32px] overflow-hidden shadow-2xl"
+        >
+          {descriptionFace}
+        </div>
+      )}
+
       {/* 버튼 */}
       <div className="flex gap-2 w-72">
         <Button onClick={downloadCard} disabled={saving} variant="outline" className="flex-1 gap-2 border-stone-200 text-stone-600">
           <Download size={15} />
           {saving ? "저장 중..." : "이미지 저장"}
         </Button>
-        <Button onClick={shareToWeb} className="flex-1 gap-2 bg-rose-400 hover:bg-rose-500 text-white">
+        <Button onClick={shareToWeb} disabled={sharing} className="flex-1 gap-2 bg-rose-400 hover:bg-rose-500 text-white">
           <Share2 size={15} />
-          공유하기
+          {sharing ? "공유 준비 중..." : "공유하기"}
         </Button>
       </div>
     </div>
