@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 
 export async function POST(req: NextRequest) {
-  const { prompt, negative, seed } = await req.json()
+  const { prompt, negative } = await req.json()
 
   if (!prompt) {
     return NextResponse.json({ error: "프롬프트가 없습니다." }, { status: 400 })
@@ -16,8 +16,6 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const rawSeed = typeof seed === "number" ? seed : Date.now()
-  const finalSeed = Math.abs(Math.trunc(rawSeed)) % 2147483647
   const fullPrompt = (negative ? `${prompt}\nAvoid: ${negative}` : prompt).slice(0, 2048)
   const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/black-forest-labs/flux-1-schnell`
 
@@ -32,7 +30,7 @@ export async function POST(req: NextRequest) {
         Authorization: `Bearer ${apiToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ prompt: fullPrompt, seed: finalSeed, steps: 8 }),
+      body: JSON.stringify({ prompt: fullPrompt, steps: 8 }),
       cache: "no-store",
     })
     clearTimeout(timeoutId)
