@@ -89,7 +89,7 @@ export function ShareCard({ ohaeng, profile, birthYear, lackingOhaeng, name }: P
       return res.blob()
     }
     if (!captureRef.current) throw new Error("카드를 찾을 수 없어요")
-    const { default: html2canvas } = await import("html2canvas")
+    const { default: html2canvas } = await import("html2canvas-pro")
     const canvas = await html2canvas(captureRef.current, {
       scale: 2,
       useCORS: true,

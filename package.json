@@ -29,7 +29,7 @@
     "date-fns": "^4.4.0",
     "dotenv": "^17.4.2",
     "exceljs": "^4.4.0",
-    "html2canvas": "^1.4.1",
+    "html2canvas-pro": "^2.4.5",
     "jsqr": "^1.4.0",
     "korean-lunar-calendar": "^0.4.0",
     "lucide-react": "^1.21.0",
