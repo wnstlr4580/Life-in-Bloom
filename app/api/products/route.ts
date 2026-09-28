@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabaseAdmin
     .from("Product")
-    .select("id, name, price, images, flowerMeaning, category, stock, saleStatus, purchaseType, externalUrl, partnerName, partnerBadge, createdAt, isPromoted, exposurePriority, sellerPromoted, sellerPriority, seller:Seller(id, marketName, productDeliveryScope, productDeliveryRegions, productSortStrategy), reviews:Review(rating), orderItems:OrderItem(quantity), wishlist:WishlistItem(id)", { count: "exact" })
+    .select("id, name, price, images, flowerMeaning, category, stock, saleStatus, purchaseType, externalUrl, partnerName, partnerBadge, createdAt, isPromoted, exposurePriority, sellerPromoted, sellerPriority, seller:Seller(id, marketName, productDeliveryScope, productDeliveryRegions, productSortStrategy, isCoopMember), reviews:Review(rating), orderItems:OrderItem(quantity), wishlist:WishlistItem(id)", { count: "exact" })
     .eq("isActive", true)
     .in("saleStatus", ["ON_SALE", "SOLD_OUT"])
     .or(`displayStartAt.is.null,displayStartAt.lte.${now}`)

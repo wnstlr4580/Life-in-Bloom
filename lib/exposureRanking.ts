@@ -45,7 +45,7 @@ export type RankedProduct = {
   exposurePriority?: number
   sellerPromoted?: boolean
   sellerPriority?: number
-  seller?: Relation<{ id?: string; marketName?: string; productSortStrategy?: string }>
+  seller?: Relation<{ id?: string; marketName?: string; productSortStrategy?: string; isCoopMember?: boolean }>
   orderItems?: { quantity?: number }[] | null
   wishlist?: { id?: string }[] | null
   reviews?: { rating?: number }[] | null
@@ -54,7 +54,8 @@ export type RankedProduct = {
 const one = <T>(value: Relation<T>) => Array.isArray(value) ? value[0] : value
 const sales = (product: RankedProduct) => (product.orderItems ?? []).reduce((sum, item) => sum + Number(item.quantity ?? 0), 0)
 const popularity = (product: RankedProduct) => sales(product) * 5 + (product.wishlist?.length ?? 0) * 2 + (product.reviews?.length ?? 0) * 2
-const nonghyup = (product: RankedProduct) => /농협/.test(`${product.name} ${product.partnerName ?? ""} ${one(product.seller)?.marketName ?? ""}`)
+// 조합원꽃집(조합원 인증을 거친 로컬 판매자)도 농협 판매처와 같은 우선 노출 대상이다.
+const nonghyup = (product: RankedProduct) => Boolean(one(product.seller)?.isCoopMember) || /농협/.test(`${product.name} ${product.partnerName ?? ""} ${one(product.seller)?.marketName ?? ""}`)
 const descending = (a: number, b: number) => b - a
 
 export function rankProducts<T extends RankedProduct>(products: T[], options: {

@@ -18,6 +18,7 @@ const initial = {
   latitude: "", longitude: "", settlementBank: "", settlementAccount: "",
   settlementHolder: "", sellsFinishedProducts: true, offersCustomBouquet: false,
   offersDiyFlowers: false, termsAgreed: false,
+  coopRequested: false, coopBirthDate: "", coopConsent: false,
 }
 
 type FormKey = keyof typeof initial
@@ -49,6 +50,8 @@ export default function SellerSignupPage() {
     Boolean(form.settlementBank && form.settlementAccount && form.settlementHolder),
     Boolean(form.sellsFinishedProducts || form.offersCustomBouquet || form.offersDiyFlowers),
   ]
+  // 조합원 인증은 선택 단계라 완료 개수(필수 5단계)에는 넣지 않고, 신청 정보를 다 채웠을 때만 체크 표시한다.
+  const coopReady = form.coopRequested && Boolean(form.coopBirthDate && form.coopConsent)
   const completedSteps = stepReady.filter(Boolean).length
 
   const submit = async (event: React.FormEvent) => {
@@ -63,6 +66,8 @@ export default function SellerSignupPage() {
     if (!/^\d{10}$/.test(form.businessNumber.replace(/\D/g, ""))) errors.businessNumber = "사업자등록번호 숫자 10자리를 입력해주세요."
     for (const key of ["legalBusinessName", "representativeName", "businessType", "businessCategory", "marketName", "settlementBank", "settlementAccount", "settlementHolder"] as FormKey[]) if (!String(form[key]).trim()) errors[key] = "필수 입력 항목입니다."
     if (!license) errors.businessLicense = "사업자등록증을 첨부해주세요."
+    if (form.coopRequested && !/^\d{8}$/.test(form.coopBirthDate.replace(/\D/g, ""))) errors.coopBirthDate = "생년월일 8자리를 입력해주세요. (예: 19700101)"
+    if (form.coopRequested && !form.coopConsent) errors.coopConsent = "조합원 확인을 위한 정보 조회에 동의해주세요."
     if (!form.postalCode || !form.roadAddress) errors.postalCode = "도로명주소 검색으로 주소를 선택해주세요."
     if (![form.sellsFinishedProducts, form.offersCustomBouquet, form.offersDiyFlowers].some(Boolean)) errors.services = "판매 서비스를 한 개 이상 선택해주세요."
     if (!form.termsAgreed) errors.termsAgreed = "필수 약관에 동의해주세요."
@@ -152,6 +157,7 @@ export default function SellerSignupPage() {
               <Step href="#store" ready={stepReady[2]} icon={<Store size={15} />} label="판매처 정보" />
               <Step href="#settlement" ready={stepReady[3]} icon={<Landmark size={15} />} label="정산 정보" />
               <Step href="#services" ready={stepReady[4]} icon={<Leaf size={15} />} label="꽃 판매 서비스" />
+              <Step href="#coop" ready={coopReady} icon={<ShieldCheck size={15} />} label="조합원 인증 (선택)" />
             </nav>
             <div className="mt-5 pt-5 border-t border-stone-100 text-xs text-stone-400 leading-5">승인 전에는 상품이 노출되지 않으며, 반려 시 사유를 확인하고 다시 제출할 수 있어요.</div>
           </aside>
@@ -220,6 +226,23 @@ export default function SellerSignupPage() {
                 <Check checked={form.offersDiyFlowers} onChange={(v) => set("offersDiyFlowers", v)} title="개별 꽃·소재 판매" description="송이 단위 재고와 가격을 고객에게 보여줘요." badge="DIY·재료" />
               </div>
               {fieldErrors.services && <p id="services" tabIndex={-1} className="mt-3 text-xs text-red-500">{fieldErrors.services}</p>}
+            </Section>
+
+            <Section id="coop" eyebrow="STEP 6 · 선택" title="농협 조합원이신가요?" description="조합원 인증과 교육이수 확인을 거치면 조합원꽃집으로 승인돼요. 조합원이 아니면 건너뛰어도 가입할 수 있어요.">
+              <div className={`rounded-xl border p-4 ${form.coopRequested ? "border-emerald-500 bg-emerald-50/60" : "border-stone-200 bg-white"}`}>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input type="checkbox" checked={form.coopRequested} onChange={(e) => set("coopRequested", e.target.checked)} className="mt-1 accent-emerald-700" />
+                  <span><span className="block text-sm font-semibold text-stone-800">농협 조합원입니다</span><span className="block text-xs text-stone-500 mt-1 leading-5"><strong className="text-emerald-700">조합원꽃집</strong>은 일반 판매자보다 우선 노출되고 NH인증마크를 받아요. 별도 서류 없이 입점 담당자 이름·휴대전화와 생년월일로 확인해요.</span></span>
+                </label>
+                {form.coopRequested && <div className="mt-4 grid sm:grid-cols-2 gap-4">
+                  {field("coopBirthDate", "담당자 생년월일", "19700101 (숫자 8자리)")}
+                  <label id="coopConsent" className="sm:col-span-2 flex items-start gap-3 cursor-pointer">
+                    <input type="checkbox" checked={form.coopConsent} onChange={(e) => set("coopConsent", e.target.checked)} className="mt-1 accent-emerald-700" />
+                    <span className="text-xs text-stone-600 leading-5">조합원 여부와 조합원 교육이력 확인을 위해 이름·휴대전화·생년월일을 농협 조합원관리시스템·조합원교육관리시스템 조회에 이용하는 데 동의합니다. <strong className="text-emerald-700">(조합원 신청 시 필수)</strong></span>
+                  </label>
+                  {fieldErrors.coopConsent && <p className="sm:col-span-2 -mt-2 text-xs text-red-500">{fieldErrors.coopConsent}</p>}
+                </div>}
+              </div>
             </Section>
 
             <label id="termsAgreed" className={`flex items-start gap-3 bg-white border rounded-2xl p-5 cursor-pointer ${fieldErrors.termsAgreed ? "border-red-400" : "border-stone-200"}`}>

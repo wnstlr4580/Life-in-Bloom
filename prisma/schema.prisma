@@ -201,7 +201,13 @@ model Seller {
   updatedAt             DateTime     @updatedAt
   exposureWeight        Int          @default(0)
   productSortStrategy   String       @default("MANUAL")
-  isCoopMember          Boolean      @default(false)
+  isCoopMember          Boolean      @default(false) // 조합원꽃집 승인 여부 (우선 노출·NH인증마크)
+  coopRequested         Boolean      @default(false) // 가입 시 [조합원 여부] 체크
+  coopBirthDate         String? // 조합원여부확인용 담당자 생년월일(YYYYMMDD)
+  coopMemberCheck       Json? // 조합원여부확인 결과 { result, creditCustomerNo, checkedAt }
+  coopEducationCheck    Json? // 조합원교육이력확인 결과 { records, checkedAt }
+  coopReviewedAt        DateTime? // 조합원꽃집 승인·반려 처리 시각
+  coopRejectReason      String?
   customDeliveryScope   String       @default("NATIONWIDE")
   customDeliveryRegions String[]     @default([])
   productDeliveryScope  String       @default("NATIONWIDE")

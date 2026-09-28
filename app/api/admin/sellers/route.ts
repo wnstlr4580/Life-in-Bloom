@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/authorization"
 import { supabaseAdmin } from "@/lib/supabase"
 import { writeAdminAudit } from "@/lib/adminAudit"
 import { sendEmail } from "@/lib/email"
+import { checkCoopMember, fetchCoopEducation, type CoopMemberCheck } from "@/lib/coopVerification"
 
 export async function GET(req: Request) {
   if (!await requireAdmin()) return NextResponse.json({ error: "관리자 권한이 필요해요" }, { status: 403 })
@@ -15,7 +16,7 @@ export async function GET(req: Request) {
   const service = params.get("service")
   const { data, error } = await supabaseAdmin
     .from("Seller")
-    .select("id, status, marketName, legalBusinessName, businessNumber, representativeName, managerName, managerPhone, publicPhone, roadAddress, sellerType, submittedAt, approvedAt, sellsFinishedProducts, offersCustomBouquet, offersDiyFlowers, customDeliveryScope, customDeliveryRegions, productDeliveryScope, productDeliveryRegions, User(email)")
+    .select("id, status, marketName, legalBusinessName, businessNumber, representativeName, managerName, managerPhone, publicPhone, roadAddress, sellerType, submittedAt, approvedAt, sellsFinishedProducts, offersCustomBouquet, offersDiyFlowers, coopRequested, isCoopMember, coopReviewedAt, customDeliveryScope, customDeliveryRegions, productDeliveryScope, productDeliveryRegions, User(email)")
     .order("submittedAt", { ascending: false })
   if (error) return NextResponse.json({ error: "판매처 목록을 불러오지 못했어요" }, { status: 500 })
   const sellers = (data ?? []).filter((seller) => {
@@ -56,6 +57,9 @@ export async function PATCH(req: Request) {
     await writeAdminAudit({ actorId: admin.id, action: "SELLER_DELIVERY_SCOPE_UPDATE", targetType: "SELLER", targetId: sellerId, before, after })
     return NextResponse.json({ ok: true, delivery: after })
   }
+  if (["COOP_CHECK_MEMBER", "COOP_CHECK_EDUCATION", "COOP_APPROVE", "COOP_REJECT"].includes(body.action)) {
+    return handleCoopAction(admin.id, String(body.action), String(sellerId ?? ""), String(reason ?? "").trim())
+  }
   if (!sellerId || !["UNDER_REVIEW", "APPROVED", "REJECTED", "SUSPENDED"].includes(status)) {
     return NextResponse.json({ error: "처리 상태를 확인해주세요" }, { status: 400 })
   }
@@ -90,4 +94,38 @@ export async function PATCH(req: Request) {
     await sendEmail({ to: sellerUser.email, subject: `[인생내꽃] 판매처 ${label} 안내`, html: `<h2>${seller.marketName} 판매처가 ${label} 처리되었습니다.</h2>${reason ? `<p><b>처리 사유</b> ${String(reason)}</p>` : ""}<p>자세한 내용은 판매자센터에서 확인해주세요.</p>` }).catch((error) => console.error("[mail] seller status", error))
   }
   return NextResponse.json({ ok: true, status })
+}
+
+// 조합원꽃집 심사 — 조합원여부확인 → 교육이력확인 → 승인/반려 순서로만 진행된다.
+async function handleCoopAction(adminId: string, action: string, sellerId: string, reason: string) {
+  const { data: seller } = await supabaseAdmin
+    .from("Seller")
+    .select("id, managerName, managerPhone, coopRequested, coopBirthDate, coopMemberCheck, coopEducationCheck, isCoopMember, coopReviewedAt, coopRejectReason")
+    .eq("id", sellerId)
+    .maybeSingle()
+  if (!seller) return NextResponse.json({ error: "판매처를 찾을 수 없어요" }, { status: 404 })
+  if (!seller.coopRequested) return NextResponse.json({ error: "조합원 신청을 하지 않은 판매처예요" }, { status: 400 })
+  const memberCheck = seller.coopMemberCheck as CoopMemberCheck | null
+  const now = new Date().toISOString()
+  let update: Record<string, unknown>
+
+  if (action === "COOP_CHECK_MEMBER") {
+    if (!seller.coopBirthDate) return NextResponse.json({ error: "조합원 확인용 생년월일이 없어요" }, { status: 400 })
+    // 다시 확인하면 이전 교육이력·승인 결과는 무효가 되고 ①→②→승인을 처음부터 다시 거친다.
+    update = { coopMemberCheck: checkCoopMember({ name: seller.managerName, birthDate: seller.coopBirthDate, phone: seller.managerPhone }), coopEducationCheck: null, isCoopMember: false, coopReviewedAt: null, coopRejectReason: null }
+  } else if (action === "COOP_CHECK_EDUCATION") {
+    if (memberCheck?.result !== "MEMBER" || !memberCheck.creditCustomerNo) return NextResponse.json({ error: "조합원여부확인을 먼저 통과해야 해요" }, { status: 400 })
+    update = { coopEducationCheck: fetchCoopEducation(memberCheck.creditCustomerNo) }
+  } else if (action === "COOP_APPROVE") {
+    if (memberCheck?.result !== "MEMBER" || !seller.coopEducationCheck) return NextResponse.json({ error: "조합원여부확인과 교육이력확인을 모두 마쳐야 승인할 수 있어요" }, { status: 400 })
+    update = { isCoopMember: true, coopReviewedAt: now, coopRejectReason: null }
+  } else {
+    if (!reason) return NextResponse.json({ error: "조합원꽃집 반려 사유를 입력해주세요" }, { status: 400 })
+    update = { isCoopMember: false, coopReviewedAt: now, coopRejectReason: reason }
+  }
+
+  const { error } = await supabaseAdmin.from("Seller").update({ ...update, updatedAt: now }).eq("id", sellerId)
+  if (error) return NextResponse.json({ error: "조합원 심사 결과를 저장하지 못했어요" }, { status: 500 })
+  await writeAdminAudit({ actorId: adminId, action: `SELLER_${action}`, targetType: "SELLER", targetId: sellerId, reason: reason || undefined, before: seller, after: update })
+  return NextResponse.json({ ok: true, coop: update })
 }

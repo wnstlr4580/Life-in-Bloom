@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs"
 import { nanoid } from "nanoid"
 import { supabaseAdmin } from "@/lib/supabase"
 import { adminEmails, sendEmail } from "@/lib/email"
+import { isValidBirthDate } from "@/lib/coopVerification"
 
 const SELLER_TYPES = new Set(["FLOWER_SHOP", "FARM", "WHOLESALE", "OTHER"])
 const TERMS_VERSION = "seller-2026-07-18"
@@ -60,6 +61,10 @@ export async function POST(req: NextRequest) {
   if (text(form, "termsAgreed") !== "true") {
     return NextResponse.json({ error: "판매자 약관 동의가 필요해요" }, { status: 400 })
   }
+  const coopRequested = text(form, "coopRequested") === "true"
+  const coopBirthDate = text(form, "coopBirthDate").replace(/\D/g, "")
+  if (coopRequested && !isValidBirthDate(coopBirthDate)) return NextResponse.json({ error: "조합원 확인용 생년월일 8자리를 확인해주세요" }, { status: 400 })
+  if (coopRequested && text(form, "coopConsent") !== "true") return NextResponse.json({ error: "조합원 확인을 위한 정보 조회 동의가 필요해요" }, { status: 400 })
 
   const [{ data: existingUser }, { data: existingSeller }] = await Promise.all([
     supabaseAdmin.from("User").select("id").eq("email", email).maybeSingle(),
@@ -121,10 +126,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "판매자 가입에 실패했어요. 입력 정보를 확인해주세요" }, { status: 500 })
   }
 
+  // register_seller RPC는 기존 가입 필드만 다루므로 조합원 신청 정보는 가입 직후 따로 저장한다.
+  if (coopRequested) {
+    const { error: coopError } = await supabaseAdmin.from("Seller").update({ coopRequested: true, coopBirthDate }).eq("id", sellerId)
+    if (coopError) console.error("[seller-signup] coop request save failed", coopError)
+  }
+
   await sendEmail({
     to: adminEmails(),
     subject: `[인생내꽃] 새 판매처 승인 요청: ${seller.marketName}`,
-    html: `<h2>새 판매처 가입 심사가 접수되었습니다.</h2><p><b>판매처</b> ${seller.marketName}</p><p><b>대표자</b> ${seller.representativeName}</p><p><b>지역</b> ${seller.roadAddress}</p><p>관리자센터에서 신청서와 사업자등록증을 확인해주세요.</p><p style="margin-top:24px"><a href="${req.nextUrl.origin}/admin/sellers?open=${sellerId}" style="display:inline-block;padding:12px 20px;border-radius:10px;background:#1c1917;color:#fff;text-decoration:none;font-weight:700">인생내꽃에서 심사하기</a></p>`,
+    html: `<h2>새 판매처 가입 심사가 접수되었습니다.</h2><p><b>판매처</b> ${seller.marketName}</p><p><b>대표자</b> ${seller.representativeName}</p><p><b>지역</b> ${seller.roadAddress}</p>${coopRequested ? "<p><b>조합원꽃집 신청</b> 조합원여부확인·교육이력확인이 필요합니다.</p>" : ""}<p>관리자센터에서 신청서와 사업자등록증을 확인해주세요.</p><p style="margin-top:24px"><a href="${req.nextUrl.origin}/admin/sellers?open=${sellerId}" style="display:inline-block;padding:12px 20px;border-radius:10px;background:#1c1917;color:#fff;text-decoration:none;font-weight:700">인생내꽃에서 심사하기</a></p>`,
   }).catch((error) => console.error("[mail] seller review request", error))
 
   return NextResponse.json({ ok: true }, { status: 201 })
