@@ -167,13 +167,13 @@ export function ShareCard({ ohaeng, pillars, birthYear, name }: Props) {
   )
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col items-center gap-4 max-w-full">
       {/* 카드 — 클릭하면 옆으로 뒤집혀 일주의 의미와 해석이 나온다 */}
       <button
         type="button"
         onClick={() => setFlipped((f) => !f)}
         aria-label={flipped ? "카드 그림으로 돌아가기" : "일주 의미와 해석 보기"}
-        className="block w-72 aspect-[9/16] [perspective:1200px] text-left"
+        className="block w-72 max-w-full aspect-[9/16] [perspective:1200px] text-left"
       >
         <div
           className={`relative w-full h-full transition-transform duration-700 [transform-style:preserve-3d] ${
@@ -211,7 +211,7 @@ export function ShareCard({ ohaeng, pillars, birthYear, name }: Props) {
       )}
 
       {/* 버튼 */}
-      <div className="flex gap-2 w-72">
+      <div className="flex gap-2 w-72 max-w-full">
         <Button onClick={downloadCard} disabled={saving} variant="outline" className="flex-1 gap-2 border-stone-200 text-stone-600">
           <Download size={15} />
           {saving ? "저장 중..." : "이미지 저장"}

@@ -322,7 +322,7 @@ function SajuPageContent() {
               />
             </div>
             {birthYear && (
-              <div className="shrink-0">
+              <div className="shrink-0 self-center lg:self-start max-w-full">
                 <p className="text-sm font-semibold text-stone-600 mb-3 text-center">📸 공유 카드</p>
                 <ShareCard
                   ohaeng={result.ohaeng}
