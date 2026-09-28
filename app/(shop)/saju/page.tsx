@@ -326,9 +326,8 @@ function SajuPageContent() {
                 <p className="text-sm font-semibold text-stone-600 mb-3 text-center">📸 공유 카드</p>
                 <ShareCard
                   ohaeng={result.ohaeng}
-                  profile={result.profile}
+                  pillars={result.pillars}
                   birthYear={birthYear}
-                  lackingOhaeng={result.lackingOhaeng}
                   name={userName}
                 />
               </div>
