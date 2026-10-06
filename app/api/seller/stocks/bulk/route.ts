@@ -4,6 +4,7 @@ import { nanoid } from "nanoid"
 import { requireSeller } from "@/lib/authorization"
 import { supabaseAdmin } from "@/lib/supabase"
 import { FLOWERS_BY_OHAENG } from "@/lib/flowers"
+import { normalizeBarcode } from "@/lib/barcode"
 
 const HEADER = ["꽃명", "색상", "등급", "판매단위", "재고수량", "단가", "꽃말", "판매여부"]
 const UNIT: Record<string, string> = { 송이: "STEM", 단: "BUNCH", 박스: "BOX", STEM: "STEM", BUNCH: "BUNCH", BOX: "BOX" }
@@ -36,6 +37,9 @@ export async function POST(req: Request) {
   if (!sheet) return NextResponse.json({ error: "등록할 시트를 찾을 수 없어요" }, { status: 400 })
   const headers = HEADER.map((_, index) => cellText(sheet.getCell(1, index + 1).value))
   if (HEADER.some((name, index) => headers[index] !== name)) return NextResponse.json({ error: `첫 행의 열 이름을 바꾸지 마세요: ${HEADER.join(", ")}` }, { status: 400 })
+  // 9번째 "바코드" 열은 선택 — 예전 양식(8열)도 그대로 받는다
+  const hasBarcode = cellText(sheet.getCell(1, HEADER.length + 1).value) === "바코드"
+  const seenBarcodes = new Set<string>()
   if (sheet.rowCount - 1 > 500) return NextResponse.json({ error: "한 번에 최대 500행까지 등록할 수 있어요" }, { status: 400 })
 
   const rows: Record<string, unknown>[] = []
@@ -56,11 +60,15 @@ export async function POST(req: Request) {
     const flowerCode = `${flowerName}-${color || "기본"}-${grade || "기본"}`.toLowerCase().replace(/\s+/g, "-").slice(0, 100)
     if (seen.has(flowerCode)) errors.push({ row: rowNo, message: "파일 안에 같은 꽃·색상·등급이 중복됐어요" })
     seen.add(flowerCode)
+    const { barcode, error: barcodeError } = normalizeBarcode(hasBarcode ? cellText(sheet.getCell(rowNo, HEADER.length + 1).value) : "")
+    if (barcodeError) errors.push({ row: rowNo, message: barcodeError })
+    if (barcode && seenBarcodes.has(barcode)) errors.push({ row: rowNo, message: "파일 안에 같은 바코드가 중복됐어요" })
+    if (barcode) seenBarcodes.add(barcode)
     const recommended = flowerMeanings.find((flower) => flower.name === flowerName || flowerName.includes(flower.name))
     rows.push({
       id: nanoid(), sellerId: actor.seller.id, flowerCode, flowerName,
       flowerMeaning: suppliedMeaning || recommended?.meaning || null, color: color || null, grade: grade || null,
-      unit: unit || "STEM", quantity, unitPrice, availableForCustom: true, availableForDiy: true,
+      unit: unit || "STEM", quantity, unitPrice, barcode, availableForCustom: true, availableForDiy: true,
       // 엑셀은 이미지 파일을 포함하지 않으므로 대표사진 등록 전까지 고객 화면에는 숨긴다.
       isVisible: false,
       isActive: !["아니오", "N", "NO", "FALSE", "0"].includes(activeText.toUpperCase()),
@@ -72,6 +80,10 @@ export async function POST(req: Request) {
   const codes = rows.map((row) => String(row.flowerCode))
   const { data: duplicates } = await supabaseAdmin.from("SellerStock").select("flowerCode").eq("sellerId", actor.seller.id).in("flowerCode", codes)
   if (duplicates?.length) return NextResponse.json({ error: `이미 등록된 재고가 ${duplicates.length}건 있어요. 기존 재고는 목록에서 수정해주세요`, duplicateCodes: duplicates.map((item) => item.flowerCode) }, { status: 409 })
+  if (seenBarcodes.size) {
+    const { data: usedBarcodes } = await supabaseAdmin.from("SellerStock").select("barcode").eq("sellerId", actor.seller.id).in("barcode", [...seenBarcodes])
+    if (usedBarcodes?.length) return NextResponse.json({ error: `이미 등록된 바코드가 ${usedBarcodes.length}건 있어요`, duplicateBarcodes: usedBarcodes.map((item) => item.barcode) }, { status: 409 })
+  }
   const { error } = await supabaseAdmin.from("SellerStock").insert(rows)
   if (error) return NextResponse.json({ error: "엑셀 재고를 등록하지 못했어요" }, { status: 500 })
   return NextResponse.json({ inserted: rows.length })

@@ -8,12 +8,12 @@ import { Label } from "@/components/ui/label"
 
 type Stock = {
   id: string; flowerName: string; flowerMeaning: string | null; color: string | null; grade: string | null
-  unit: string; quantity: number; unitPrice: number; imageUrl: string | null; isActive: boolean; isVisible: boolean
+  unit: string; quantity: number; unitPrice: number; imageUrl: string | null; isActive: boolean; isVisible: boolean; barcode: string | null
   availableForCustom: boolean; availableForDiy: boolean; displayStartAt: string | null; displayEndAt: string | null
 }
 type Suggestion = { name: string; meaning: string; color: string; ohaeng: string }
 const empty = {
-  flowerName: "", flowerMeaning: "", color: "", grade: "상", unit: "STEM", quantity: "0", unitPrice: "0",
+  flowerName: "", flowerMeaning: "", color: "", grade: "상", unit: "STEM", quantity: "0", unitPrice: "0", barcode: "",
   availableForCustom: true, availableForDiy: false, isVisible: true, displayStartAt: "", displayEndAt: "",
 }
 const UNIT: Record<string, string> = { STEM: "송이", BUNCH: "단", BOX: "박스" }
@@ -46,7 +46,7 @@ export default function SellerStocksPage() {
   const filtered = useMemo(() => stocks.filter((s) => {
     const q = filters.q.toLowerCase()
     const at = filters.date ? new Date(`${filters.date}T23:59:59`) : null
-    return (!q || [s.flowerName, s.color, s.grade].some((v) => v?.toLowerCase().includes(q))) &&
+    return (!q || [s.flowerName, s.color, s.grade, s.barcode].some((v) => v?.toLowerCase().includes(q))) &&
       (!filters.color || s.color === filters.color) && (!filters.grade || s.grade === filters.grade) &&
       (!filters.unit || s.unit === filters.unit) &&
       (!filters.usage || (filters.usage === "CUSTOM" ? s.availableForCustom : s.availableForDiy)) &&
@@ -109,6 +109,7 @@ export default function SellerStocksPage() {
         <Field label="노출 시작"><Input type="datetime-local" value={form.displayStartAt} onChange={(e) => setForm({ ...form, displayStartAt: e.target.value })} /></Field>
         <Field label="노출 종료"><Input type="datetime-local" value={form.displayEndAt} onChange={(e) => setForm({ ...form, displayEndAt: e.target.value })} /></Field>
         <Field label="대표사진"><Input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setImage(e.target.files?.[0] ?? null)} /></Field>
+        <Field label="상품 바코드 (선택)"><Input inputMode="numeric" value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} placeholder="리더기로 스캔하거나 숫자 입력" /></Field>
         <Field label="꽃말" className="sm:col-span-3"><Input value={form.flowerMeaning} maxLength={200} onChange={(e) => setForm({ ...form, flowerMeaning: e.target.value })} placeholder="꽃명을 입력하면 자체 DB에서 추천합니다." /></Field>
       </div>
       {form.flowerName && recommended.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{recommended.map((item) => <button key={`${item.ohaeng}-${item.name}`} onClick={() => setForm({ ...form, flowerName: item.name, flowerMeaning: item.meaning })} className="rounded-full border border-rose-200 px-3 py-1 text-xs text-rose-700">{item.name} · {item.meaning}</button>)}</div>}
@@ -118,7 +119,7 @@ export default function SellerStocksPage() {
 
     {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
     <section className="mt-6 rounded-2xl border border-stone-200 bg-white p-4">
-      <div className="flex items-center gap-2"><Search size={17} className="text-stone-400" /><Input value={filters.q} onChange={(e) => setFilters({ ...filters, q: e.target.value })} placeholder="꽃명, 색상, 등급 검색" className="border-0 shadow-none" /></div>
+      <div className="flex items-center gap-2"><Search size={17} className="text-stone-400" /><Input value={filters.q} onChange={(e) => setFilters({ ...filters, q: e.target.value })} placeholder="꽃명, 색상, 등급, 바코드 검색" className="border-0 shadow-none" /></div>
       <button type="button" onClick={() => setFiltersOpen((value) => !value)} className="mt-3 w-full rounded-lg border border-stone-200 py-2 text-xs font-semibold text-stone-600 sm:hidden">{filtersOpen ? "상세 필터 접기" : "상세 필터 펼치기"}</button>
       <div className={`mt-3 ${filtersOpen ? "grid" : "hidden"} gap-2 sm:grid sm:grid-cols-4 lg:grid-cols-8`}>
         <Select value={filters.color} onChange={(v) => setFilters({ ...filters, color: v })} label="모든 색상" values={colors} />
@@ -137,7 +138,7 @@ export default function SellerStocksPage() {
       {filtered.length === 0 ? <div className="py-24 text-center text-sm text-stone-400"><Flower2 className="mx-auto mb-3" />조건에 맞는 재고가 없어요.</div> : filtered.map((stock) => <div key={stock.id} className="flex flex-col gap-4 border-b p-4 last:border-0 lg:flex-row lg:items-center">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-stone-100">{stock.imageUrl ? <img src={stock.imageUrl} alt="" className="h-full w-full object-cover" /> : <ImageIcon size={20} className="text-stone-300" />}</div>
-          <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{stock.flowerName}</p><Badge active={stock.isActive} on={stock.isActive ? "사용 중" : "사용 중지"} /><Badge active={stock.isVisible} on={stock.isVisible ? "노출" : "숨김"} /></div><p className="mt-1 text-xs text-stone-400">{stock.color || "기본색"} · {stock.grade || "기본등급"} · {UNIT[stock.unit]}</p><div className="mt-2 flex gap-1">{stock.availableForCustom && <Tag>주문 제작</Tag>}{stock.availableForDiy && <Tag>고객 DIY</Tag>}</div></div>
+          <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{stock.flowerName}</p><Badge active={stock.isActive} on={stock.isActive ? "사용 중" : "사용 중지"} /><Badge active={stock.isVisible} on={stock.isVisible ? "노출" : "숨김"} /></div><p className="mt-1 text-xs text-stone-400">{stock.color || "기본색"} · {stock.grade || "기본등급"} · {UNIT[stock.unit]}{stock.barcode ? ` · 바코드 ${stock.barcode}` : ""}</p><div className="mt-2 flex gap-1">{stock.availableForCustom && <Tag>주문 제작</Tag>}{stock.availableForDiy && <Tag>고객 DIY</Tag>}</div></div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <select value={stock.grade ?? ""} onChange={(e) => update(stock.id, { grade: e.target.value })} className="h-10 rounded-md border px-2 text-xs"><option value="">기본등급</option><option>특</option><option>상</option><option>보통</option></select>
@@ -159,7 +160,7 @@ function Detail({ stock, close, update, replaceImage }: { stock: Stock; close: (
     if (newImage) await replaceImage(stock.id, newImage)
     await update(stock.id, {
       flowerName: draft.flowerName, flowerMeaning: draft.flowerMeaning, color: draft.color, grade: draft.grade,
-      unit: draft.unit, quantity: Number(draft.quantity), unitPrice: Number(draft.unitPrice),
+      unit: draft.unit, quantity: Number(draft.quantity), unitPrice: Number(draft.unitPrice), barcode: draft.barcode ?? "",
       displayStartAt: draft.displayStartAt || null, displayEndAt: draft.displayEndAt || null,
       availableForCustom: draft.availableForCustom, availableForDiy: draft.availableForDiy,
       isActive: draft.isActive, isVisible: draft.isVisible,
@@ -177,6 +178,7 @@ function Detail({ stock, close, update, replaceImage }: { stock: Stock; close: (
       <Field label="관리 단위"><select value={draft.unit} onChange={(e) => setDraft({ ...draft, unit: e.target.value })} className="h-10 w-full rounded-md border px-3 text-sm"><option value="STEM">송이</option><option value="BUNCH">단</option><option value="BOX">박스</option></select></Field>
       <Field label="재고"><Input type="number" min={0} value={draft.quantity} onChange={(e) => setDraft({ ...draft, quantity: Number(e.target.value) })} /></Field>
       <Field label="단가"><Input type="number" min={0} value={draft.unitPrice} onChange={(e) => setDraft({ ...draft, unitPrice: Number(e.target.value) })} /></Field>
+      <Field label="상품 바코드"><Input inputMode="numeric" value={draft.barcode ?? ""} onChange={(e) => setDraft({ ...draft, barcode: e.target.value })} placeholder="포토부스 '구매한 꽃' 스캔용" /></Field>
       <Field label="노출 시작"><Input type="datetime-local" value={draft.displayStartAt} onChange={(e) => setDraft({ ...draft, displayStartAt: e.target.value })} /></Field>
       <Field label="노출 종료"><Input type="datetime-local" value={draft.displayEndAt} onChange={(e) => setDraft({ ...draft, displayEndAt: e.target.value })} /></Field>
       <Field label="꽃말" className="sm:col-span-2"><textarea value={draft.flowerMeaning ?? ""} onChange={(e) => setDraft({ ...draft, flowerMeaning: e.target.value })} rows={3} className="w-full rounded-md border p-3 text-sm" /></Field>

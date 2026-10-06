@@ -3,11 +3,20 @@ import { nanoid } from "nanoid"
 import { requireSeller } from "@/lib/authorization"
 import { supabaseAdmin } from "@/lib/supabase"
 import { FLOWERS_BY_OHAENG } from "@/lib/flowers"
+import { normalizeBarcode } from "@/lib/barcode"
 
 const suggestions = Object.entries(FLOWERS_BY_OHAENG).flatMap(([ohaeng, flowers]) =>
   flowers.map((flower) => ({ name: flower.name, meaning: flower.meaning, color: flower.color, ohaeng }))
 )
 const UNITS = new Set(["STEM", "BUNCH", "BOX"])
+
+// 같은 판매처 안에서는 바코드가 겹치면 안 된다 (포토부스·매장 스캔이 하나의 재고를 찾아야 함)
+async function barcodeTaken(sellerId: string, barcode: string, exceptId?: string) {
+  let query = supabaseAdmin.from("SellerStock").select("id").eq("sellerId", sellerId).eq("barcode", barcode)
+  if (exceptId) query = query.neq("id", exceptId)
+  const { data } = await query.limit(1)
+  return Boolean(data?.length)
+}
 
 export async function GET() {
   const actor = await requireSeller(true)
@@ -36,6 +45,9 @@ export async function POST(req: Request) {
   if (!UNITS.has(unit) || !Number.isInteger(quantity) || quantity < 0 || !Number.isInteger(unitPrice) || unitPrice < 0) return NextResponse.json({ error: "등급, 단위, 재고 수량과 단가를 확인해주세요" }, { status: 400 })
   if (flowerMeaning.length > 200) return NextResponse.json({ error: "꽃말은 200자 이하로 입력해주세요" }, { status: 400 })
   if (displayStartAt && displayEndAt && new Date(displayStartAt) >= new Date(displayEndAt)) return NextResponse.json({ error: "노출 종료일은 시작일보다 뒤여야 해요" }, { status: 400 })
+  const { barcode, error: barcodeError } = normalizeBarcode(form.get("barcode"))
+  if (barcodeError) return NextResponse.json({ error: barcodeError }, { status: 400 })
+  if (barcode && await barcodeTaken(actor.seller.id, barcode)) return NextResponse.json({ error: "이미 다른 재고에 등록된 바코드예요" }, { status: 409 })
   const availableForCustom = form.get("availableForCustom") === "true"
   const availableForDiy = form.get("availableForDiy") === "true"
   if (!availableForCustom && !availableForDiy) return NextResponse.json({ error: "사용처를 한 개 이상 선택해주세요" }, { status: 400 })
@@ -60,7 +72,7 @@ export async function POST(req: Request) {
 
   const { data, error } = await supabaseAdmin.from("SellerStock").insert({
     id: nanoid(), sellerId: actor.seller.id, flowerCode, flowerName, flowerMeaning: flowerMeaning || null,
-    color: color || null, grade: grade || null, unit, quantity, unitPrice, imageUrl,
+    color: color || null, grade: grade || null, unit, quantity, unitPrice, imageUrl, barcode,
     availableForCustom, availableForDiy, isVisible,
     displayStartAt: displayStartAt ? new Date(displayStartAt).toISOString() : null,
     displayEndAt: displayEndAt ? new Date(displayEndAt).toISOString() : null, isActive: true,
@@ -97,6 +109,12 @@ export async function PATCH(req: Request) {
     update.flowerMeaning = flowerMeaning || null
   }
   if (body.color !== undefined) update.color = String(body.color).trim() || null
+  if (body.barcode !== undefined) {
+    const { barcode, error } = normalizeBarcode(body.barcode)
+    if (error) return NextResponse.json({ error }, { status: 400 })
+    if (barcode && await barcodeTaken(actor.seller.id, barcode, body.id)) return NextResponse.json({ error: "이미 다른 재고에 등록된 바코드예요" }, { status: 409 })
+    update.barcode = barcode
+  }
   if (body.unit !== undefined) {
     if (!UNITS.has(String(body.unit))) return NextResponse.json({ error: "판매 단위를 확인해주세요" }, { status: 400 })
     update.unit = String(body.unit)

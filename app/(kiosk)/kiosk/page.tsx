@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useState } from "react"
+import { BarcodeScan } from "@/components/kiosk/BarcodeScan"
 import { BirthDateQuickForm } from "@/components/kiosk/BirthDateQuickForm"
 import { CameraCapture } from "@/components/kiosk/CameraCapture"
 import { ResultShare } from "@/components/kiosk/ResultShare"
@@ -55,7 +56,7 @@ function headlineFor(mode: KioskMode, preset: KioskFlowerPreset, birthDate: stri
 
 // 설계 문서 참고 — 단계별로 별도 URL을 두지 않고
 // 하나의 페이지 안에서 step 상태로 전체 플로우를 관리한다.
-type Step = "intro" | "birth" | "capture" | "processing" | "result" | "error"
+type Step = "intro" | "birth" | "barcode" | "capture" | "processing" | "result" | "error"
 
 export default function KioskPage() {
   const [step, setStep] = useState<Step>("intro")
@@ -183,13 +184,13 @@ export default function KioskPage() {
               <span className="text-4xl" aria-hidden>🗓️</span>
               <span>이달의 꽃으로 찍기</span>
             </button>
-            {/* 구매한 꽃 — 상품 바코드 스캔. 판매처 재고 등록에 바코드값이 붙은 뒤 활성화 */}
+            {/* 구매한 꽃 — 판매처 재고에 등록된 상품 바코드 스캔 */}
             <button
-              disabled
-              className={`${modeButton} bg-[#edf5e7] border-[#dcebd2] text-[#829276] cursor-not-allowed shadow-none`}
+              onClick={() => { setMode("purchase"); setStep("barcode") }}
+              className={`${modeButton} bg-[#7cc49a] hover:bg-[#6bb98b] border-emerald-200 text-white`}
             >
-              <span className="text-4xl opacity-70" aria-hidden>🛒</span>
-              <span>구매한 꽃으로 찍기<small className="block mt-1 font-normal">준비 중</small></span>
+              <span className="text-4xl" aria-hidden>🛒</span>
+              <span>구매한 꽃으로 찍기</span>
             </button>
           </div>
         </div>
@@ -198,6 +199,12 @@ export default function KioskPage() {
       {step === "birth" && (
         <div className="w-full max-w-sm">
           <BirthDateQuickForm onSubmit={handleBirthSubmit} />
+        </div>
+      )}
+
+      {step === "barcode" && (
+        <div className="w-full max-w-sm">
+          <BarcodeScan showSamples={showTestCapture} onFound={(found) => startWithFlower("purchase", found)} onBack={reset} />
         </div>
       )}
 
