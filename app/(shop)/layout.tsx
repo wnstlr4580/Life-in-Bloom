@@ -66,6 +66,15 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
 
   const canUseCart = !session?.user || session.user.role === "CUSTOMER"
 
+  // 모바일: 현재 페이지가 속한 섹션의 하위 메뉴를 기본으로 보여주고, 탭으로 다른 섹션을 펼친다
+  const [openSection, setOpenSection] = useState<string | null>(null)
+  const currentSection = NAV.find(({ href, children }) =>
+    pathname.startsWith(href.split("?")[0]) || children?.some((child) => pathname === child.href.split("?")[0]),
+  )?.label ?? ""
+  const mobileSection = openSection ?? currentSection
+  const mobileChildren = NAV.find(({ label }) => label === mobileSection)?.children
+  const isChildActive = (href: string) => !href.includes("?") && pathname === href
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     const q = query.trim()
@@ -95,7 +104,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
                 <div key={label} className="relative group">
                   <Link
                     href={href}
-                    className={`inline-block px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`inline-block whitespace-nowrap px-3 lg:px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       active
                         ? "bg-rose-50 text-rose-500"
                         : "text-stone-600 hover:text-stone-900 hover:bg-stone-50"
@@ -126,14 +135,14 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
           {/* 우측 액션 */}
           <div className="flex items-center gap-2">
             {/* 상품 검색 */}
-            <form onSubmit={handleSearch} className="hidden sm:flex items-center gap-1.5 bg-stone-50 border border-stone-200 rounded-full px-3 py-1.5 focus-within:border-rose-300 transition-colors">
+            <form onSubmit={handleSearch} className="hidden lg:flex items-center gap-1.5 bg-stone-50 border border-stone-200 rounded-full px-3 py-1.5 focus-within:border-rose-300 transition-colors">
               <Search size={14} className="text-stone-400 shrink-0" />
               <input
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="꽃 검색"
-                className="w-24 md:w-32 bg-transparent text-sm text-stone-700 placeholder:text-stone-400 focus:outline-none"
+                className="w-24 lg:w-32 bg-transparent text-sm text-stone-700 placeholder:text-stone-400 focus:outline-none"
               />
             </form>
 
@@ -198,25 +207,41 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
           </div>
         </div>
 
-        {/* 모바일 네비 */}
+        {/* 모바일 네비 — 탭을 누르면 아래 줄에 하위 메뉴가 펼쳐진다 */}
         <div className="md:hidden border-t border-stone-50 flex">
-          {NAV.map(({ href, label, children }) => {
-            const active = pathname === href
-              || (href !== "/" && pathname.startsWith(href.split("?")[0]))
-              || children?.some((child) => pathname === child.href.split("?")[0])
+          {NAV.map(({ label, children }) => {
+            const active = mobileSection === label
             return (
-              <Link
+              <button
                 key={label}
-                href={href}
+                type="button"
+                onClick={() => setOpenSection(active ? "" : label)}
                 className={`flex-1 text-center py-2.5 text-xs font-medium transition-colors ${
                   active ? "text-rose-500 border-b-2 border-rose-400" : "text-stone-500"
                 }`}
+                aria-expanded={active && Boolean(children)}
               >
                 {label}
-              </Link>
+              </button>
             )
           })}
         </div>
+        {mobileChildren && (
+          <div className="md:hidden flex gap-1.5 overflow-x-auto border-t border-stone-50 bg-white px-3 py-2">
+            {mobileChildren.map((child) => (
+              <Link
+                key={child.label}
+                href={child.href}
+                onClick={() => setOpenSection(null)}
+                className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs ${
+                  isChildActive(child.href) ? "border-rose-300 bg-rose-50 font-semibold text-rose-600" : "border-stone-200 text-stone-600"
+                }`}
+              >
+                {child.label}
+              </Link>
+            ))}
+          </div>
+        )}
       </header>
 
       <main className="flex-1">{children}</main>

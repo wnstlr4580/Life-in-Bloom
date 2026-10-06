@@ -28,7 +28,7 @@ export default function AdminDashboard() {
     <p className="text-sm font-semibold text-rose-500">ADMIN CENTER</p>
     <h1 className="mt-1 text-2xl font-bold">운영 대시보드</h1>
     <p className="mt-2 text-sm text-stone-500">판매 업무가 아닌 플랫폼 전체 현황과 처리할 운영 이슈를 확인합니다.</p>
-    <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">
       {cards.map(([title, value, detail, Icon, href]) => <Link href={href} key={title} className="rounded-2xl border border-stone-200 bg-white p-5 transition hover:border-rose-200 hover:shadow-sm">
         <Icon size={21} className="text-rose-500" /><p className="mt-4 text-sm text-stone-500">{title}</p><p className="mt-1 text-2xl font-bold">{value}</p><p className="mt-2 text-xs text-stone-400">{detail}</p>
       </Link>)}

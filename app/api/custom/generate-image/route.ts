@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 
 export async function POST(req: NextRequest) {
-  const { prompt, negative } = await req.json()
+  const { prompt } = await req.json()
 
   if (!prompt) {
     return NextResponse.json({ error: "프롬프트가 없습니다." }, { status: 400 })
@@ -16,7 +16,8 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const fullPrompt = (negative ? `${prompt}\nAvoid: ${negative}` : prompt).slice(0, 2048)
+  // FLUX schnell은 부정 프롬프트를 지원하지 않는다 — 금지어를 본문에 붙이면 오히려 그 요소가 그려진다
+  const fullPrompt = String(prompt).slice(0, 2048)
   const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/black-forest-labs/flux-1-schnell`
 
   const controller = new AbortController()

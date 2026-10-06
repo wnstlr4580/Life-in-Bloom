@@ -26,7 +26,7 @@ export default function CustomBouquetsPage() {
   return <div className="max-w-6xl px-6 py-10">
     <p className="text-sm font-semibold text-emerald-700">판매자센터</p><h1 className="mt-1 text-2xl font-bold">나만의 꽃다발 관리</h1>
     <p className="mt-2 text-sm text-stone-500">고객이 직접 구성한 꽃다발 주문과 제작 가능한 조합 재고를 별도로 관리합니다.</p>
-    <div className="mt-7 grid sm:grid-cols-3 gap-4">
+    <div className="mt-7 grid grid-cols-3 gap-2 sm:gap-4">
       <Metric icon={<ClipboardList />} label="커스텀 주문 항목" value={orders.length} />
       <Metric icon={<Boxes />} label="생성된 조합 상품" value={products.length} />
       <Metric icon={<PackageCheck />} label="제작 가능 재고" value={products.filter((p) => p.stock > 0).length} />

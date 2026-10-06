@@ -7,7 +7,7 @@ import { useSession } from "next-auth/react"
 import { nanoid } from "nanoid"
 import { Check, ExternalLink, LocateFixed, MapPin, Minus, Plus, RefreshCw, RotateCcw, Search, Scissors, Sparkles, Store } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { COLOR_FILTER, COLOR_LABEL, FLOWERS, SIZES, WRAPPING } from "@/lib/customFlowers"
+import { buildBouquetPrompt, COLOR_FILTER, COLOR_LABEL, FLOWERS, SIZES, WRAPPING } from "@/lib/customFlowers"
 import { birthFlowerSelection, flowerBirthDates, flowerMeaning, flowerMonths, flowerOccasions, isMonthFlower, isOccasionFlower, OCCASIONS } from "@/lib/diyFlowerTags"
 import { useCartStore } from "@/store/cartStore"
 import { SellerMap } from "@/components/shop/SellerMap"
@@ -266,30 +266,65 @@ export default function DiyPage() {
     }
   }, [postcodeOpen])
 
+  const resetResults = () => {
+    setMatches(null)
+    setGeneratedImageUrl(null)
+    setGenerateError("")
+  }
+
+  // 꽃을 탭하면 크기에 맞춰 송이를 자동 배분한다 — 첫 꽃이 메인, 나머지는 균등
+  const distribute = (ids: string[], target: typeof SIZES[number]) => {
+    const result: Record<string, number> = {}
+    if (ids.length === 1) result[ids[0]] = target.stems
+    if (ids.length < 2) return result
+    result[ids[0]] = target.mainStems
+    const rest = target.stems - target.mainStems
+    const others = ids.slice(1)
+    others.forEach((id, index) => { result[id] = Math.floor(rest / others.length) + (index < rest % others.length ? 1 : 0) })
+    return result
+  }
+
+  const toggleFlower = (id: string) => {
+    const ids = selected.map(([selectedId]) => selectedId)
+    if (ids.includes(id)) {
+      setSelectionMessage("")
+      setQuantities(distribute(ids.filter((selectedId) => selectedId !== id), size))
+    } else if (ids.length >= size.maxVarieties) {
+      setSelectionMessage(`${size.name} 크기는 꽃·소재를 최대 ${size.maxVarieties}종까지 고를 수 있어요.`)
+      return
+    } else {
+      setSelectionMessage("")
+      setQuantities(distribute([...ids, id], size))
+    }
+    resetResults()
+  }
+
+  // 송이가 꽉 찼을 때 +를 누르면 가장 많은 다른 꽃에서 한 송이를 가져온다
+  const donorFor = (id: string) => selected
+    .filter(([otherId, quantity]) => otherId !== id && quantity > 1)
+    .sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
+
   const updateQuantity = (id: string, delta: number) => {
     const addingNewVariety = delta > 0 && (quantities[id] ?? 0) === 0
     if (addingNewVariety && selected.length >= size.maxVarieties) {
       setSelectionMessage(`${size.name} 크기는 꽃·소재를 최대 ${size.maxVarieties}종까지 고를 수 있어요.`)
       return
     }
+    const donor = delta > 0 && selectedCount >= size.stems ? donorFor(id) : null
+    if (delta > 0 && selectedCount >= size.stems && !donor) return
     setSelectionMessage("")
     setQuantities((current) => {
-      const next = Math.max(0, Math.min(size.stems, (current[id] ?? 0) + delta))
-      const currentTotal = Object.values(current).reduce((sum, value) => sum + value, 0)
-      if (delta > 0 && currentTotal >= size.stems) return current
-      return { ...current, [id]: next }
+      const next = { ...current, [id]: Math.max(0, Math.min(size.stems, (current[id] ?? 0) + delta)) }
+      if (donor) next[donor] = (current[donor] ?? 0) - 1
+      return next
     })
-    setMatches(null)
-    setGeneratedImageUrl(null)
-    setGenerateError("")
+    resetResults()
   }
 
   const changeSize = (nextSize: typeof SIZES[number]) => {
     setSize(nextSize)
-    setQuantities({})
-    setMatches(null)
-    setGeneratedImageUrl(null)
-    setGenerateError("")
+    setQuantities(distribute(selected.map(([id]) => id).slice(0, nextSize.maxVarieties), nextSize))
+    resetResults()
   }
 
   const locateCurrentPosition = useCallback(async () => {
@@ -363,26 +398,13 @@ export default function DiyPage() {
     if (selected.length === 0) return
     setGenerating(true)
     setGenerateError("")
-    const flowerLines = selected.map(([id, quantity]) => {
-      const flower = FLOWERS.find((item) => item.id === id)!
-      return `EXACTLY ${quantity} visible, individually countable ${flower.engDesc} flower heads (color: ${flower.color}; no buds hidden behind other flowers)`
-    })
-    const exactStemTotal = selected.reduce((sum, [, quantity]) => sum + quantity, 0)
-    const prompt = [
-      "Premium Korean flower shop catalog photograph of one finished hand-tied bouquet,",
-      "EXACT FLOWERS ONLY - strictly no other flowers:",
-      flowerLines.join(", "),
-      `MANDATORY COUNT: the finished bouquet contains exactly ${exactStemTotal} visible flower heads total. Every head must be fully visible and countable. Do not add buds, filler flowers, duplicate heads, or partially hidden flowers. Verify the count before rendering.`,
-      wrapping.engStyle,
-      `${size.engVolume}. Upright front-facing three-quarter view, bouquet centered vertically, flower heads forming a natural rounded dome, stems gathered tightly into one handle, wrapping paper forming a neat florist cone, ribbon tied cleanly around the lower stems. Soft warm beige or pale gray seamless studio background, gentle diffused daylight, subtle grounded shadow, realistic petal texture, elegant restrained Korean florist styling, premium ecommerce product photography, sharp focus, photorealistic.`,
-    ].join(" ")
-    const negative = "incorrect flower count, extra flower heads, extra buds, hidden flower heads, filler flowers, top-down, flat lay, overhead view, flowers spread radially, wreath shape, horizontal bouquet, floating bouquet, loose scattered stems, basket, box, vase, cartoon, illustration, painting, text, watermark, people, hands, blurry, any flowers not listed, extra unlisted blooms, wrong colors, oversaturated, plastic flowers, malformed stems, low quality"
+    const prompt = buildBouquetPrompt(size, selected.map(([id, quantity]) => ({ flower: FLOWERS.find((item) => item.id === id)!, count: quantity })), wrapping)
     const key = `${size.id}|${selected.map(([id, quantity]) => `${id}:${quantity}`).join(",")}|${wrappingId}`
     try {
       const response = await fetch("/api/custom/generate-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, negative, seed: hashCode(key) + generateCount }),
+        body: JSON.stringify({ prompt, seed: hashCode(key) + generateCount }),
       })
       if (!response.ok) {
         const data = await response.json().catch(() => ({}))
@@ -563,6 +585,12 @@ export default function DiyPage() {
                   {selectedCount} / 최대 {size.stems}송이{selectedCount === size.stems ? " · 선택 완료" : ""}
                 </strong>
               </div>
+              <p className="mt-2 text-xs text-stone-500">꽃 사진을 누르면 크기에 맞게 송이 수가 자동으로 나눠져요. +/−로 비율을 조정하세요.</p>
+              {selected.length > 0 && selectedCount < size.stems && (
+                <button onClick={() => { setQuantities(distribute(selected.map(([id]) => id), size)); resetResults() }} className="mt-2 rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700">
+                  남은 {size.stems - selectedCount}송이 자동으로 채우기
+                </button>
+              )}
               {selectionMessage && <p className="mt-2 text-xs font-medium text-amber-700">{selectionMessage}</p>}
               {selected.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{selected.map(([id, quantity]) => <span key={id} className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">{FLOWERS.find((flower) => flower.id === id)?.name ?? id} × {quantity}송이</span>)}<span className="rounded-full border border-violet-100 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700">포장 · {wrapping.name}</span></div>}
               <div className="mt-4 flex gap-1 overflow-x-auto rounded-xl bg-stone-100 p-1">
@@ -650,14 +678,16 @@ export default function DiyPage() {
                   const quantity = quantities[flower.id] ?? 0
                   return (
                     <div key={flower.id} className={`overflow-hidden rounded-2xl border ${quantity ? "border-emerald-400 ring-1 ring-emerald-100" : "border-stone-100"}`}>
-                      <div className="relative aspect-[4/3] bg-stone-100">
+                      <button type="button" onClick={() => toggleFlower(flower.id)} aria-pressed={quantity > 0} aria-label={`${flower.name} ${quantity ? "선택 해제" : "선택"}`} className="relative block aspect-[4/3] w-full bg-stone-100">
                         <Image src={flower.img} alt={flower.name} fill sizes="(max-width: 640px) 45vw, 220px" className="object-cover" />
-                        {quantity > 0 && (
+                        {quantity > 0 ? (
                           <span className="absolute right-2 top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-emerald-600 px-1.5 text-xs font-bold text-white">
                             {quantity}
                           </span>
+                        ) : (
+                          <span className="absolute bottom-2 right-2 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-stone-600">+ 담기</span>
                         )}
-                      </div>
+                      </button>
                       <div className="p-3">
                         <p className="truncate text-sm font-bold text-stone-800">{flower.name}</p>
                         {flowerMeaning(flower.name, flower.group) && <p className="mt-0.5 truncate text-[11px] text-rose-500">{flowerMeaning(flower.name, flower.group)}</p>}
@@ -676,7 +706,7 @@ export default function DiyPage() {
                             <Minus size={14} />
                           </button>
                           <span className="text-sm font-bold">{quantity}송이</span>
-                          <button aria-label={`${flower.name} 한 송이 추가`} onClick={() => updateQuantity(flower.id, 1)} className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-white disabled:opacity-30" disabled={selectedCount >= size.stems}>
+                          <button aria-label={`${flower.name} 한 송이 추가`} onClick={() => updateQuantity(flower.id, 1)} className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-white disabled:opacity-30" disabled={selectedCount >= size.stems && !donorFor(flower.id)}>
                             <Plus size={14} />
                           </button>
                         </div>
@@ -826,8 +856,11 @@ export default function DiyPage() {
             <div className="rounded-2xl border border-stone-100 bg-white lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
               <div className="relative flex min-h-64 flex-col items-center justify-center bg-gradient-to-br from-rose-50 to-pink-50">
                 {generatedImageUrl && !generating ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={generatedImageUrl} alt="AI로 생성한 DIY 꽃다발 예상 이미지" className="aspect-square w-full object-cover" />
+                  <div className="w-full">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={generatedImageUrl} alt="AI로 생성한 DIY 꽃다발 예상 이미지" className="aspect-square w-full object-cover" />
+                    <p className="px-4 py-2 text-center text-[10px] leading-4 text-stone-400">AI 예상 이미지예요. 꽃 종류·색감·크기 느낌을 참고해 주세요. 송이 수는 실제와 다를 수 있어요.</p>
+                  </div>
                 ) : generating ? (
                   <div className="p-6 text-center">
                     <div className="text-4xl animate-pulse">💐</div>

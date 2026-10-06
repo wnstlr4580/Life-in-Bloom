@@ -27,6 +27,7 @@ export default function SellerStocksPage() {
   const [detail, setDetail] = useState<Stock | null>(null)
   const [error, setError] = useState("")
   const [excelOpen, setExcelOpen] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [excelFile, setExcelFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [excelResult, setExcelResult] = useState("")
@@ -118,7 +119,8 @@ export default function SellerStocksPage() {
     {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
     <section className="mt-6 rounded-2xl border border-stone-200 bg-white p-4">
       <div className="flex items-center gap-2"><Search size={17} className="text-stone-400" /><Input value={filters.q} onChange={(e) => setFilters({ ...filters, q: e.target.value })} placeholder="꽃명, 색상, 등급 검색" className="border-0 shadow-none" /></div>
-      <div className="mt-3 grid gap-2 sm:grid-cols-4 lg:grid-cols-8">
+      <button type="button" onClick={() => setFiltersOpen((value) => !value)} className="mt-3 w-full rounded-lg border border-stone-200 py-2 text-xs font-semibold text-stone-600 sm:hidden">{filtersOpen ? "상세 필터 접기" : "상세 필터 펼치기"}</button>
+      <div className={`mt-3 ${filtersOpen ? "grid" : "hidden"} gap-2 sm:grid sm:grid-cols-4 lg:grid-cols-8`}>
         <Select value={filters.color} onChange={(v) => setFilters({ ...filters, color: v })} label="모든 색상" values={colors} />
         <Select value={filters.grade} onChange={(v) => setFilters({ ...filters, grade: v })} label="모든 등급" values={grades} />
         <select value={filters.unit} onChange={(e) => setFilters({ ...filters, unit: e.target.value })} className="h-9 rounded-lg border px-2 text-xs"><option value="">모든 단위</option><option value="STEM">송이</option><option value="BUNCH">단</option><option value="BOX">박스</option></select>

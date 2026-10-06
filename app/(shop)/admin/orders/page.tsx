@@ -5,6 +5,9 @@ import { useEffect, useMemo, useState } from "react"
 type Order = { id: string; status: string; totalAmount: number; createdAt: string; deliveryType: string; items: Array<{ id: string; quantity: number; price: number; itemType: string; fulfillmentStatus: string; seller: { marketName: string } | null; product: { name: string } | null }> }
 const STATUS: Record<string, string> = { PENDING: "결제 대기", PAID: "결제 완료", PREPARING: "준비 중", SHIPPED: "배송 중", DELIVERED: "배송 완료", CANCELLED: "취소" }
 
+const ITEM_TYPE: Record<string, string> = { FINISHED: "완제품", CUSTOM_BOUQUET: "나만의 꽃다발", DIY_FLOWER: "개별 꽃·DIY" }
+const FULFILLMENT: Record<string, string> = { PURCHASE_CONFIRMED: "구매 확정" }
+
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [filter, setFilter] = useState("ALL")
@@ -19,7 +22,7 @@ export default function AdminOrdersPage() {
     {!loading && !error && visible.length === 0 && <State text="조건에 맞는 주문이 없습니다." />}
     <div className="mt-5 space-y-3">{visible.map((o) => <div key={o.id} className="rounded-2xl border bg-white p-5">
       <div className="flex justify-between gap-3"><div><p className="font-mono text-xs text-stone-400">{o.id}</p><p className="mt-1 text-xs text-stone-400">{new Date(o.createdAt).toLocaleString("ko-KR")}</p></div><div className="text-right"><span className="rounded-full bg-stone-100 px-2 py-1 text-xs">{STATUS[o.status] ?? o.status}</span><p className="mt-2 font-bold">{o.totalAmount.toLocaleString()}원</p></div></div>
-      <div className="mt-4 grid gap-2">{o.items.map((item) => <div key={item.id} className="flex justify-between rounded-xl bg-stone-50 p-3 text-sm"><span>{item.product?.name} × {item.quantity}<small className="ml-2 text-stone-400">{item.seller?.marketName ?? "판매처 미지정"}</small></span><span className="text-xs text-stone-500">{item.itemType} · {item.fulfillmentStatus}</span></div>)}</div>
+      <div className="mt-4 grid gap-2">{o.items.map((item) => <div key={item.id} className="flex justify-between gap-3 rounded-xl bg-stone-50 p-3 text-sm"><span>{item.product?.name} × {item.quantity}<small className="ml-2 text-stone-400">{item.seller?.marketName ?? "판매처 미지정"}</small></span><span className="shrink-0 text-xs text-stone-500">{ITEM_TYPE[item.itemType] ?? item.itemType} · {FULFILLMENT[item.fulfillmentStatus] ?? STATUS[item.fulfillmentStatus] ?? item.fulfillmentStatus}</span></div>)}</div>
     </div>)}</div>
   </div>
 }

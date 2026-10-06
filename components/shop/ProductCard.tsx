@@ -14,7 +14,7 @@ interface Props {
   stock?: number
   ratingAvg?: number | null
   reviewCount?: number
-  seller?: { marketName: string; productDeliveryScope?: string; productDeliveryRegions?: string[]; isCoopMember?: boolean } | { marketName: string; productDeliveryScope?: string; productDeliveryRegions?: string[]; isCoopMember?: boolean }[] | null
+  seller?: { marketName: string; productDeliveryScope?: string; productDeliveryRegions?: string[]; isCoopMember?: boolean; sellerType?: string } | { marketName: string; productDeliveryScope?: string; productDeliveryRegions?: string[]; isCoopMember?: boolean; sellerType?: string }[] | null
   purchaseType?: string
   externalUrl?: string | null
   partnerName?: string | null
@@ -84,7 +84,7 @@ export function ProductCard({ id, name, price, images, flowerMeaning, category, 
                 {nonghyupSeller ? <NonghyupMark compact/> : external ? <BadgeCheck size={12} /> : <Store size={11} />}
               </span>
               <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-stone-700">{marketName}</span>
-              {nonghyupSeller ? <span className="shrink-0 text-[9px] font-bold text-[#007a4d]">{coopSeller ? "조합원꽃집" : "농협"}</span> : external && <span className="shrink-0 text-[9px] font-bold text-amber-700">공식 제휴</span>}
+              {nonghyupSeller ? <span className="shrink-0 text-[9px] font-bold text-[#007a4d]">{coopSeller ? (sellerInfo?.sellerType === "FARM" ? "조합원농가" : "조합원꽃집") : "농협"}</span> : external && <span className="shrink-0 text-[9px] font-bold text-amber-700">공식 제휴</span>}
               {external && <ExternalLink size={11} className="shrink-0 text-amber-600" />}
             </div>
           )}

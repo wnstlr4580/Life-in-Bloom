@@ -8,7 +8,7 @@ import { ShoppingCart, Sparkles, RefreshCw, Star, RotateCcw, Download, Share2 } 
 import { useRouter, useSearchParams } from "next/navigation"
 import { nanoid } from "nanoid"
 import Image from "next/image"
-import { SIZES, FLOWERS, WRAPPING, COLOR_FILTER, COLOR_LABEL } from "@/lib/customFlowers"
+import { SIZES, FLOWERS, WRAPPING, COLOR_FILTER, COLOR_LABEL, buildBouquetPrompt } from "@/lib/customFlowers"
 
 interface Composition {
   sizeId: string
@@ -363,21 +363,7 @@ function CustomContent() {
       .filter((id) => (stemDist[id] ?? 0) > 0)
       .map((id) => ({ flower: FLOWERS.find((f) => f.id === id)!, count: stemDist[id] }))
 
-    const accentLines = additionalEntries.map(({ flower, count }) =>
-      `EXACTLY ${count} visible and individually countable ${flower.engDesc} flower heads (color: ${flower.color})`
-    )
-
-    const prompt = [
-      `Professional florist bouquet photograph, pure white seamless background,`,
-      `EXACT FLOWERS ONLY - strictly no other flowers:`,
-      `MAIN: ${mainCount}x ${mainFlower.engDesc} (color: ${mainFlower.color}) positioned at center,`,
-      accentLines.length > 0 ? `ACCENT: ${accentLines.join(", ")},` : "",
-      `MANDATORY COUNT: exactly ${size.stems} visible flower heads total, matching each requested variety count. No added buds, filler flowers, duplicated heads, or hidden heads. Verify every flower head is countable before rendering.`,
-      `${wrapping.engStyle},`,
-      `top-down flat lay, studio lighting, sharp focus, photorealistic, 8k`,
-    ].filter(Boolean).join(" ")
-    const negative = "incorrect flower count, extra flower heads, hidden blooms, extra buds, filler flowers, cartoon, illustration, painting, text, watermark, people, hands, vase, blurry, any flowers not listed, extra unlisted blooms, wrong colors, oversaturated, low quality"
-
+    const prompt = buildBouquetPrompt(size, [{ flower: mainFlower, count: mainCount }, ...additionalEntries], wrapping)
     const compositionKey = [size.id, mainFlowerId, [...additionalFlowerIds].sort().join(","), wrapping.id].join("|")
     const seed = hashCode(compositionKey) + generateCount
     setGenerateCount((c) => c + 1)
@@ -386,7 +372,7 @@ function CustomContent() {
       const res = await fetch("/api/custom/generate-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, negative, seed }),
+        body: JSON.stringify({ prompt, seed }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
@@ -754,9 +740,12 @@ function CustomContent() {
             {/* 미리보기 */}
             <div className="bg-gradient-to-br from-rose-50 to-pink-50 min-h-56 flex flex-col items-center justify-center relative">
               {generatedImageUrl && !generating ? (
-                <div className="w-full aspect-square">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={generatedImageUrl} alt="생성된 꽃다발" className="w-full h-full object-cover" />
+                <div className="w-full">
+                  <div className="w-full aspect-square">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={generatedImageUrl} alt="생성된 꽃다발" className="w-full h-full object-cover" />
+                  </div>
+                  <p className="px-4 py-2 text-center text-[10px] leading-4 text-stone-400">AI 예상 이미지예요. 꽃 종류·색감·크기 느낌을 참고해 주세요. 송이 수는 실제와 다를 수 있어요.</p>
                 </div>
               ) : generateError ? (
                 <div className="p-6 text-center space-y-2">

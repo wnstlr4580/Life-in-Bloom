@@ -162,3 +162,20 @@ export const COLOR_LABEL: Record<string, string> = {
   전체: "전체", red: "레드", pink: "핑크", white: "화이트",
   yellow: "옐로우", purple: "퍼플", orange: "오렌지", blue: "블루", green: "그린",
 }
+
+// AI 꽃다발 이미지 프롬프트. FLUX schnell은 프롬프트 앞부분(약 256토큰)만 반영하므로
+// 크기·포장을 먼저 두고 꽃 목록은 짧게 쓴다. 부정 프롬프트를 지원하지 않아 금지어는 넣지 않는다.
+export function buildBouquetPrompt(
+  size: (typeof SIZES)[number],
+  items: { flower: (typeof FLOWERS)[number]; count: number }[],
+  wrapping: (typeof WRAPPING)[number],
+) {
+  const total = items.reduce((sum, item) => sum + item.count, 0)
+  const flowers = items.map(({ flower, count }) => `${count} ${flower.engDesc}`).join(", ")
+  return [
+    `Photorealistic product photo of one hand-tied flower bouquet: ${size.engVolume}.`,
+    `${wrapping.engStyle}.`,
+    `Contains only these flowers, exactly ${total} stems in total: ${flowers}.`,
+    "Upright front three-quarter view, bouquet centered, plain warm beige studio background, soft daylight, sharp focus.",
+  ].join(" ")
+}

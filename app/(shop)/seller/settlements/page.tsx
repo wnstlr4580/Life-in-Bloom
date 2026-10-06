@@ -24,7 +24,7 @@ export default function SellerSettlementsPage() {
   return <div className="max-w-6xl px-6 py-10">
     <p className="text-sm font-semibold text-emerald-700">판매자센터</p><h1 className="mt-1 text-2xl font-bold">정산 관리</h1>
     <p className="mt-2 text-sm text-stone-500">구매확정된 주문상품을 매주 금요일 정산합니다. 기본 중개수수료는 10%이며 수수료 부가세가 별도 차감됩니다.</p>
-    <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
       <Summary icon={<ReceiptText />} label="총 판매금액" value={won(data.summary.gross)} />
       <Summary icon={<CircleDollarSign />} label="수수료·VAT" value={`-${won(data.summary.commission + data.summary.commissionVat)}`} />
       <Summary icon={<CalendarClock />} label="정산 예정" value={won(data.summary.ready)} />
