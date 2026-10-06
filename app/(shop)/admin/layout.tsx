@@ -32,7 +32,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </nav>
           </div>
         </aside>
-        <main className="min-w-0 flex-1">{children}</main>
+        <main className="min-w-0 flex-1">
+          {/* 모바일 — 사이드바 대신 가로 스크롤 탭 */}
+          <nav className="flex gap-1 overflow-x-auto border-b border-stone-200 bg-white px-3 py-2 lg:hidden">
+            {MENUS.map(({ href, label, icon: Icon }) => {
+              const active = href === "/admin" ? pathname === href : pathname.startsWith(href)
+              return <Link key={href} href={href} className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs whitespace-nowrap ${active ? "bg-rose-50 font-semibold text-rose-600" : "text-stone-600"}`}><Icon size={14} />{label}</Link>
+            })}
+          </nav>
+          {children}
+        </main>
       </div>
     </div>
   )

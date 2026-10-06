@@ -490,7 +490,7 @@ export default function DiyPage() {
 
   return (
     <div className="min-h-screen bg-[#fbfaf7]">
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+      <div className="mx-auto max-w-6xl px-4 py-8 pb-28 sm:px-6 sm:py-12 lg:pb-12">
         <div className="mb-8 rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-rose-50 p-6 sm:p-8">
           <div className="flex items-start gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-sm">
@@ -511,7 +511,7 @@ export default function DiyPage() {
           </div>
         </div>
 
-        <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="grid grid-cols-1 gap-7 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="space-y-6">
             <section className="rounded-2xl border border-stone-200 bg-white p-5 sm:p-6">
               <h2 className="font-bold text-stone-900">① 꽃다발 크기</h2>
@@ -690,7 +690,7 @@ export default function DiyPage() {
               )}
             </section>
 
-            <section className="rounded-2xl border border-stone-200 bg-white p-5 sm:p-6">
+            <section id="diy-find" className="scroll-mt-28 rounded-2xl border border-stone-200 bg-white p-5 sm:p-6">
               <h2 className="font-bold text-stone-900">③ 수령 방법과 판매처 찾기</h2>
               <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl bg-stone-100 p-1.5">
                 <button onClick={() => { setFulfillmentMode("custom"); setMatches(null); setMatchError("") }} className={`rounded-xl px-3 py-3 text-sm font-bold transition ${fulfillmentMode === "custom" ? "bg-white text-rose-600 shadow-sm" : "text-stone-500"}`}>🚚 주문제작·전국 배송</button>
@@ -822,8 +822,8 @@ export default function DiyPage() {
             )}
           </div>
 
-          <aside className="lg:sticky lg:top-24 lg:self-start">
-            <div className="max-h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl border border-stone-100 bg-white">
+          <aside id="diy-preview" className="scroll-mt-28 lg:sticky lg:top-24 lg:self-start">
+            <div className="rounded-2xl border border-stone-100 bg-white lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
               <div className="relative flex min-h-64 flex-col items-center justify-center bg-gradient-to-br from-rose-50 to-pink-50">
                 {generatedImageUrl && !generating ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -918,6 +918,24 @@ export default function DiyPage() {
           </aside>
         </div>
       </div>
+
+      {/* 모바일 — 꽃을 고르는 중에도 참고가와 다음 단계로 바로 이동 */}
+      {selected.length > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-stone-200 bg-white/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
+          <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[11px] text-stone-500">{size.name} · {selectedCount}/{size.stems}송이</p>
+              <p className="font-bold text-rose-500">약 {guidePrice.toLocaleString()}원</p>
+            </div>
+            <Button variant="outline" onClick={() => document.getElementById("diy-preview")?.scrollIntoView({ behavior: "smooth" })} className="h-11 shrink-0 border-rose-200 px-3 text-rose-500">
+              <Sparkles size={15} /> 미리보기
+            </Button>
+            <Button onClick={() => document.getElementById("diy-find")?.scrollIntoView({ behavior: "smooth" })} className="h-11 shrink-0 gap-1.5 bg-stone-900 px-3 text-white hover:bg-stone-800">
+              <Store size={15} /> 판매처 찾기
+            </Button>
+          </div>
+        </div>
+      )}
 
       {postcodeOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-label="도로명주소 검색">

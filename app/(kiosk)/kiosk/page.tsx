@@ -65,6 +65,11 @@ export default function KioskPage() {
   const [resultBlob, setResultBlob] = useState<Blob | null>(null)
   const [processingProgress, setProcessingProgress] = useState(0)
   const [errorMessage, setErrorMessage] = useState("합성 중 문제가 발생했어요. 다시 시도해 주세요.")
+  // 테스트 합성 버튼은 개발 환경 또는 주소에 ?demo 를 붙였을 때만 노출 (시연장 카메라 불가 대비)
+  const [showTestCapture] = useState(() =>
+    process.env.NODE_ENV !== "production"
+    || (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("demo"))
+  )
 
   const reset = useCallback(() => {
     setStep("intro")
@@ -200,13 +205,13 @@ export default function KioskPage() {
         <div className="w-full max-w-sm space-y-4">
           <p className="text-center text-sm text-stone-500">어떤 꽃이 나올지 기대해주세요</p>
           <CameraCapture onComplete={handleCaptureComplete} />
-          {/* 개발용 — 카메라 4컷 대신 테스트 사진으로 바로 합성. 배포 전 제거 */}
-          <button
+          {/* 개발용 — 카메라 4컷 대신 테스트 사진으로 바로 합성 */}
+          {showTestCapture && <button
             onClick={handleTestCapture}
             className="w-full h-10 rounded-xl border border-dashed border-stone-300 text-stone-400 text-xs hover:bg-stone-50 transition-colors"
           >
             🧪 촬영 건너뛰고 테스트 사진으로 합성 (개발용)
-          </button>
+          </button>}
         </div>
       )}
 

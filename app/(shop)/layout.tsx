@@ -249,28 +249,20 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
             <div className="space-y-3">
               <p className="text-sm font-bold text-stone-700">고객센터</p>
               <div className="text-sm text-stone-500 space-y-1.5">
-                <p className="font-bold text-stone-700">0000-0000</p>
-                <p>평일 10:00 - 18:00 (주말·공휴일 휴무)</p>
+                <p>주문·배송 문의는 주문하신 판매처로 연결돼요</p>
                 <p>오전 11시 이전 주문 시 당일 배송</p>
-                <p>이메일: help@life-in-bloom.example</p>
-              </div>
-              {/* SNS — 실제 계정 주소로 교체 필요 */}
-              <div className="flex gap-3 pt-1">
-                <a href="https://instagram.com/" target="_blank" rel="noreferrer" className="text-xs text-stone-400 hover:text-rose-500 transition-colors">📷 인스타그램</a>
-                <a href="https://pf.kakao.com/" target="_blank" rel="noreferrer" className="text-xs text-stone-400 hover:text-rose-500 transition-colors">💬 카카오채널</a>
+                <Link href="/orders/lookup" className="inline-block hover:text-rose-500 transition-colors">주문 조회 바로가기 →</Link>
               </div>
             </div>
           </div>
 
-          {/* 사업자 정보 — 실제 등록 후 값 교체 필요 */}
+          {/* 사업자 정보 — 실제 등록 전까지 시연용 안내로 대체 */}
           <div className="pt-6 border-t border-stone-100 text-xs text-stone-400 leading-relaxed space-y-0.5 mb-6">
-            <p>상호: 인생내꽃 · 대표: (등록 후 기재) · 사업자등록번호: (등록 후 기재)</p>
-            <p>통신판매업신고: (신고 후 기재) · 주소: (등록 후 기재)</p>
-            <p>개인정보 보호 책임자: (지정 후 기재)</p>
+            <p>인생내꽃은 NH농협 사내 경진대회 출품용 시연 서비스입니다.</p>
           </div>
 
           <div className="pt-6 border-t border-stone-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stone-400">
-            <p>© 2025 인생내꽃. All rights reserved.</p>
+            <p>© 2026 인생내꽃. All rights reserved.</p>
             <div className="flex gap-5">
               <Link href="/terms" className="hover:text-stone-600 transition-colors">이용약관</Link>
               <Link href="/privacy" className="hover:text-stone-600 transition-colors font-medium">개인정보처리방침</Link>

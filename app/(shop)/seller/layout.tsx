@@ -46,7 +46,17 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
           </nav>
         </div>
       </aside>
-      <main className="min-w-0 flex-1">{children}</main>
+      <main className="min-w-0 flex-1">
+        {/* 모바일 — 사이드바 대신 가로 스크롤 탭 (준비중 메뉴는 제외) */}
+        <nav className="flex gap-1 overflow-x-auto border-b border-stone-200 bg-white px-3 py-2 lg:hidden">
+          {menus.filter(({ pending }) => !pending).map(({ href, label, icon: Icon }) => {
+            const path = href.split("?")[0]
+            const active = path === "/seller" ? pathname === path : pathname.startsWith(path)
+            return <Link key={href} href={href} className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs whitespace-nowrap ${active ? "bg-emerald-50 font-semibold text-emerald-700" : "text-stone-600"}`}><Icon size={14} />{label}</Link>
+          })}
+        </nav>
+        {children}
+      </main>
     </div>
   </div>
 }

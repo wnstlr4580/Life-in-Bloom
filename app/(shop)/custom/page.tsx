@@ -542,7 +542,7 @@ function CustomContent() {
   ]
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
+    <div className="max-w-6xl mx-auto px-6 py-10 pb-28 lg:pb-10">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-stone-800 flex items-center gap-2">
           <Sparkles size={22} className="text-rose-400" /> 나만의 꽃다발 만들기
@@ -550,7 +550,7 @@ function CustomContent() {
         <p className="text-stone-400 text-sm mt-1">크기를 선택하고 마음에 드는 꽃을 골라보세요. AI가 꽃다발 이미지를 만들어 드려요.</p>
         {editPostId && (
           <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700">
-            ✏️ <span className="font-semibold">내 후기를 수정하고 있어요.</span> 꽃 조합과 한마디를 고친 뒤 오른쪽 아래
+            ✏️ <span className="font-semibold">내 후기를 수정하고 있어요.</span> 꽃 조합과 한마디를 고친 뒤
             <span className="font-semibold"> 수정 저장</span> 버튼을 눌러주세요.
           </div>
         )}
@@ -573,7 +573,7 @@ function CustomContent() {
           {/* 1단계: 크기 선택 */}
           <section className="bg-white rounded-2xl p-5 border border-stone-100">
             <h2 className="font-semibold text-stone-800 mb-3 text-sm">① 꽃다발 크기</h2>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {SIZES.map((s) => (
                 <button
                   key={s.id}
@@ -749,8 +749,8 @@ function CustomContent() {
         </div>
 
         {/* 오른쪽 — 미리보기 & 요약 */}
-        <div className="lg:w-72 shrink-0">
-          <div className="bg-white rounded-2xl border border-stone-100 sticky top-24 overflow-y-auto max-h-[calc(100vh-7rem)]">
+        <div id="bouquet-summary" className="lg:w-72 shrink-0 scroll-mt-28">
+          <div className="bg-white rounded-2xl border border-stone-100 lg:sticky lg:top-24 lg:overflow-y-auto lg:max-h-[calc(100vh-7rem)]">
             {/* 미리보기 */}
             <div className="bg-gradient-to-br from-rose-50 to-pink-50 min-h-56 flex flex-col items-center justify-center relative">
               {generatedImageUrl && !generating ? (
@@ -960,6 +960,23 @@ function CustomContent() {
           </div>
         </div>
       </div>
+      {/* 모바일 — 꽃을 고르는 중에도 합계와 미리보기·주문으로 바로 이동 */}
+      {hasSelection && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-stone-200 bg-white/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
+          <div className="flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[11px] text-stone-500">{size.name} · {previewItems.length}종 · 총 {size.stems}송이</p>
+              <p className="font-bold text-rose-500">{totalPrice.toLocaleString()}원</p>
+            </div>
+            <Button
+              onClick={() => document.getElementById("bouquet-summary")?.scrollIntoView({ behavior: "smooth" })}
+              className="h-11 shrink-0 gap-1.5 bg-rose-400 px-5 font-semibold text-white hover:bg-rose-500"
+            >
+              <Sparkles size={15} /> 미리보기 · 주문
+            </Button>
+          </div>
+        </div>
+      )}
       {/* 로그인 모달 */}
       {showLoginModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-6" onClick={() => setShowLoginModal(false)}>
