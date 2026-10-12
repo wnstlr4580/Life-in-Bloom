@@ -5,13 +5,16 @@ import { useCallback, useMemo, useRef, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { nanoid } from "nanoid"
-import { Check, ExternalLink, LocateFixed, MapPin, Minus, Plus, RefreshCw, RotateCcw, Search, Scissors, Sparkles, Store } from "lucide-react"
+import { Check, LocateFixed, MapPin, Minus, Plus, RefreshCw, RotateCcw, Search, Scissors, Sparkles, Store } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { buildBouquetPrompt, COLOR_FILTER, COLOR_LABEL, FLOWERS, SIZES, WRAPPING } from "@/lib/customFlowers"
 import { birthFlowerSelection, flowerBirthDates, flowerMeaning, flowerMonths, flowerOccasions, isMonthFlower, isOccasionFlower, OCCASIONS } from "@/lib/diyFlowerTags"
 import { useCartStore } from "@/store/cartStore"
 import { SellerMap } from "@/components/shop/SellerMap"
-import { NonghyupMark } from "@/components/brand/NonghyupMark"
+import { postDiyLookup } from "@/lib/diyLookup"
+import { PublicMarketGuide, type PublicMarketView } from "@/components/shop/PublicMarketGuide"
+import { marketsNear } from "@/lib/publicMarketDirectory"
+import { APPROX_STEMS_PER_BUNDLE } from "@/lib/publicMarketPricing"
 
 type LocationState = {
   address: string
@@ -52,39 +55,7 @@ type Match = {
   customDeliveryScope: "NONE" | "NATIONWIDE" | "REGIONAL"
   customDeliveryRegions: string[]
 }
-type PublicMarket = {
-  id: string
-  sellerId: string
-  marketName: string
-  marketType: string
-  roadAddress: string
-  publicPhone: string
-  latitude: number
-  longitude: number
-  distanceKm: number | null
-  diyComplete: boolean
-  customComplete: boolean
-  sourceName: string
-  sourceUrl: string
-  dailyDataUrl?: string | null
-  marketInfoUrl?: string
-  auctionInfoUrl?: string
-  isNonghyup?: boolean
-  supportsRealtime: boolean
-  flowers: { id: string; name: string; group?: string; quantity: number; bundleCount?: number; stemsPerBundle?: number | null; unitNote?: string; averageBundlePrice?: number | null; latestDate?: string | null; tradeCount?: number }[]
-  checkedAt: string
-  liveTradeCount: number
-  expectedPrice: number | null
-  minPrice: number | null
-  maxPrice: number | null
-  priceBasis: string
-  basisDate?: string | null
-  priceScope?: "TODAY_ONLY"
-  todayDataAvailable?: boolean
-  priceFreshness?: "LIVE_TODAY" | "LATEST_CONFIRMED" | "UNAVAILABLE"
-  pricingScope?: "ITEM_ALL_VARIETIES_AND_GRADES"
-  priceAvailability?: "NO_SELECTED_FLOWER_TRADE" | "NO_RECENT_MARKET_FILE"
-}
+type PublicMarket = PublicMarketView
 type FilterMode = "all" | "ohaeng" | "color" | "meaning" | "month" | "birth" | "occasion"
 type GpsStatus = "idle" | "checking" | "success" | "error"
 type SpecialDate = { id: string; type: string; label: string; monthDay: string }
@@ -125,7 +96,10 @@ export default function DiyPage() {
   const [radiusKm, setRadiusKm] = useState(3)
   const [matches, setMatches] = useState<Match[] | null>(null)
   const [publicMarkets, setPublicMarkets] = useState<PublicMarket[]>([])
-  const [marketDirectoryInfo, setMarketDirectoryInfo] = useState<{ criteria: string; sourceUrl: string; coordinatesManagedManually: boolean } | null>(null)
+  const [focusMarketId, setFocusMarketId] = useState<string | null>(null)
+  const lookupRef = useRef<AbortController | null>(null)
+  const [checkingPublicMarkets, setCheckingPublicMarkets] = useState(false)
+  const [publicMarketError, setPublicMarketError] = useState("")
   const [matching, setMatching] = useState(false)
   const [matchError, setMatchError] = useState("")
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null)
@@ -140,6 +114,16 @@ export default function DiyPage() {
     () => Object.entries(quantities).filter(([, quantity]) => quantity > 0),
     [quantities],
   )
+  useEffect(() => {
+    setMatching(false)
+    setCheckingPublicMarkets(false)
+    setPublicMarkets([])
+    setPublicMarketError("")
+    setFocusMarketId(null)
+    return () => { lookupRef.current?.abort() }
+  }, [quantities, location, radiusKm, preferredSellerId, fulfillmentMode, size.id])
+
+  const displayPublicMarkets = useMemo(() => publicMarkets.length ? publicMarkets : marketsNear(location.latitude, location.longitude), [publicMarkets, location.latitude, location.longitude])
   const selectedCount = selected.reduce((sum, [, quantity]) => sum + quantity, 0)
   const monthDay = birthDate
   const birthSelection = monthDay ? birthFlowerSelection(monthDay) : null
@@ -429,42 +413,38 @@ export default function DiyPage() {
       setMatchError("현재 위치를 확인하거나 도로명주소를 입력해주세요.")
       return
     }
+    lookupRef.current?.abort()
+    const controller = new AbortController()
+    lookupRef.current = controller
+    const active = () => !controller.signal.aborted
     setMatching(true)
     setMatchError("")
+    setPublicMarkets([])
+    setFocusMarketId(null)
+    setPublicMarketError("")
+    setCheckingPublicMarkets(fulfillmentMode === "diy")
+    const flowers = selected.map(([id, quantity]) => ({ id, quantity }))
+    // 공판장 시세가 지연되어도 판매처 재고와 구매 선택은 먼저 표시한다.
+    if (fulfillmentMode === "diy") {
+      void postDiyLookup<{ markets?: PublicMarket[]; directoryCriteria?: string; directorySourceUrl?: string; coordinatesManagedManually?: boolean }>(
+        "/api/diy/public-markets", { flowers, latitude: location.latitude, longitude: location.longitude }, controller.signal, 20000,
+      ).then((data) => {
+        if (!active()) return
+        setPublicMarkets(data.markets ?? [])
+      }).catch(() => {
+        if (active()) setPublicMarketError("공판장 시세를 불러오지 못했어요. 아래 판매처 재고는 계속 이용할 수 있어요. 다시 검색하면 시세도 재조회합니다.")
+      }).finally(() => { if (active()) setCheckingPublicMarkets(false) })
+    }
     try {
-      const matchesRequest = fetch("/api/diy/matches", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          flowers: selected.map(([id, quantity]) => ({ id, quantity })),
-          address: location.address,
-          latitude: location.latitude,
-          longitude: location.longitude,
-          radiusKm,
-          preferredSellerId,
-          fulfillmentMode,
-          sizeId: size.id,
-        }),
-      })
-      const publicRequest = fulfillmentMode === "diy"
-        ? fetch("/api/diy/public-markets", { method: "POST", cache: "no-store", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ flowers: selected.map(([id, quantity]) => ({ id, quantity })), latitude: location.latitude, longitude: location.longitude }) })
-        : Promise.resolve(null)
-      const [response, publicResponse] = await Promise.all([matchesRequest, publicRequest])
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error ?? "재고를 확인하지 못했어요.")
-      setMatches(data.matches)
-      if (publicResponse?.ok) {
-        const publicData = await publicResponse.json()
-        setPublicMarkets((publicData.markets ?? []).map((market: PublicMarket) => market.id === "busan-eomgung" ? { ...market, isNonghyup: true, marketType: "농협 화훼공판장" } : market))
-        setMarketDirectoryInfo({ criteria: publicData.directoryCriteria ?? "aT 공식 공판장 목록", sourceUrl: publicData.directorySourceUrl ?? "https://flower.at.or.kr/real/real2.do", coordinatesManagedManually: publicData.coordinatesManagedManually === true })
-      } else {
-        setPublicMarkets([])
-        setMarketDirectoryInfo(null)
-      }
+      const data = await postDiyLookup<{ matches: Match[] }>("/api/diy/matches", {
+        flowers, address: location.address, latitude: location.latitude, longitude: location.longitude,
+        radiusKm, preferredSellerId, fulfillmentMode, sizeId: size.id,
+      }, controller.signal, 15000)
+      if (active()) setMatches(data.matches)
     } catch (error) {
-      setMatchError(error instanceof Error ? error.message : "재고를 확인하지 못했어요.")
+      if (active()) setMatchError(error instanceof Error ? error.message : "재고를 확인하지 못했어요.")
     } finally {
-      setMatching(false)
+      if (lookupRef.current === controller) setMatching(false)
     }
   }
 
@@ -507,7 +487,8 @@ export default function DiyPage() {
     const data = await response.json(); if (response.ok) alert(data.duplicate ? "이미 재입고 알림을 신청한 조합이에요." : "재입고 알림을 신청했어요."); else setMatchError(data.error ?? "재입고 알림 신청에 실패했어요.")
   }
 
-  const visibleMatches = matches?.filter((match) => fulfillmentMode === "diy" ? match.diyComplete || match.preferred : match.customComplete || match.preferred) ?? []
+  const visibleMatches = useMemo(() => matches?.filter((match) => fulfillmentMode === "diy" ? match.diyComplete || match.preferred : match.customComplete || match.preferred) ?? [], [matches, fulfillmentMode])
+  const mapSellers = useMemo(() => [...visibleMatches, ...displayPublicMarkets], [visibleMatches, displayPublicMarkets])
   const completeMatches = visibleMatches.filter((match) => fulfillmentMode === "diy" ? match.diyComplete : match.customComplete)
 
   return (
@@ -760,13 +741,15 @@ export default function DiyPage() {
               <Button onClick={findMatches} disabled={matching} className="mt-5 h-12 w-full gap-2 bg-stone-900 text-white hover:bg-stone-800">
                 <Store size={17} /> {matching ? "판매처 재고 확인 중..." : "가능한 판매처·가격 확인"}
               </Button>
+              {fulfillmentMode === "diy" && checkingPublicMarkets && <p role="status" className="mt-3 text-sm text-stone-500">공판장 시세를 추가로 확인하고 있어요. 판매처 재고는 먼저 표시됩니다.</p>}
+              {fulfillmentMode === "diy" && publicMarketError && <p role="status" className="mt-3 text-sm text-amber-700">{publicMarketError}</p>}
               {matchError && <p className="mt-3 text-sm text-rose-600">{matchError}</p>}
             </section>
 
-            {matches && (
+            {(matches || (fulfillmentMode === "diy" && location.source)) && (
               <section className="rounded-2xl border border-stone-200 bg-white p-5 sm:p-6">
                 <div className="mb-5">
-                  {fulfillmentMode === "diy" ? <><div className="mb-2 flex flex-wrap items-center justify-between gap-2"><h2 className="font-bold text-stone-900">현재 위치 중심 꽃집·공판장 지도</h2><Button variant="outline" onClick={locateCurrentPosition} disabled={gpsStatus === "checking"} className="h-8 text-xs"><LocateFixed size={13}/>{gpsStatus === "checking" ? "위치 확인 중" : "내 위치로 다시 맞추기"}</Button></div><SellerMap latitude={location.latitude} longitude={location.longitude} radiusKm={radiusKm} sellers={[...visibleMatches, ...publicMarkets]} /><p className="mt-2 text-[11px] text-stone-400">파란 ‘현재 위치’가 지도 중심입니다. 전국 공판장 마커는 지도 범위 밖에 있을 수 있어요.</p></> : <div className="rounded-2xl bg-rose-50 p-4"><h2 className="font-bold text-rose-700">🚚 전국 배송 제작처</h2><p className="mt-1 text-sm text-stone-600">거리순이 아닌 제작 가능 여부와 원 리뷰 판매처를 우선으로 보여드려요.</p></div>}
+                  {fulfillmentMode === "diy" ? <><div className="mb-2 flex flex-wrap items-center justify-between gap-2"><h2 className="font-bold text-stone-900">현재 위치 중심 꽃집·공판장 지도</h2><Button variant="outline" onClick={locateCurrentPosition} disabled={gpsStatus === "checking"} className="h-8 text-xs"><LocateFixed size={13}/>{gpsStatus === "checking" ? "위치 확인 중" : "내 위치로 다시 맞추기"}</Button></div><div id="diy-seller-map"><SellerMap latitude={location.latitude} longitude={location.longitude} radiusKm={radiusKm} sellers={mapSellers} focusSellerId={focusMarketId} onClearFocus={() => setFocusMarketId(null)} /></div></> : <div className="rounded-2xl bg-rose-50 p-4"><h2 className="font-bold text-rose-700">🚚 전국 배송 제작처</h2><p className="mt-1 text-sm text-stone-600">거리순이 아닌 제작 가능 여부와 원 리뷰 판매처를 우선으로 보여드려요.</p></div>}
                 </div>
                 {visibleMatches.length > 0 ? (
                   <>
@@ -819,7 +802,7 @@ export default function DiyPage() {
                       )})}
                     </div>
                   </>
-                ) : (
+                ) : matches !== null ? (
                   <div className="rounded-2xl bg-rose-50 p-5 text-center">
                     <p className="text-2xl">💐</p>
                     <h2 className="mt-2 font-bold text-stone-900">이 구성을 한 곳에서 준비할 판매처가 없어요</h2>
@@ -827,27 +810,8 @@ export default function DiyPage() {
                       {preferredSellerId ? "원 리뷰 판매처 정보를 확인하지 못했어요. 잠시 후 다시 시도해주세요." : "꽃 수량을 줄이거나 다른 꽃으로 바꾼 뒤 다시 확인해 주세요."}
                     </p>
                   </div>
-                )}
-                {fulfillmentMode === "diy" && publicMarkets.length > 0 && <div className="mt-6 border-t border-stone-200 pt-6">
-                  <div className="flex items-start gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-700">🏛️</span>
-                    <div><h2 className="font-bold text-stone-900">최근 가격을 확인할 수 있는 화훼공판장</h2><p className="mt-1 text-sm text-stone-500">최근 7일 내 경매파일이 있는 공판장만 가까운 순서로 보여주며, 당일 실시간가가 없으면 최근 확정 경매가로 예상가격을 계산해요.</p></div>
-                  </div>
-                  <details className="mt-3 rounded-xl border border-sky-100 bg-white px-4 py-3 text-xs text-stone-600">
-                    <summary className="cursor-pointer font-bold text-sky-800">‘속’이란 무엇인가요?</summary>
-                    <p className="mt-2 leading-5">속은 절화를 묶어 경매·유통하는 구매 단위예요. 예를 들어 미니 꽃다발에 장미 7송이가 필요해도 공판장에서는 낱송이 7개가 아니라 장미 1속을 사야 할 수 있어요. 품목·품종·등급·시장에 따라 한 속의 본수가 달라 화면에서는 장미 1속을 약 10본으로 환산하며, 실제 구매단위와 일반인 구매 가능 여부는 공판장 또는 중도매인에게 확인해야 합니다.</p>
-                    <a href="https://www.naqs.go.kr/hp/contents/contents.do?menuId=MN40332" target="_blank" rel="noreferrer" className="mt-2 inline-flex font-bold text-sky-700 underline">농산물 표준규격 확인</a>
-                  </details>
-                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900"><strong>예상가격 안내</strong><p className="mt-1">aT 경매자료에는 꽃 색상이 일관된 항목으로 제공되지 않아, 선택한 색상의 가격이 아닌 해당 품목 전체의 품종·등급을 거래량으로 가중평균합니다. 실제 구매가를 확정하는 값이 아니라 공판장 방문 전 예산을 잡기 위한 단순 참고용 데이터예요.</p></div>
-                  {marketDirectoryInfo && <div className="mt-3 rounded-xl border border-stone-200 bg-stone-50 p-3 text-[11px] leading-5 text-stone-600"><strong>목록 기준:</strong> {marketDirectoryInfo.criteria}. {marketDirectoryInfo.coordinatesManagedManually && "지도 좌표는 공식 주소를 기준으로 서비스에서 관리합니다."} <a href={marketDirectoryInfo.sourceUrl} target="_blank" rel="noreferrer" className="font-bold text-sky-700 underline">aT 원문 확인</a></div>}
-                  <div className="mt-4 space-y-3">{publicMarkets.map((market) => <article key={market.id} className={`rounded-2xl border p-4 ${market.isNonghyup ? "border-[#8bc7aa] bg-gradient-to-br from-[#f1faf5] to-[#fff8dc] ring-1 ring-[#d9eadf]" : "border-sky-200 bg-sky-50/40"}`}>
-                    <div className="flex items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2">{market.isNonghyup && <NonghyupMark compact className="rounded-full bg-white p-1.5 shadow-sm"/>}<h3 className="font-bold text-stone-900">{market.marketName}</h3><span className={`rounded-full px-2 py-0.5 text-[11px] font-bold text-white ${market.isNonghyup ? "bg-[#007a4d]" : "bg-sky-600"}`}>{market.marketType}</span>{market.priceFreshness === "LIVE_TODAY" && market.liveTradeCount > 0 && <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-sky-700">오늘 집계 행 {market.liveTradeCount}건</span>}{market.priceFreshness === "LATEST_CONFIRMED" && <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-amber-700">최근 확정 경매가</span>}</div><p className="mt-1 text-xs text-stone-500">{market.roadAddress}{market.distanceKm !== null ? ` · 현재 위치에서 약 ${market.distanceKm}km` : ""}</p></div><div className="shrink-0 text-right"><p className="text-[11px] text-stone-400">{market.basisDate ? `${market.basisDate} 거래 기준` : "가격 기준일 없음"}</p>{market.expectedPrice !== null ? <><strong className={`text-lg ${market.isNonghyup ? "text-[#007a4d]" : "text-sky-700"}`}>예상가격 {market.expectedPrice.toLocaleString()}원</strong>{market.minPrice !== null && market.maxPrice !== null && <p className="text-[10px] text-stone-400">경매가 범위 {market.minPrice.toLocaleString()}~{market.maxPrice.toLocaleString()}원</p>}</> : <strong className={`block max-w-52 text-sm ${market.isNonghyup ? "text-[#007a4d]" : "text-stone-400"}`}>이 공판장의 최근 자료에 선택한 꽃 거래 없음</strong>}</div></div>
-                    <div className="mt-3 flex flex-wrap gap-1.5">{market.flowers.map((flower) => <span key={flower.id} className="rounded-full bg-white px-2 py-1 text-[11px] text-stone-600">필요 {flower.name} {flower.quantity}송이 → 공판장 구매 약 {flower.bundleCount ?? 1}속 ({flower.unitNote ?? "포장 규격 확인 필요"}){flower.averageBundlePrice ? ` · ${flower.group} 전체 품종·등급 1속 평균 ${Math.round(flower.averageBundlePrice).toLocaleString()}원` : ""}</span>)}</div>
-                    <p className="mt-3 text-[11px] leading-5 text-stone-500">{market.priceBasis}. 실제 등급·포장단위·당일 물량에 따라 달라질 수 있어요.</p>
-                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p className="text-[11px] text-stone-400">방문 전 문의 {market.publicPhone || "공판장 확인"} · {market.sourceName}</p><div className="flex flex-wrap gap-2">{market.marketInfoUrl && <a href={market.marketInfoUrl} target="_blank" rel="noreferrer" className={`inline-flex items-center gap-1 rounded-xl border bg-white px-3 py-2 text-xs font-bold ${market.isNonghyup ? "border-emerald-300 text-emerald-700 hover:bg-emerald-50" : "border-sky-200 text-sky-700 hover:bg-sky-50"}`}>이 공판장 위치·정보 <ExternalLink size={13}/></a>}<a href={`/api/diy/public-markets/${market.id}/at`} target="_blank" rel="noreferrer" className={`inline-flex items-center gap-1 rounded-xl border bg-white px-3 py-2 text-xs font-bold ${market.isNonghyup ? "border-emerald-300 text-emerald-700 hover:bg-emerald-50" : "border-sky-200 text-sky-700 hover:bg-sky-50"}`}>이 공판장 aT 경매자료 바로 보기 <ExternalLink size={13}/></a></div></div>
-                  </article>)}</div>
-                  <p className="mt-3 text-[11px] leading-5 text-stone-400">예상가격은 aT 당일 실시간가 또는 공판장별 최근 확정 경매가를 사용합니다. 경매가는 소매 판매가가 아니며 낱송이 구매를 보장하지 않습니다. 실제 속당 본수·포장 규격·일반인 구매 가능 여부는 공판장 또는 중도매인에게 확인해 주세요.</p>
-                </div>}
+                ) : <p className="rounded-xl bg-stone-50 p-4 text-sm text-stone-600">{matching ? "꽃집 재고를 확인하고 있어요. 공판장 위치는 아래에서 먼저 확인할 수 있어요." : "꽃을 고른 뒤 ‘가능한 판매처·가격 확인’을 누르면 꽃집 재고와 공판장 시세를 조회해요."}</p>}
+                {fulfillmentMode === "diy" && <PublicMarketGuide markets={displayPublicMarkets} flowers={selected.map(([id, quantity]) => { const flower = FLOWERS.find(item => item.id === id)!; return { id, name: flower.name, group: flower.group, quantity, stemsPerBundle: APPROX_STEMS_PER_BUNDLE[flower.group] ?? null } })} onFocus={(id) => { setFocusMarketId(id); document.getElementById("diy-seller-map")?.scrollIntoView({ behavior: "smooth", block: "center" }) }}/>}
               </section>
             )}
           </div>

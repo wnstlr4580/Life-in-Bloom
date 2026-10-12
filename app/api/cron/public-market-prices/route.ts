@@ -6,7 +6,7 @@ export const runtime = "nodejs"
 export const maxDuration = 60
 
 export async function GET(req: NextRequest) {
-  if (req.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (!process.env.CRON_SECRET || req.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   const results = await fetchLatestAtDailyAuctions()
   const rows = results.flatMap((result) => result.rows)
   let saved = 0
@@ -16,5 +16,6 @@ export async function GET(req: NextRequest) {
     if (error) return NextResponse.json({ error: error.message, collected: rows.length, saved }, { status: 500 })
     saved += chunk.length
   }
-  return NextResponse.json({ fetchedAt: new Date().toISOString(), saved, markets: results.map(({ market, status, tradeDate, rows: marketRows, ...rest }) => ({ marketId: market.id, status, tradeDate, rowCount: marketRows.length, ...rest })) })
+  const allFailed = results.every(result => result.status === "ERROR")
+  return NextResponse.json({ fetchedAt: new Date().toISOString(), saved, markets: results.map(({ market, status, tradeDate, rows: marketRows, ...rest }) => ({ marketId: market.id, status, tradeDate, rowCount: marketRows.length, ...rest })) }, { status: allFailed ? 503 : 200 })
 }

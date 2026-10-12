@@ -131,21 +131,30 @@ export function CameraCapture({ onComplete }: Props) {
         videoHeight: video.videoHeight,
         readyState: video.readyState,
       })
-      return // 그래도 안 되면 이번 컷은 건너뛴다
+      // 카운트다운은 이미 끝났다. 다시 촬영할 수 있는 상태로 복구한다.
+      setStatus("ready")
+      return
     }
 
     const canvas = document.createElement("canvas")
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
     const ctx = canvas.getContext("2d")
-    if (!ctx) return
+    if (!ctx) { setStatus("ready"); return }
     // 셀피 촬영은 좌우 반전해서 보여주므로, 캡처본도 동일하게 반전해 저장한다
     if (facingMode === "user") {
       ctx.translate(canvas.width, 0)
       ctx.scale(-1, 1)
     }
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-    const bitmap = await createImageBitmap(canvas)
+    let bitmap: ImageBitmap
+    try {
+      bitmap = await createImageBitmap(canvas)
+    } catch (error) {
+      console.error("[kiosk/camera] capture failed:", error)
+      setStatus("ready")
+      return
+    }
     console.log("[kiosk/camera] captured cut", capturedRef.current.length + 1, "of", TOTAL_CUTS)
     capturedRef.current.push(bitmap)
 

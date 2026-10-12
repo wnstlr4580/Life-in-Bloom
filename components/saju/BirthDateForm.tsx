@@ -46,7 +46,7 @@ export function BirthDateForm({ onSubmit, loading, defaultValues, submitLabel }:
   const [day, setDay] = useState(defaultValues?.birthDate ? String(+defaultValues.birthDate.slice(8, 10)) : "")
   const [calendarType, setCalendarType] = useState(defaultValues?.calendarType ?? "solar")
   const [timeKnown, setTimeKnown] = useState(
-    !defaultValues?.birthHour || defaultValues.birthHour === "unknown" ? true : true
+    defaultValues?.birthHour !== "unknown"
   )
   const [ampm, setAmpm] = useState(() => {
     if (!defaultValues?.birthHour || defaultValues.birthHour === "unknown") return "오전"
@@ -81,8 +81,8 @@ export function BirthDateForm({ onSubmit, loading, defaultValues, submitLabel }:
       name: name.trim(),
       gender,
       birthDate,
-      birthHour: timeKnown && timeHour && timeMin
-        ? `${ampm === "오후" && timeHour !== "12" ? +timeHour + 12 : ampm === "오전" && timeHour === "12" ? 0 : +timeHour}:${timeMin}`
+      birthHour: timeKnown && timeHour
+        ? `${ampm === "오후" && timeHour !== "12" ? +timeHour + 12 : ampm === "오전" && timeHour === "12" ? 0 : +timeHour}:${timeMin || "00"}`
         : "unknown",
       city: "미입력",
       calendarType,

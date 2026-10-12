@@ -47,23 +47,43 @@ async function downloadAndParse(market: AtAuctionMarket, tradeDate: string): Pro
   const workbook = XLSX.read(Buffer.from(await response.arrayBuffer()), { type: "buffer" })
   const sheet = workbook.Sheets[workbook.SheetNames[0]]
   const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, raw: true, defval: null })
+  return parseAtDailyRows(rows, market, tradeDate)
+}
+
+/** Require a declared cut-flower category or bundle unit; column offsets alone are unsafe. */
+export function parseAtDailyRows(rows: unknown[][], market: AtAuctionMarket, tradeDate: string): AuctionPriceRow[] {
+  const normalize = (value: unknown) => String(value ?? "").replace(/\s/g, "")
+  const headerIndex = rows.findIndex(row => row.some(cell => /^(품목|품목명|품명)$/.test(normalize(cell))) && row.some(cell => /평균/.test(normalize(cell))))
+  if (headerIndex < 0) throw new Error("공식 엑셀의 가격 열을 확인하지 못했습니다")
+  const headers = rows[headerIndex].map(normalize)
+  const column = (pattern: RegExp) => headers.findIndex(value => pattern.test(value))
+  const itemColumn = column(/^(품목|품목명|품명)$/), quantityColumn = column(/^(수량|거래량|물량|총수량|거래수량)(\(.*\))?$/)
+  const minColumn = column(/최저/), maxColumn = column(/최고/), averageColumn = column(/평균/)
+  const categoryColumn = column(/^(부류|화훼부류|구분|부류명)$/), unitColumn = column(/^단위$/)
+  const explicitBundleQuantity = quantityColumn >= 0 && /\((속|단)\)/.test(headers[quantityColumn])
+  if ([itemColumn, quantityColumn, minColumn, maxColumn, averageColumn].some(index => index < 0)) throw new Error("공식 엑셀의 필수 열이 변경되었습니다")
+  if (categoryColumn < 0 && unitColumn < 0 && !explicitBundleQuantity) throw new Error("절화·분화 또는 속 단위를 검증할 수 없어 가격 수집을 보류했습니다")
   const grouped = new Map<string, { quantity: number; weighted: number; min: number; max: number }>()
-  for (const row of rows.slice(1)) {
-    const itemName = String(row[0] ?? "").trim()
-    const quantity = number(row[3]), min = number(row[4]), max = number(row[5]), average = number(row[6])
-    if (!itemName || !quantity || !average) continue
-    const current = grouped.get(itemName) ?? { quantity: 0, weighted: 0, min: Number.MAX_SAFE_INTEGER, max: 0 }
-    current.quantity += quantity
-    current.weighted += average * quantity
-    current.min = Math.min(current.min, min || average)
-    current.max = Math.max(current.max, max || average)
+  for (const row of rows.slice(headerIndex + 1)) {
+    const category = categoryColumn >= 0 ? normalize(row[categoryColumn]) : ""
+    const unit = unitColumn >= 0 ? normalize(row[unitColumn]) : ""
+    if (categoryColumn >= 0 && category !== "절화") continue
+    if (unit && !["속", "단"].includes(unit)) continue
+    if (category !== "절화" && !["속", "단"].includes(unit) && !explicitBundleQuantity) continue
+    const itemName = String(row[itemColumn] ?? "").trim()
+    const quantity = number(row[quantityColumn]), min = number(row[minColumn]), max = number(row[maxColumn]), average = number(row[averageColumn])
+    if (!itemName || /합계|소계|총계/.test(itemName) || !quantity || !average || !min || !max || min > average || average > max) continue
+    const current = grouped.get(itemName) ?? { quantity: 0, weighted: 0, min: Infinity, max: 0 }
+    current.quantity += quantity; current.weighted += average * quantity
+    current.min = Math.min(current.min, min); current.max = Math.max(current.max, max)
     grouped.set(itemName, current)
   }
   const fetchedAt = new Date().toISOString()
   return [...grouped].map(([itemName, value]) => ({
     marketId: market.id, marketName: market.name, companyCode: market.companyCode, tradeDate, itemName,
     quantity: Math.round(value.quantity), minPrice: Math.round(value.min), maxPrice: Math.round(value.max),
-    averagePrice: Math.round(value.weighted / value.quantity), sourceUrl: `${LIST_URL}?market=${market.companyCode}`, fetchedAt,
+    averagePrice: Math.round(value.weighted / value.quantity),
+    sourceUrl: `${DOWNLOAD_URL}?${new URLSearchParams({ excelNm: "일자별 경매동향", saleDate: tradeDate, cmpCd: market.companyCode, flowerGubn: "1", unit: "BUNDLE", parser: "2" })}`, fetchedAt,
   }))
 }
 

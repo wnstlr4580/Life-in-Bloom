@@ -11,7 +11,7 @@ type Item = {
   product: { name: string; images: string[] } | { name: string; images: string[] }[]
   order: { createdAt: string; deliveryType: string; shippingAddr: Record<string, string>; giftMessage: string | null } | { createdAt: string; deliveryType: string; shippingAddr: Record<string, string>; giftMessage: string | null }[]
 }
-const STATUS: Record<string, string> = { PAID: "신규 주문", PREPARING: "상품 준비", SHIPPED: "배송 중", DELIVERED: "배송 완료", CANCELLED: "취소" }
+const STATUS: Record<string, string> = { PAID: "신규 주문", PREPARING: "상품 준비", SHIPPED: "배송 중", DELIVERED: "배송 완료", PURCHASE_CONFIRMED: "구매확정", CANCELLED: "취소" }
 const TYPE: Record<string, string> = { FINISHED: "완제품", CUSTOM_BOUQUET: "나만의 꽃다발", DIY_FLOWER: "개별 꽃·DIY" }
 
 export default function SellerOrdersPage() {
