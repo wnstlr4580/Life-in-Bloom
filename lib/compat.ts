@@ -226,11 +226,12 @@ export function calcCompat(a: PersonSaju, b: PersonSaju): CompatScore {
 }
 
 // 커플 꽃 추천 — 두 오행을 잇는 꽃
+// 키는 sort() 결과(Unicode 순: 금 < 목 < 수 < 토 < 화)와 같아야 한다 — 아니면 "혼합 꽃다발"로 떨어진다
 function getCoupleFlower(a: Ohaeng, b: Ohaeng): { flower: string; desc: string } {
   const key = [a, b].sort().join("-")
   const map: Record<string, { flower: string; desc: string }> = {
     "목-화": { flower: "해바라기 + 튤립", desc: "목이 화를 키우듯, 당신들의 사랑은 서로를 활짝 피게 합니다" },
-    "화-토": { flower: "국화 + 장미", desc: "화가 토를 만들듯, 열정이 안정된 사랑의 대지로 쌓입니다" },
+    "토-화": { flower: "국화 + 장미", desc: "화가 토를 만들듯, 열정이 안정된 사랑의 대지로 쌓입니다" },
     "금-토": { flower: "백합 + 프리지아", desc: "토가 금을 품듯, 포용 속에서 순수한 빛이 납니다" },
     "금-수": { flower: "라벤더 + 카네이션", desc: "금이 수를 만들듯, 고요한 지혜가 사랑을 깊게 합니다" },
     "목-수": { flower: "수국 + 수선화", desc: "수가 목을 키우듯, 지혜로운 사랑이 당신을 성장시킵니다" },
@@ -240,8 +241,8 @@ function getCoupleFlower(a: Ohaeng, b: Ohaeng): { flower: string; desc: string }
     "금-금": { flower: "백합 + 안개꽃", desc: "순백의 결실이 두 배로 빛나는, 우아하고 고귀한 관계입니다" },
     "수-수": { flower: "수국 + 라벤더", desc: "깊은 물이 더 깊어지듯, 지혜롭고 신비로운 유대감이 있습니다" },
     "목-토": { flower: "튤립 + 국화", desc: "목이 토를 깨뜨리려 하지만, 그 속에서 강인함이 생깁니다" },
-    "화-금": { flower: "장미 + 카네이션", desc: "화가 금을 녹이듯, 열정이 차가운 마음을 열어주는 관계입니다" },
-    "토-수": { flower: "프리지아 + 아이리스", desc: "토가 수를 막으려 하지만, 물은 결국 길을 찾습니다" },
+    "금-화": { flower: "장미 + 카네이션", desc: "화가 금을 녹이듯, 열정이 차가운 마음을 열어주는 관계입니다" },
+    "수-토": { flower: "프리지아 + 아이리스", desc: "토가 수를 막으려 하지만, 물은 결국 길을 찾습니다" },
     "수-화": { flower: "수국 + 해바라기", desc: "불과 물의 긴장감, 그 사이에서 뜨거운 끌림이 생깁니다" },
     "금-목": { flower: "백합 + 튤립", desc: "금이 목을 다듬듯, 서로가 서로를 성장시키는 관계입니다" },
   }
