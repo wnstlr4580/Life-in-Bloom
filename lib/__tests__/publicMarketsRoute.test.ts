@@ -9,6 +9,15 @@ import { POST, GET } from "@/app/api/diy/public-markets/route"
 afterEach(() => { cache.rows = []; vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.useRealTimers() })
 const request = (extra = {}) => new Request("http://test/api/diy/public-markets", { method: "POST", body: JSON.stringify({ flowers: [{ id: "rose-red", quantity: 12 }], ...extra }) })
 describe("공판장 위치와 검증 가격", () => {
+  it("검증된 실가격이 있으면 시연값을 사용하지 않는다", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date("2026-10-13T03:00:00Z")); vi.stubEnv("AT_FLOWER_API_KEY", "")
+    cache.rows = [{ marketId: "at-yangjae", tradeDate: "2026-10-12", itemName: "장미", quantity: 500, minPrice: 9000, maxPrice: 15000, averagePrice: 10000, sourceUrl: "https://flower.at.or.kr/api/returnData.api?flowerGubn=1&unit=BUNDLE&parser=2", fetchedAt: "2026-10-12T03:00:00Z" }]
+    const json = await (await POST(request())).json()
+    const market = json.markets.find((m: { id: string }) => m.id === "at-yangjae")
+    expect(market.auctionReferenceTotal).toBe(20000)
+    expect(market.demoQuote).toBeNull()
+    expect(market.consumerEstimate).toBeNull()
+  })
   it("가격 서비스 없이 전체 공판장 위치를 제공한다", async () => {
     const json = await (await GET()).json()
     expect(json.markets).toHaveLength(8)
@@ -23,6 +32,7 @@ describe("공판장 위치와 검증 가격", () => {
     const json = await (await response).json()
     expect(json.markets).toHaveLength(8)
     expect(json.markets.every((market: { consumerEstimate: unknown }) => market.consumerEstimate === null)).toBe(true)
+    expect(json.markets.every((market: { demoQuote: { source: string; total: number } }) => market.demoQuote.source === "DEMO_FIXTURE" && market.demoQuote.total === 24000)).toBe(true)
   })
   it.each([null, 999])("좌표 %s를 현재 위치로 계산하지 않는다", async latitude => {
     vi.stubEnv("AT_FLOWER_API_KEY", "")
@@ -36,6 +46,7 @@ describe("공판장 위치와 검증 가격", () => {
     const market = json.markets.find((m: { id: string }) => m.id === "at-yangjae")
     expect(market.auctionReferenceTotal).toBeNull()
     expect(market.consumerEstimate).toBeNull()
+    expect(market.demoQuote.total).toBe(24000)
     expect(market.dataStatus).toBe("UNVERIFIED_OR_SPARSE")
     expect(json.markets[0].distanceKm).toBeLessThan(json.markets.at(-1).distanceKm)
   })

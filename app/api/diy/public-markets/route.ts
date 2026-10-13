@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { demoPurchaseQuote } from "@/lib/publicMarketDemo"
 import { FLOWERS } from "@/lib/customFlowers"
 import { publicMarketDirectory } from "@/lib/publicMarketDirectory"
 import { APPROX_STEMS_PER_BUNDLE, auctionReference, purchaseLine, type AuctionObservation } from "@/lib/publicMarketPricing"
@@ -74,6 +75,7 @@ export async function POST(request: Request) {
     return { ...market,
       distanceKm: hasLocation ? distance(latitude, longitude, market.latitude, market.longitude) : null,
       flowers: pricedFlowers, auctionReferenceTotal: total,
+      demoQuote: complete ? null : demoPurchaseQuote(flowers),
       // No retail prediction until paired, verified consumer purchase data can calibrate it.
       consumerEstimate: null, consumerEstimateStatus: "NEEDS_SHOP_QUOTE",
       basisDate: dates.at(-1) ?? null, oldestBasisDate: dates[0] ?? null,
