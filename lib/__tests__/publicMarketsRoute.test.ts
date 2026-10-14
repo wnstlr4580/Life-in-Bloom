@@ -44,7 +44,7 @@ describe("공판장 위치와 검증 가격", () => {
     const json = await (await response).json()
     expect(json.markets).toHaveLength(8)
     expect(json.markets.every((market: { consumerEstimate: unknown }) => market.consumerEstimate === null)).toBe(true)
-    expect(json.markets.every((market: { demoQuote: { source: string; total: number } }) => market.demoQuote.source === "DEMO_FIXTURE" && market.demoQuote.total === 24000)).toBe(true)
+    expect(json.markets.every((market: { demoQuote: unknown; auctionReferenceTotal: unknown }) => market.demoQuote === null && market.auctionReferenceTotal === null)).toBe(true)
   })
   it.each([null, 999])("좌표 %s를 현재 위치로 계산하지 않는다", async latitude => {
     vi.stubEnv("AT_FLOWER_API_KEY", "")
@@ -58,7 +58,7 @@ describe("공판장 위치와 검증 가격", () => {
     const market = json.markets.find((m: { id: string }) => m.id === "at-yangjae")
     expect(market.auctionReferenceTotal).toBeNull()
     expect(market.consumerEstimate).toBeNull()
-    expect(market.demoQuote.total).toBe(24000)
+    expect(market.demoQuote).toBeNull()
     expect(market.dataStatus).toBe("UNVERIFIED_OR_SPARSE")
     expect(json.markets[0].distanceKm).toBeLessThan(json.markets.at(-1).distanceKm)
   })

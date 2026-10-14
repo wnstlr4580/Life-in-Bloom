@@ -13,3 +13,19 @@
 - sunflower: 6 sunflowers + 2 eucalyptus stems, linen, balcony chair; AI preview uses a beige studio background.
 - blue: 3 blue hydrangea heads + 5 white roses, ivory wrap, kitchen counter; AI preview uses a pale blue studio background.
 - 생성 이미지의 꽃 수는 구성 계획과 완전히 일치하지 않을 수 있다. 실제 제작·재고 보증에 사용하지 않는다.
+
+
+## 2026-10-15 natural photo revision
+Built-in image_gen used, one image per style. Output: public/reviews/curated/{white,tulip,calla,yellow,sunflower,blue}-v2.png. Preserve AI_STAGED_EXAMPLE provenance. Originals and catalog previews retained.
+Shared prompt: Ordinary spontaneous smartphone snapshot, loose amateur assembly, varying bloom maturity and stem heights, wrinkled packaging, off-centre framing, flat natural light, no studio/catalog treatment, no text.
+- white: 8 white roses and a few baby's breath stems, small uneven homemade hand-tied bunch, crumpled brown paper folded too high on one side, thin beige string, held sideways by one hand over an apartment entryway tiled floor, shot downward at 40 degrees, not a perfect circular dome
+- tulip: orange tulips and dark purple anemones in a loose long narrow bunch, tulips bending outward in different directions, purple flowers partly obscured, loosely rolled natural linen with an uneven edge, lying diagonally on a kitchen table with scissors at the edge
+- calla: 8 ivory calla lilies and sparse eucalyptus stems, tall and very loose asymmetrical hand-tied bundle with stems different lengths, plain white narrow ribbon, propped against a dining chair, ordinary off-white wall and electrical outlet, photographed slightly from above
+- yellow: yellow roses and white lilies, only two lilies fully open and other buds closed, sparse airy amateur arrangement with gaps, cheap creased brown kraft paper with clear tape seam, resting on dark car passenger seat, handheld phone wide angle from above
+- sunflower: 6 sunflowers of noticeably different sizes, some heads turned sideways and drooping slightly, 2 sprigs eucalyptus, loose modest hand-tied bouquet in wrinkled linen, held by one hand against denim-clad lap on a park bench, ordinary midday light
+- blue: 3 pale blue hydrangea heads and 5 small ivory roses, hydrangeas irregular and pale almost lavender, sparse loose uneven amateur bouquet with roses clustered on one side, simple folded ivory paper and blue curling ribbon, resting tilted inside an ordinary shopping bag on a home kitchen floor
+Review copy now describes visible differences and practical composition considerations without fabricated purchase experiences.
+
+## Market correction
+Removed all automatic demo pricing from live API and cards. Actual auction references take priority, then distance. Partial item references remain visible, missing items do not acquire fake prices. Re-synced 1237 official aggregate rows; roses found at Yangjae, Busan Eomgung/Gangdong, Gwangju, Gimhae. No rose rows in recent Goyang/Eumseong files; no recent Gwacheon file. Existing daily cron remains configured.
+
