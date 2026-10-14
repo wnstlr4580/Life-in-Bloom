@@ -18,7 +18,7 @@ export async function GET() {
   return NextResponse.json({ markets: publicMarketDirectory() })
 }
 
-async function liveRows(group: string, today: string): Promise<AuctionObservation[]> {
+async function liveDayRows(group: string, today: string): Promise<AuctionObservation[]> {
   if (!process.env.AT_FLOWER_API_KEY) return []
   const params = new URLSearchParams({ kind: "f001", serviceKey: process.env.AT_FLOWER_API_KEY, baseDate: today, flowerGubn: "1", dataType: "json", countPerPage: "999", currentPage: "1", pumName: group })
   try {
@@ -26,8 +26,8 @@ async function liveRows(group: string, today: string): Promise<AuctionObservatio
     if (!response.ok) return []
     const json = await response.json()
     if (json.response?.resultCd !== "0" || !Array.isArray(json.response.items) || json.response.items.length >= 999) return []
-    const rows = (json.response.items as { saleDate: string; pumName: string; avgAmt: string; minAmt: string; maxAmt: string; totQty: string }[])
-      .filter(row => row.saleDate === today && row.pumName === group && Number(row.avgAmt) > 0 && Number(row.totQty) > 0)
+    const rows = (json.response.items as { saleDate: string; flowerGubn: string; pumName: string; avgAmt: string; minAmt: string; maxAmt: string; totQty: string }[])
+      .filter(row => row.saleDate === today && row.flowerGubn === "절화" && row.pumName === group && Number(row.avgAmt) > 0 && Number(row.totQty) > 0)
     const quantity = rows.reduce((sum, row) => sum + Number(row.totQty), 0)
     if (!quantity) return []
     return [{ marketId: "at-yangjae", tradeDate: today, itemName: group, quantity,
@@ -36,6 +36,12 @@ async function liveRows(group: string, today: string): Promise<AuctionObservatio
       maxPrice: Math.max(...rows.map(row => Number(row.maxAmt) || Number(row.avgAmt))),
       sourceUrl: `https://flower.at.or.kr/api/returnData.api?kind=f001&baseDate=${today}&flowerGubn=1&unit=BUNDLE&parser=2`, fetchedAt: new Date().toISOString() }]
   } catch { return [] }
+}
+
+// No auction today does not mean no price: holidays and non-auction weekdays need recent trading days.
+async function liveRows(group: string, today: string): Promise<AuctionObservation[]> {
+  const days = Array.from({ length: 8 }, (_, offset) => new Date(Date.parse(`${today}T00:00:00Z`) - offset * 86400000).toISOString().slice(0, 10))
+  return (await Promise.all(days.map(day => liveDayRows(group, day)))).flat()
 }
 
 export async function POST(request: Request) {

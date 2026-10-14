@@ -9,6 +9,18 @@ import { POST, GET } from "@/app/api/diy/public-markets/route"
 afterEach(() => { cache.rows = []; vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.useRealTimers() })
 const request = (extra = {}) => new Request("http://test/api/diy/public-markets", { method: "POST", body: JSON.stringify({ flowers: [{ id: "rose-red", quantity: 12 }], ...extra }) })
 describe("공판장 위치와 검증 가격", () => {
+  it("오늘 경매가 없어도 최근 거래일의 실제 장미 가격을 사용한다", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date("2026-10-13T03:00:00Z")); vi.stubEnv("AT_FLOWER_API_KEY", "test-key")
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      const date = new URL(url).searchParams.get("baseDate")
+      return Response.json({ response: { resultCd: "0", items: date === "2026-10-12" ? [{ saleDate: date, flowerGubn: "절화", pumName: "장미", avgAmt: "9000", minAmt: "6000", maxAmt: "12000", totQty: "500" }] : [] } })
+    }))
+    const json = await (await POST(request())).json()
+    const market = json.markets.find((m: { id: string }) => m.id === "at-yangjae")
+    expect(market.auctionReferenceTotal).toBe(18000)
+    expect(market.basisDate).toBe("2026-10-12")
+    expect(market.demoQuote).toBeNull()
+  })
   it("검증된 실가격이 있으면 시연값을 사용하지 않는다", async () => {
     vi.useFakeTimers(); vi.setSystemTime(new Date("2026-10-13T03:00:00Z")); vi.stubEnv("AT_FLOWER_API_KEY", "")
     cache.rows = [{ marketId: "at-yangjae", tradeDate: "2026-10-12", itemName: "장미", quantity: 500, minPrice: 9000, maxPrice: 15000, averagePrice: 10000, sourceUrl: "https://flower.at.or.kr/api/returnData.api?flowerGubn=1&unit=BUNDLE&parser=2", fetchedAt: "2026-10-12T03:00:00Z" }]

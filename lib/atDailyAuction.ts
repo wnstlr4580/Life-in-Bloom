@@ -25,7 +25,7 @@ const number = (value: unknown) => {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0
 }
 
-async function findLatestFile(market: AtAuctionMarket) {
+async function findRecentFiles(market: AtAuctionMarket) {
   const body = new URLSearchParams({ currentPageNo: "1", searchStrDate: daysAgo(7), searchEndDate: daysAgo(0), mobCmpCd: market.companyCode })
   const response = await fetch(LIST_URL, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "Life-in-Bloom/1.0" }, body, cache: "no-store", signal: AbortSignal.timeout(20_000) })
   if (!response.ok) throw new Error(`aT 목록 HTTP ${response.status}`)
@@ -34,10 +34,10 @@ async function findLatestFile(market: AtAuctionMarket) {
     .filter((match) => match[2] === market.companyCode)
     .map((match) => ({ tradeDate: match[1], companyCode: match[2] }))
     .sort((a, b) => b.tradeDate.localeCompare(a.tradeDate))
-  return matches[0] ?? null
+  return matches.slice(0, 7)
 }
 
-async function downloadAndParse(market: AtAuctionMarket, tradeDate: string): Promise<AuctionPriceRow[]> {
+export async function downloadAndParse(market: AtAuctionMarket, tradeDate: string): Promise<AuctionPriceRow[]> {
   const url = new URL(DOWNLOAD_URL)
   url.searchParams.set("excelNm", "일자별 경매동향")
   url.searchParams.set("saleDate", tradeDate)
@@ -57,10 +57,10 @@ export function parseAtDailyRows(rows: unknown[][], market: AtAuctionMarket, tra
   if (headerIndex < 0) throw new Error("공식 엑셀의 가격 열을 확인하지 못했습니다")
   const headers = rows[headerIndex].map(normalize)
   const column = (pattern: RegExp) => headers.findIndex(value => pattern.test(value))
-  const itemColumn = column(/^(품목|품목명|품명)$/), quantityColumn = column(/^(수량|거래량|물량|총수량|거래수량)(\(.*\))?$/)
+  const itemColumn = column(/^(품목|품목명|품명)$/), quantityColumn = column(/^(속수량|수량|거래량|물량|총수량|거래수량)(\(.*\))?$/)
   const minColumn = column(/최저/), maxColumn = column(/최고/), averageColumn = column(/평균/)
   const categoryColumn = column(/^(부류|화훼부류|구분|부류명)$/), unitColumn = column(/^단위$/)
-  const explicitBundleQuantity = quantityColumn >= 0 && /\((속|단)\)/.test(headers[quantityColumn])
+  const explicitBundleQuantity = quantityColumn >= 0 && (/\((속|단)\)/.test(headers[quantityColumn]) || headers[quantityColumn] === "속수량")
   if ([itemColumn, quantityColumn, minColumn, maxColumn, averageColumn].some(index => index < 0)) throw new Error("공식 엑셀의 필수 열이 변경되었습니다")
   if (categoryColumn < 0 && unitColumn < 0 && !explicitBundleQuantity) throw new Error("절화·분화 또는 속 단위를 검증할 수 없어 가격 수집을 보류했습니다")
   const grouped = new Map<string, { quantity: number; weighted: number; min: number; max: number }>()
@@ -90,9 +90,13 @@ export function parseAtDailyRows(rows: unknown[][], market: AtAuctionMarket, tra
 export async function fetchLatestAtDailyAuctions() {
   return Promise.all(AT_AUCTION_MARKETS.map(async (market) => {
     try {
-      const latest = await findLatestFile(market)
-      if (!latest) return { market, status: "NO_FILE" as const, rows: [] as AuctionPriceRow[] }
-      return { market, status: "OK" as const, tradeDate: latest.tradeDate, rows: await downloadAndParse(market, latest.tradeDate) }
+      const files = await findRecentFiles(market)
+      if (!files.length) return { market, status: "NO_FILE" as const, rows: [] as AuctionPriceRow[] }
+      const fetched = await Promise.allSettled(files.map(file => downloadAndParse(market, file.tradeDate)))
+      const rows = fetched.flatMap(result => result.status === "fulfilled" ? result.value : [])
+      if (!rows.length) return { market, status: "ERROR" as const, error: "최근 원파일에서 사용 가능한 가격 행을 읽지 못했습니다", rows }
+      return { market, status: "OK" as const, tradeDate: files[0].tradeDate, rows }
+
     } catch (error) {
       return { market, status: "ERROR" as const, error: error instanceof Error ? error.message : "수집 실패", rows: [] as AuctionPriceRow[] }
     }

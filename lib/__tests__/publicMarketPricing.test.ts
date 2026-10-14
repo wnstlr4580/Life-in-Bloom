@@ -26,6 +26,11 @@ describe("경매 근거와 구매 수량", () => {
 
 describe("공식 엑셀 수집 검증", () => {
   const market = { id: "at-yangjae", name: "aT", companyCode: "0000000001" }
+  it("실제 aT 원파일의 속수량 헤더를 인식한다", () => {
+    const result = parseAtDailyRows([["품목명", "품종명", "등급", "속수량", "최저단가", "최고단가", "평균단가"], ["장미", "푸에고", "특2", "843", "6750", "10500", "8932"]], market, "2026-10-12")
+    expect(result[0].quantity).toBe(843)
+    expect(result[0].averagePrice).toBe(8932)
+  })
   it("같은 이름의 화분 장미를 절화 가격에 섞지 않는다", () => {
     const result = parseAtDailyRows([
       ["부류", "품목", "품종", "거래량", "최저가", "최고가", "평균가"],
