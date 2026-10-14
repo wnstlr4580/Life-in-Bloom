@@ -201,7 +201,7 @@ function SajuPageContent() {
         <p className="text-4xl mb-3">🔮</p>
         <h1 className="text-3xl font-bold text-stone-800">나의 꽃 찾기</h1>
         <p className="text-stone-500 mt-3 leading-relaxed">
-          태어난 날짜로 나의 기운과 오늘의 운세를 알아보고, 나를 닮은 꽃을 추천해 드려요
+          태어난 날짜로 나의 기운과 오늘의 운세를 알아보고, 나를 위한 꽃을 추천해 드려요
         </p>
       </div>
 

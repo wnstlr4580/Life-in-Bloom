@@ -257,7 +257,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
                 <span className="font-bold text-stone-800">인생내꽃</span>
               </div>
               <p className="text-sm text-stone-500 leading-relaxed">
-                생년월일 오행으로 나를 닮은 꽃을 찾아드리는
+                생년월일 오행으로 나를 위한 꽃을 찾아드리는
                 <br />
                 감성 플라워 커머스
               </p>
