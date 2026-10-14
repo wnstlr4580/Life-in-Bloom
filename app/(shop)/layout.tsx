@@ -1,11 +1,12 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { useState, useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { useCartStore } from "@/store/cartStore"
 import { signOut, useSession } from "next-auth/react"
-import { ShoppingCart, Flower2, User, LogIn, LogOut, Search, Shield, Store } from "lucide-react"
+import { ShoppingCart, User, LogIn, LogOut, Search, Shield, Store } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface NavChild { href: string; label: string }
@@ -90,7 +91,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           {/* 로고 */}
           <Link href="/" className="flex items-center gap-2 shrink-0">
-            <Flower2 size={22} className="text-rose-400" />
+            <Image src="/logo/life_in_bloom_mark.png" alt="" width={28} height={28} priority />
             <span className="text-lg font-bold text-stone-800">인생내꽃</span>
           </Link>
 
@@ -252,7 +253,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-10">
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <Flower2 size={18} className="text-rose-400" />
+                <Image src="/logo/life_in_bloom_mark.png" alt="" width={22} height={22} />
                 <span className="font-bold text-stone-800">인생내꽃</span>
               </div>
               <p className="text-sm text-stone-500 leading-relaxed">

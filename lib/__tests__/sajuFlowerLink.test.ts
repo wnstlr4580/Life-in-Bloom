@@ -57,7 +57,7 @@ describe("flowerBuyHref (D3 분기)", () => {
 
   it("상품이 없으면 나만의 꽃다발로", () => {
     expect(flowerBuyHref({ id: "peony-pink", searchQuery: "작약", productCount: 0 }))
-      .toBe("/custom?flowers=peony-pink")
+      .toBe("/diy?flowers=peony-pink")
   })
 
   it("검색어를 URL 인코딩한다", () => {

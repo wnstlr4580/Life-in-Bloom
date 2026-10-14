@@ -7,7 +7,7 @@ import type { Ohaeng } from "../saju"
 const OHAENG_ALL: Ohaeng[] = ["목", "화", "토", "금", "수"]
 
 describe("주문 가능 꽃 목록 (FLOWERS)", () => {
-  it("id가 유니크하다 — /custom?flowers= 화이트리스트와 재고 조인이 id에 걸려 있다", () => {
+  it("id가 유니크하다 — /diy?flowers= 화이트리스트와 재고 조인이 id에 걸려 있다", () => {
     expect(new Set(FLOWERS.map((f) => f.id)).size).toBe(FLOWERS.length)
   })
 

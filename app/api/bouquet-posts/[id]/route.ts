@@ -3,7 +3,7 @@ import { getToken } from "next-auth/jwt"
 import { supabaseAdmin } from "@/lib/supabase"
 import { revokePointsOnce } from "@/lib/points"
 
-// 후기 단건 조회 — /custom?post=ID 에서 조합을 불러올 때 사용
+// 후기 단건 조회 — /diy?post=ID 에서 조합을 불러올 때 사용
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 

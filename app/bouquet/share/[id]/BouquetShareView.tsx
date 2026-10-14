@@ -93,7 +93,7 @@ export default function BouquetShareView({ post }: { post: Post }) {
         </div>
 
         <Link
-          href={`/custom?post=${post.id}`}
+          href={`/diy?post=${post.id}`}
           className="block w-full text-center py-3 rounded-xl bg-amber-400 hover:bg-amber-500 text-white text-sm font-semibold transition-colors"
         >
           💐 나도 이 꽃으로 만들기
