@@ -3,12 +3,12 @@ import type { Ohaeng } from "@/lib/saju"
 import { FLOWERS_BY_OHAENG } from "@/lib/flowers"
 
 // 오행별 카드 색상
-const OHAENG_STYLE: Record<Ohaeng, { bg: string; border: string; text: string; chip: string }> = {
-  목: { bg: "bg-emerald-50/60", border: "border-emerald-100", text: "text-emerald-700", chip: "bg-emerald-100 text-emerald-700" },
-  화: { bg: "bg-rose-50/60", border: "border-rose-100", text: "text-rose-600", chip: "bg-rose-100 text-rose-600" },
-  토: { bg: "bg-amber-50/60", border: "border-amber-100", text: "text-amber-700", chip: "bg-amber-100 text-amber-700" },
-  금: { bg: "bg-slate-50/80", border: "border-slate-200", text: "text-slate-600", chip: "bg-slate-100 text-slate-600" },
-  수: { bg: "bg-blue-50/60", border: "border-blue-100", text: "text-blue-700", chip: "bg-blue-100 text-blue-700" },
+const OHAENG_STYLE: Record<Ohaeng, { bg: string; border: string; text: string }> = {
+  목: { bg: "bg-emerald-50/60", border: "border-emerald-100", text: "text-emerald-700" },
+  화: { bg: "bg-rose-50/60", border: "border-rose-100", text: "text-rose-600" },
+  토: { bg: "bg-amber-50/60", border: "border-amber-100", text: "text-amber-700" },
+  금: { bg: "bg-slate-50/80", border: "border-slate-200", text: "text-slate-600" },
+  수: { bg: "bg-blue-50/60", border: "border-blue-100", text: "text-blue-700" },
 }
 
 const OHAENG_NAME: Record<Ohaeng, string> = { 목: "나무", 화: "불", 토: "흙", 금: "금", 수: "물" }
@@ -23,7 +23,6 @@ function FlowerCards({ ohaeng, count }: { ohaeng: Ohaeng; count: number }) {
           <span className="text-2xl block">{f.emoji}</span>
           <p className={`text-sm font-bold ${style.text}`}>{f.name}</p>
           <p className="text-[11px] text-stone-500 leading-snug">{f.meaning}</p>
-          <span className={`inline-block text-[10px] px-2 py-0.5 rounded-full ${style.chip}`}>{f.color}</span>
         </div>
       ))}
     </div>

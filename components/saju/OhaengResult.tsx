@@ -56,10 +56,26 @@ export function OhaengResult({ pillars, mainOhaeng, name, birthFlower, birthColo
         <p className="text-sm text-stone-600 mt-3 leading-relaxed">
           {dayPillar?.description}
         </p>
-        <p className={`text-xs mt-2 font-medium ${mainColor.accent}`}>
-          🌸 나를 닮은 꽃 — {dayPillar?.flower}
-        </p>
       </div>
+
+      {/* 탄생화 · 탄생색 */}
+      {(birthFlower || birthColor) && (
+        <div className="rounded-xl bg-stone-50/80 border border-stone-100 px-4 py-3 flex flex-wrap items-center gap-x-5 gap-y-1.5">
+          {birthFlower && (
+            <p className="text-xs text-stone-600">
+              🌸 나의 탄생화 <span className="font-bold text-stone-800">{birthFlower.name}</span>
+              {birthFlower.meaning && (
+                <span className="text-stone-400"> — &lsquo;{birthFlower.meaning}&rsquo;</span>
+              )}
+            </p>
+          )}
+          {birthColor && (
+            <p className="text-xs text-stone-600">
+              🎨 나의 탄생색 <span className="font-bold text-stone-800">{birthColor.name}</span>
+            </p>
+          )}
+        </div>
+      )}
 
       {/* 4주 타임라인 */}
       <div className="space-y-3">
@@ -117,24 +133,6 @@ export function OhaengResult({ pillars, mainOhaeng, name, birthFlower, birthColo
             </div>
           )
         })}
-
-        {(birthFlower || birthColor) && (
-          <div className="mt-1 rounded-xl bg-stone-50/80 border border-stone-100 px-4 py-3 flex flex-wrap items-center gap-x-5 gap-y-1.5">
-            {birthFlower && (
-              <p className="text-xs text-stone-600">
-                🌸 나의 탄생화 <span className="font-bold text-stone-800">{birthFlower.name}</span>
-                {birthFlower.meaning && (
-                  <span className="text-stone-400"> — &lsquo;{birthFlower.meaning}&rsquo;</span>
-                )}
-              </p>
-            )}
-            {birthColor && (
-              <p className="text-xs text-stone-600">
-                🎨 나의 탄생색 <span className="font-bold text-stone-800">{birthColor.name}</span>
-              </p>
-            )}
-          </div>
-        )}
 
         {pillars.length < 4 && (
           <div className="flex gap-3">

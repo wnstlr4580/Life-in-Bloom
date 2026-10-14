@@ -7,15 +7,16 @@ import { Black_Han_Sans } from "next/font/google"
 import { Button } from "@/components/ui/button"
 import type { Ohaeng, PillarInfo } from "@/lib/saju"
 import { BRANCH_IMAGE, ILJU_TYPES, STEM_IMAGE } from "@/lib/iljuTypes"
+import { composeShareCard } from "./composeShareCard"
 
 const blackHanSans = Black_Han_Sans({ subsets: ["latin"], weight: "400" })
 
 const OHAENG_GRADIENT: Record<Ohaeng, string> = {
-  목: "from-green-400 to-emerald-600",
-  화: "from-rose-400 to-red-600",
-  토: "from-yellow-400 to-amber-600",
-  금: "from-slate-300 to-gray-500",
-  수: "from-blue-400 to-indigo-600",
+  목: "from-green-300 to-emerald-500",
+  화: "from-rose-300 to-red-500",
+  토: "from-yellow-300 to-amber-500",
+  금: "from-slate-200 to-gray-400",
+  수: "from-blue-300 to-indigo-500",
 }
 
 // 일주 60유형 전체 — 파일은 public/sns-card/{일주}.png (예: 정사.png).
@@ -53,13 +54,28 @@ export function ShareCard({ ohaeng, pillars, birthYear, name }: Props) {
   const key = `${day.stemName}${day.branchName}`
   const type = ILJU_TYPES[key]
   const imageSrc = CARD_IMAGE_KEYS.has(key) ? `/sns-card/${key}.png` : null
-  const fileName = `인생내꽃_${type.name}_${birthYear}.png`
+  const fileName = `인생내꽃_${type.name}_${birthYear}.${imageSrc ? "jpg" : "png"}`
 
-  /** 카드를 이미지 파일(Blob)로 만든다 — 그림이 있으면 원본 그대로, 없으면 뒷면 디자인을 캡처한다. */
+  // 화면에는 꽃 사진만 보여 주고, 저장·공유할 때만 유형명·꽃·한 줄 의미를 합성한다(한 번 만들면 재사용).
+  const composedRef = useRef<Blob | null>(null)
+  const composedKeyRef = useRef<string | null>(null)
+
+  /** 카드를 이미지 파일(Blob)로 만든다 — 그림이 있으면 합성 이미지, 없으면 뒷면 디자인을 캡처한다. */
   const getCardBlob = async (): Promise<Blob> => {
     if (imageSrc) {
-      const res = await fetch(imageSrc)
-      return res.blob()
+      if (!composedRef.current || composedKeyRef.current !== key) {
+        composedRef.current = await composeShareCard({
+          imageSrc,
+          ilju: key,
+          typeName: type.name,
+          flower: type.flower,
+          reading: type.reading,
+          titleFont: blackHanSans.style.fontFamily,
+          bodyFont: getComputedStyle(document.body).fontFamily,
+        })
+        composedKeyRef.current = key
+      }
+      return composedRef.current
     }
     if (!captureRef.current) throw new Error("카드를 찾을 수 없어요")
     const { default: html2canvas } = await import("html2canvas-pro")
@@ -122,8 +138,19 @@ export function ShareCard({ ohaeng, pillars, birthYear, name }: Props) {
   // 뒷면 — 일주가 뜻하는 이미지와 해석을 담는다. 그림이 없으면 앞면도 이 디자인을 쓴다.
   const descriptionFace = (
     <div
-      className={`absolute inset-0 [backface-visibility:hidden] rounded-[32px] overflow-hidden bg-gradient-to-br ${OHAENG_GRADIENT[ohaeng]} p-6 flex flex-col justify-between text-white`}
+      className={`absolute inset-0 [backface-visibility:hidden] rounded-[32px] overflow-hidden bg-gradient-to-br ${OHAENG_GRADIENT[ohaeng]} p-6 flex flex-col justify-between text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.28)]`}
     >
+      {/* 앞면 사진이 뒤에서 비쳐 보이듯 — 좌우 반전 + 흐림 + 낮은 투명도 */}
+      {imageSrc && (
+        <Image
+          src={imageSrc}
+          alt=""
+          aria-hidden
+          fill
+          sizes="288px"
+          className="object-cover -scale-x-100 blur-[2px] opacity-35 mix-blend-luminosity pointer-events-none"
+        />
+      )}
       {/* 필름 그레인 — 평면 그라데이션이 아니라 사진 느낌이 나도록 */}
       <div
         aria-hidden
@@ -168,7 +195,7 @@ export function ShareCard({ ohaeng, pillars, birthYear, name }: Props) {
         <p className="text-[10px] opacity-75">#일주 #사주 #{type.name.replace(/\s+/g, "")} #인생내꽃</p>
         <span className="inline-flex items-center gap-1.5 bg-white/90 text-rose-600 text-[10.5px] font-bold pl-1.5 pr-3 py-1 rounded-full">
           <span aria-hidden className="w-4 h-4 rounded-full bg-gradient-to-br from-rose-400 to-red-600" />
-          @insaengnaekkot
+          @LifeInBloom
         </span>
       </div>
     </div>
@@ -176,6 +203,15 @@ export function ShareCard({ ohaeng, pillars, birthYear, name }: Props) {
 
   return (
     <div className="flex flex-col items-center gap-4 max-w-full">
+      {/* 제목 — 이 꽃이 어떻게 골라졌는지 */}
+      <div className="text-center w-72 max-w-full">
+        <p className="text-xl font-bold text-stone-700">📸 공유카드</p>
+        <p className="text-[11px] text-stone-400 mt-1 leading-relaxed">
+          태어난 날의 기운인 <span className="font-semibold text-stone-500">{key}일주</span>로 고른 꽃이에요
+          <br />60가지 일주마다 꽃이 하나씩 정해져 있어요
+        </p>
+      </div>
+
       {/* 카드 — 클릭하면 옆으로 뒤집혀 일주의 의미와 해석이 나온다 */}
       <button
         type="button"
@@ -206,6 +242,7 @@ export function ShareCard({ ohaeng, pillars, birthYear, name }: Props) {
       <p className="text-center text-[11px] text-stone-400 -mt-2 flex items-center justify-center gap-1">
         <RotateCw size={11} /> 카드를 눌러 일주의 의미 보기
       </p>
+      <p className="text-center text-base font-bold text-rose-500 -mt-2">{type.flower}</p>
 
       {/* 캡처 전용 사본 — 3D 변형이 없어야 html2canvas가 제대로 찍는다. 그림이 있으면 안 쓰인다. */}
       {!imageSrc && (
