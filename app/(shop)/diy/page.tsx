@@ -68,8 +68,6 @@ const OHAENG_STYLE: Record<string, { active: string; idle: string; dot: string }
   수: { active: "border-blue-500 bg-blue-50 text-blue-700", idle: "border-blue-100 bg-blue-50/40 text-blue-700", dot: "bg-blue-500" },
 }
 
-const FLOWER_PAGE = 24
-
 // 꽃을 탭하면 크기에 맞춰 송이를 자동 배분한다 — 첫 꽃이 메인, 나머지는 균등
 const distribute = (ids: string[], target: typeof SIZES[number]) => {
   const result: Record<string, number> = {}
@@ -91,7 +89,6 @@ export default function DiyPage() {
   const [availabilityError, setAvailabilityError] = useState("")
   const [inStockOnly, setInStockOnly] = useState(false)
   const [focusFlowerId, setFocusFlowerId] = useState<string | null>(null)
-  const [shown, setShown] = useState({ key: "", count: FLOWER_PAGE })
   const [selectionMessage, setSelectionMessage] = useState("")
   const [specialDates, setSpecialDates] = useState<SpecialDate[]>([])
   const [size, setSize] = useState(SIZES[1])
@@ -157,10 +154,6 @@ export default function DiyPage() {
     if (filterMode === "occasion" && !isOccasionFlower(flower.id, occasionFilter)) return false
     return true
   })
-  const filterKey = [filterMode, ohaengFilter, colorFilter, meaningQuery, monthFilter, occasionFilter, filterMode === "birth" ? birthDate : "", query, inStockOnly].join("|")
-  const pageCount = shown.key === filterKey ? shown.count : FLOWER_PAGE
-  const lastSelectedIndex = filteredFlowers.reduce((last, flower, index) => (quantities[flower.id] ? index : last), -1)
-  const visibleFlowers = filteredFlowers.slice(0, Math.max(pageCount, lastSelectedIndex + 1))
   const wrapping = WRAPPING.find((item) => item.id === wrappingId) ?? WRAPPING[0]
   const guidePrice = selected.reduce((sum, [id, quantity]) => {
     const flower = FLOWERS.find((item) => item.id === id)
@@ -222,8 +215,11 @@ export default function DiyPage() {
       setSelectionMessage(message)
       setFocusFlowerId(validIds[0])
       setTimeout(() => {
+        // 섹션으로 내려간 뒤, 꽃 목록 상자 안에서 고른 꽃이 맨 위에 보이게 맞춘다
         const card = document.querySelector<HTMLButtonElement>(`[data-flower-id="${validIds[0]}"]`)
-        card?.scrollIntoView({ behavior: "smooth", block: "center" })
+        const list = document.getElementById("diy-flower-list")
+        document.getElementById("diy-flowers")?.scrollIntoView({ behavior: "smooth", block: "start" })
+        if (card && list) list.scrollTo({ top: card.offsetTop - 8, behavior: "smooth" })
         card?.focus({ preventScroll: true })
       }, 300)
       setTimeout(() => setFocusFlowerId(null), 3000)
@@ -637,93 +633,91 @@ export default function DiyPage() {
               )}
               {selectionMessage && <p className="mt-2 text-xs font-medium text-amber-700">{selectionMessage}</p>}
               {selected.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{selected.map(([id, quantity]) => <span key={id} className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">{FLOWERS.find((flower) => flower.id === id)?.name ?? id} × {quantity}송이</span>)}<span className="rounded-full border border-violet-100 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700">포장 · {wrapping.name}</span></div>}
-              <div className="mt-4 bg-white/95 py-2 backdrop-blur md:sticky md:top-16 md:z-20">
-                <div className="flex gap-1 overflow-x-auto rounded-xl bg-stone-100 p-1">
-                  {([
-                    ["all", "전체"],
-                    ["ohaeng", "🔮 오행"],
-                    ["color", "🎨 색상"],
-                    ["meaning", "💌 꽃말"],
-                    ["month", "🌼 이달의 꽃"],
-                    ["birth", "🎂 탄생화"],
-                    ["occasion", "🎁 특별한 날"],
-                  ] as [FilterMode, string][]).map(([mode, label]) => (
-                    <button
-                      key={mode}
-                      onClick={() => setFilterMode(mode)}
-                      className={`shrink-0 rounded-lg px-3 py-2 text-xs font-semibold transition ${
-                        filterMode === mode ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-700"
-                      }`}
-                    >
-                      {label}
+              <div className="mt-4 flex gap-1 overflow-x-auto rounded-xl bg-stone-100 p-1">
+                {([
+                  ["all", "전체"],
+                  ["ohaeng", "🔮 오행"],
+                  ["color", "🎨 색상"],
+                  ["meaning", "💌 꽃말"],
+                  ["month", "🌼 이달의 꽃"],
+                  ["birth", "🎂 탄생화"],
+                  ["occasion", "🎁 특별한 날"],
+                ] as [FilterMode, string][]).map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    onClick={() => setFilterMode(mode)}
+                    className={`shrink-0 rounded-lg px-3 py-2 text-xs font-semibold transition ${
+                      filterMode === mode ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-700"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {filterMode === "ohaeng" && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {["전체", "목", "화", "토", "금", "수"].map((item) => (
+                    <button key={item} onClick={() => setOhaengFilter(item)} className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm transition ${item === "전체" ? (ohaengFilter === item ? "border-stone-500 bg-stone-800 text-white" : "border-stone-200 bg-white text-stone-600") : (ohaengFilter === item ? OHAENG_STYLE[item].active : OHAENG_STYLE[item].idle)}`}>
+                      {item !== "전체" && <span className={`h-1.5 w-1.5 rounded-full ${OHAENG_STYLE[item].dot}`} />}
+                      {item}{item !== "전체" && item === userEnergy?.ohaeng ? " · 나의 기운" : item !== "전체" && item === userEnergy?.lacking ? " · 채움 추천" : ""}
                     </button>
                   ))}
                 </div>
-                {filterMode === "ohaeng" && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {["전체", "목", "화", "토", "금", "수"].map((item) => (
-                      <button key={item} onClick={() => setOhaengFilter(item)} className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm transition ${item === "전체" ? (ohaengFilter === item ? "border-stone-500 bg-stone-800 text-white" : "border-stone-200 bg-white text-stone-600") : (ohaengFilter === item ? OHAENG_STYLE[item].active : OHAENG_STYLE[item].idle)}`}>
-                        {item !== "전체" && <span className={`h-1.5 w-1.5 rounded-full ${OHAENG_STYLE[item].dot}`} />}
-                        {item}{item !== "전체" && item === userEnergy?.ohaeng ? " · 나의 기운" : item !== "전체" && item === userEnergy?.lacking ? " · 채움 추천" : ""}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {filterMode === "color" && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {COLOR_FILTER.map((item) => (
-                      <button key={item} onClick={() => setColorFilter(item)} className={`rounded-full border px-3 py-1.5 text-xs ${colorFilter === item ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-stone-200 text-stone-500"}`}>{COLOR_LABEL[item]}</button>
-                    ))}
-                  </div>
-                )}
-                {filterMode === "meaning" && (
-                  <input value={meaningQuery} onChange={(event) => setMeaningQuery(event.target.value)} placeholder="예: 사랑, 감사, 새로운 시작" className="mt-3 h-10 w-full rounded-xl border border-stone-200 px-3 text-sm outline-none focus:border-emerald-400" />
-                )}
-                {filterMode === "month" && (
-                  <div className="mt-3 grid grid-cols-6 gap-2 sm:grid-cols-12">
-                    {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => (
-                      <button key={month} onClick={() => setMonthFilter(month)} className={`rounded-lg border px-2 py-2 text-xs font-semibold ${monthFilter === month ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-stone-200 text-stone-500"}`}>
-                        {month}월
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {filterMode === "birth" && (
-                  <div className="mt-3">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                      <label className="text-xs font-semibold text-stone-600">탄생화 추천에는 태어난 연도 없이 월·일만 필요해요</label>
-                      <div className="flex items-center gap-1">
-                        <select aria-label="생일 월" value={birthDate.slice(0, 2)} onChange={(event) => setBirthDate(`${event.target.value}-${birthDate.slice(3, 5) || "01"}`)} className="h-10 rounded-xl border border-stone-200 bg-white px-3 text-sm">
-                          <option value="">월</option>{Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, "0")).map((month) => <option key={month} value={month}>{Number(month)}월</option>)}
-                        </select>
-                        <select aria-label="생일 일" value={birthDate.slice(3, 5)} onChange={(event) => setBirthDate(`${birthDate.slice(0, 2) || "01"}-${event.target.value}`)} className="h-10 rounded-xl border border-stone-200 bg-white px-3 text-sm">
-                          <option value="">일</option>{Array.from({ length: 31 }, (_, index) => String(index + 1).padStart(2, "0")).map((day) => <option key={day} value={day}>{Number(day)}일</option>)}
-                        </select>
-                      </div>
+              )}
+              {filterMode === "color" && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {COLOR_FILTER.map((item) => (
+                    <button key={item} onClick={() => setColorFilter(item)} className={`rounded-full border px-3 py-1.5 text-xs ${colorFilter === item ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-stone-200 text-stone-500"}`}>{COLOR_LABEL[item]}</button>
+                  ))}
+                </div>
+              )}
+              {filterMode === "meaning" && (
+                <input value={meaningQuery} onChange={(event) => setMeaningQuery(event.target.value)} placeholder="예: 사랑, 감사, 새로운 시작" className="mt-3 h-10 w-full rounded-xl border border-stone-200 px-3 text-sm outline-none focus:border-emerald-400" />
+              )}
+              {filterMode === "month" && (
+                <div className="mt-3 grid grid-cols-6 gap-2 sm:grid-cols-12">
+                  {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => (
+                    <button key={month} onClick={() => setMonthFilter(month)} className={`rounded-lg border px-2 py-2 text-xs font-semibold ${monthFilter === month ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-stone-200 text-stone-500"}`}>
+                      {month}월
+                    </button>
+                  ))}
+                </div>
+              )}
+              {filterMode === "birth" && (
+                <div className="mt-3">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <label className="text-xs font-semibold text-stone-600">탄생화 추천에는 태어난 연도 없이 월·일만 필요해요</label>
+                    <div className="flex items-center gap-1">
+                      <select aria-label="생일 월" value={birthDate.slice(0, 2)} onChange={(event) => setBirthDate(`${event.target.value}-${birthDate.slice(3, 5) || "01"}`)} className="h-10 rounded-xl border border-stone-200 bg-white px-3 text-sm">
+                        <option value="">월</option>{Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, "0")).map((month) => <option key={month} value={month}>{Number(month)}월</option>)}
+                      </select>
+                      <select aria-label="생일 일" value={birthDate.slice(3, 5)} onChange={(event) => setBirthDate(`${birthDate.slice(0, 2) || "01"}-${event.target.value}`)} className="h-10 rounded-xl border border-stone-200 bg-white px-3 text-sm">
+                        <option value="">일</option>{Array.from({ length: 31 }, (_, index) => String(index + 1).padStart(2, "0")).map((day) => <option key={day} value={day}>{Number(day)}일</option>)}
+                      </select>
                     </div>
-                    {birthSelection && (
-                      <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
-                        {monthDay.replace("-", "월 ")}일 탄생화는 <strong>{birthSelection.name}</strong>이에요.
-                        {!birthSelection.exactId && " 현재 DIY 판매 목록에 없어 같은 색감의 구매 가능한 꽃을 함께 추천해요."}
-                      </div>
-                    )}
                   </div>
-                )}
-                {filterMode === "occasion" && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {OCCASIONS.map((occasion) => (
-                      <button key={occasion.id} onClick={() => setOccasionFilter(occasion.id)} className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${occasionFilter === occasion.id ? "border-rose-400 bg-rose-50 text-rose-600" : "border-stone-200 text-stone-500"}`}>
-                        {occasion.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {visibleFlowers.map((flower) => {
+                  {birthSelection && (
+                    <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+                      {monthDay.replace("-", "월 ")}일 탄생화는 <strong>{birthSelection.name}</strong>이에요.
+                      {!birthSelection.exactId && " 현재 DIY 판매 목록에 없어 같은 색감의 구매 가능한 꽃을 함께 추천해요."}
+                    </div>
+                  )}
+                </div>
+              )}
+              {filterMode === "occasion" && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {OCCASIONS.map((occasion) => (
+                    <button key={occasion.id} onClick={() => setOccasionFilter(occasion.id)} className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${occasionFilter === occasion.id ? "border-rose-400 bg-rose-50 text-rose-600" : "border-stone-200 text-stone-500"}`}>
+                      {occasion.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div id="diy-flower-list" className="relative mt-4 grid max-h-[520px] grid-cols-2 gap-3 overflow-y-auto p-1 sm:grid-cols-3">
+                {filteredFlowers.map((flower) => {
                   const quantity = quantities[flower.id] ?? 0
                   return (
-                    <div key={flower.id} className={`overflow-hidden rounded-2xl border transition-shadow ${quantity ? "border-emerald-400 ring-1 ring-emerald-100" : "border-stone-100"} ${focusFlowerId === flower.id ? "ring-4 ring-rose-300" : ""}`}>
+                    <div key={flower.id} className={`overflow-hidden rounded-2xl border transition-shadow ${focusFlowerId === flower.id ? "border-rose-400 ring-2 ring-rose-300" : quantity ? "border-emerald-400 ring-1 ring-emerald-100" : "border-stone-100"}`}>
                       <button type="button" data-flower-id={flower.id} onClick={() => toggleFlower(flower.id)} aria-pressed={quantity > 0} aria-label={`${flower.name} ${quantity ? "선택 해제" : "선택"}`} className="relative block aspect-[4/3] w-full bg-stone-100">
                         <Image src={flower.img} alt={flower.name} fill sizes="(max-width: 640px) 45vw, 220px" className="object-cover" />
                         {quantity > 0 ? (
@@ -761,11 +755,6 @@ export default function DiyPage() {
                   )
                 })}
               </div>
-              {visibleFlowers.length < filteredFlowers.length && (
-                <button onClick={() => setShown({ key: filterKey, count: visibleFlowers.length + FLOWER_PAGE })} className="mt-4 w-full rounded-xl border border-stone-200 py-3 text-sm font-semibold text-stone-600 hover:border-emerald-300 hover:text-emerald-700">
-                  꽃 더 보기 ({visibleFlowers.length} / {filteredFlowers.length}종)
-                </button>
-              )}
               {filteredFlowers.length === 0 && (
                 <div className="py-10 text-center text-sm text-stone-400">해당 조건과 일치하는 꽃이 없어요. 다른 태그를 선택해주세요.</div>
               )}
