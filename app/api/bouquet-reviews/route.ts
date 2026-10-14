@@ -1,3 +1,4 @@
+import { isStyleExample } from "@/lib/reviewProvenance"
 import { NextResponse } from "next/server"
 import { put } from "@vercel/blob"
 import { nanoid } from "nanoid"
@@ -23,7 +24,7 @@ export async function GET(req: Request) {
   if (id) query = query.eq("id", id)
   const { data, error } = await query.order("createdAt", { ascending: false }).limit(id ? 1 : 200)
   if (error) return NextResponse.json({ error: "리뷰를 불러오지 못했어요" }, { status: 500 })
-  if (id) return NextResponse.json({ reviews: data ?? [] })
+  if (id) return NextResponse.json({ reviews: (data ?? []).map(review => ({ ...review, isExample: isStyleExample(review) })) })
   const relation = <T,>(value: T | T[] | null) => Array.isArray(value) ? value[0] ?? null : value
   const flowerIds = (composition: unknown) => {
     const value = (composition ?? {}) as { flowers?: { id: string }[]; mainFlowerId?: string; additionalFlowerIds?: string[] }
@@ -32,7 +33,7 @@ export async function GET(req: Request) {
   const all = (data ?? []).map((review) => {
     const product = relation(review.product), item = relation(review.orderItem)
     const seller = relation(product?.seller ?? null) ?? relation(item?.seller ?? null)
-    return { ...review, searchSeller: seller?.marketName ?? "", searchProduct: product?.name ?? "", flowerIds: flowerIds(review.composition), price: item?.price ?? 0 }
+    return { ...review, isExample: isStyleExample(review), searchSeller: seller?.marketName ?? "", searchProduct: product?.name ?? "", flowerIds: flowerIds(review.composition), price: item?.price ?? 0 }
   })
   const sellers = [...new Set(all.map((review) => review.searchSeller).filter(Boolean))].sort()
   const usedFlowerIds = [...new Set(all.flatMap((review) => review.flowerIds))]
