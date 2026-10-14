@@ -181,7 +181,8 @@ export default function DiyPage() {
         const nextQuantities: Record<string, number> = {}
         validFlowers.forEach((item) => { nextQuantities[item.id] = item.quantity })
         const assigned = Object.values(nextQuantities).reduce((sum, count) => sum + count, 0)
-        if (validFlowers.length > 1 && assigned < reviewSize.stems) nextQuantities[validFlowers[1].id] += reviewSize.stems - assigned
+        // Only legacy compositions lack exact stem counts and need rounding correction.
+        if (!Array.isArray(composition?.flowers) && validFlowers.length > 1 && assigned < reviewSize.stems) nextQuantities[validFlowers[1].id] += reviewSize.stems - assigned
         setSize(reviewSize)
         setQuantities(nextQuantities)
         if (WRAPPING.some((item) => item.id === composition?.wrappingId)) setWrappingId(composition.wrappingId!)
