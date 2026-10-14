@@ -35,10 +35,10 @@ export function flowerBuyHref(flower: { id: string; searchQuery: string; product
   if (flower.productCount > 0) {
     return `/products?q=${encodeURIComponent(flower.searchQuery)}&flower=${encodeURIComponent(flower.id)}`
   }
-  return `/custom?flowers=${encodeURIComponent(flower.id)}`
+  return `/diy?flowers=${encodeURIComponent(flower.id)}`
 }
 
 /** 완제품 유무와 무관하게 항상 나만의 꽃다발 빌더로 보낸다. */
 export function flowerBouquetHref(flower: { id: string }): string {
-  return `/custom?flowers=${encodeURIComponent(flower.id)}`
+  return `/diy?flowers=${encodeURIComponent(flower.id)}`
 }

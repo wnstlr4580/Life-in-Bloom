@@ -250,10 +250,10 @@ function ProductsContent() {
           <p className="text-4xl mb-4">🌱</p>
           <p>{q ? `"${q}"에 맞는 상품이 없어요` : "선택한 조건에 맞는 상품이 없습니다"}</p>
           {/* 추천받은 꽃의 완제품이 아직 없을 때 — 막다른 길 대신 그 꽃으로 꽃다발을 만들게 보낸다.
-              id는 /custom과 같은 방식으로 화이트리스트 검증한다. */}
+              id는 /diy와 같은 방식으로 화이트리스트 검증한다. */}
           {fallbackFlower && (
             <Link
-              href={`/custom?flowers=${encodeURIComponent(fallbackFlower.id)}`}
+              href={`/diy?flowers=${encodeURIComponent(fallbackFlower.id)}`}
               className="mt-4 inline-block px-5 py-2.5 rounded-full bg-rose-400 hover:bg-rose-500 text-white text-sm font-semibold transition-colors"
             >
               💐 {fallbackFlower.name} 꽃다발 만들기

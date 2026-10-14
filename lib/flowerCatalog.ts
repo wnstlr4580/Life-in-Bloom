@@ -4,7 +4,7 @@
 // 일부(품절·비인기 등)만 노출하는 게 아니라 주문 가능한 전 종을 후보로 본다.
 // 예전에는 사진·가격이 없는 "확충 전용(주문 불가)" 항목을 여기서만 별도로 붙였으나,
 // AI 초안 사진·가격을 갖추면서 FLOWERS로 편입했다(2026-09) — 그래야 사주 카드의
-// "이 꽃 사러가기" → `/custom?flowers=` 딥링크가 실제로 그 꽃을 선택해준다.
+// "이 꽃 사러가기" → `/diy?flowers=` 딥링크가 실제로 그 꽃을 선택해준다.
 import { FLOWERS } from "./customFlowers"
 import { flowerOhaengProfile, type OhaengProfileInput } from "./ohaengProfile"
 

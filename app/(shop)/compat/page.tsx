@@ -317,8 +317,8 @@ function CompatResult({ a, b, result }: { a: PersonSaju; b: PersonSaju; result: 
           const ohaengKey = [a.mainOhaeng, b.mainOhaeng].sort().join("-")
           const flowerIds = COUPLE_FLOWER_IDS[ohaengKey]
           const customUrl = flowerIds
-            ? `/custom?flowers=${[flowerIds.mainId, ...flowerIds.additionalIds].join(",")}`
-            : "/custom"
+            ? `/diy?flowers=${[flowerIds.mainId, ...flowerIds.additionalIds].join(",")}`
+            : "/diy"
           return (
             <Link
               href={customUrl}

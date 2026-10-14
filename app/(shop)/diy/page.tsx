@@ -68,6 +68,18 @@ const OHAENG_STYLE: Record<string, { active: string; idle: string; dot: string }
   수: { active: "border-blue-500 bg-blue-50 text-blue-700", idle: "border-blue-100 bg-blue-50/40 text-blue-700", dot: "bg-blue-500" },
 }
 
+// 꽃을 탭하면 크기에 맞춰 송이를 자동 배분한다 — 첫 꽃이 메인, 나머지는 균등
+const distribute = (ids: string[], target: typeof SIZES[number]) => {
+  const result: Record<string, number> = {}
+  if (ids.length === 1) result[ids[0]] = target.stems
+  if (ids.length < 2) return result
+  result[ids[0]] = target.mainStems
+  const rest = target.stems - target.mainStems
+  const others = ids.slice(1)
+  others.forEach((id, index) => { result[id] = Math.floor(rest / others.length) + (index < rest % others.length ? 1 : 0) })
+  return result
+}
+
 export default function DiyPage() {
   const router = useRouter()
   const { data: session } = useSession()
@@ -75,6 +87,7 @@ export default function DiyPage() {
   const [userEnergy, setUserEnergy] = useState<{ ohaeng: string | null; lacking: string | null } | null>(null)
   const [availableFlowerIds, setAvailableFlowerIds] = useState<Set<string> | null>(null)
   const [availabilityError, setAvailabilityError] = useState("")
+  const [inStockOnly, setInStockOnly] = useState(false)
   const [selectionMessage, setSelectionMessage] = useState("")
   const [specialDates, setSpecialDates] = useState<SpecialDate[]>([])
   const [size, setSize] = useState(SIZES[1])
@@ -128,7 +141,7 @@ export default function DiyPage() {
   const monthDay = birthDate
   const birthSelection = monthDay ? birthFlowerSelection(monthDay) : null
   const filteredFlowers = FLOWERS.filter((flower) => {
-    if (availableFlowerIds && !availableFlowerIds.has(flower.id)) return false
+    if (inStockOnly && availableFlowerIds && !availableFlowerIds.has(flower.id)) return false
     const meaning = flowerMeaning(flower.name, flower.group)
     const keyword = query.trim().toLowerCase()
     if (keyword && !`${flower.name} ${flower.group} ${meaning}`.toLowerCase().includes(keyword)) return false
@@ -181,6 +194,39 @@ export default function DiyPage() {
         sessionStorage.setItem("bouquetSourceReview", reviewId)
       })
       .catch((error) => setSelectionMessage(error instanceof Error ? error.message : "리뷰 조합을 불러오지 못했어요."))
+  }, [])
+
+  // 사주·궁합·상품 검색(?flowers=id1,id2)과 공유 꽃다발(?post=ID)에서 진입 — 옛 /custom 진입 파라미터
+  const loadedEntryRef = useRef(false)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const postId = params.get("post")
+    const flowersParam = params.get("flowers")
+    if (params.get("review") || (!postId && !flowersParam) || loadedEntryRef.current) return
+    loadedEntryRef.current = true
+    const apply = (ids: string[], sizeId: string | null, nextWrappingId: string | null, message: string) => {
+      const entrySize = SIZES.find((item) => item.id === sizeId) ?? SIZES[1]
+      const validIds = ids.filter((id) => FLOWERS.some((flower) => flower.id === id)).slice(0, entrySize.maxVarieties)
+      if (validIds.length === 0) return
+      setSize(entrySize)
+      setQuantities(distribute(validIds, entrySize))
+      if (WRAPPING.some((item) => item.id === nextWrappingId)) setWrappingId(nextWrappingId!)
+      setSelectionMessage(message)
+      requestAnimationFrame(() => document.getElementById("diy-flowers")?.scrollIntoView({ behavior: "smooth", block: "start" }))
+    }
+    if (postId) {
+      fetch(`/api/bouquet-posts/${encodeURIComponent(postId)}`)
+        .then((response) => { if (!response.ok) throw new Error(); return response.json() })
+        .then((post) => {
+          const composition = post.composition as { sizeId?: string; mainFlowerId?: string | null; additionalFlowerIds?: string[]; wrappingId?: string }
+          apply([composition?.mainFlowerId ?? "", ...(composition?.additionalFlowerIds ?? [])], composition?.sizeId ?? null, composition?.wrappingId ?? null, "공유된 꽃다발 조합을 불러왔어요.")
+          // 이 조합으로 주문이 완료되면 글쓴이에게 포인트가 적립되도록 기억해둔다
+          sessionStorage.setItem("bouquetSourcePost", postId)
+        })
+        .catch(() => setSelectionMessage("공유된 꽃다발 조합을 불러오지 못했어요."))
+      return
+    }
+    apply(flowersParam!.split(","), params.get("size"), params.get("wrapping"), "추천받은 꽃을 담아 두었어요. 송이 수와 다른 꽃을 자유롭게 조정해 보세요.")
   }, [])
 
   useEffect(() => {
@@ -254,18 +300,6 @@ export default function DiyPage() {
     setMatches(null)
     setGeneratedImageUrl(null)
     setGenerateError("")
-  }
-
-  // 꽃을 탭하면 크기에 맞춰 송이를 자동 배분한다 — 첫 꽃이 메인, 나머지는 균등
-  const distribute = (ids: string[], target: typeof SIZES[number]) => {
-    const result: Record<string, number> = {}
-    if (ids.length === 1) result[ids[0]] = target.stems
-    if (ids.length < 2) return result
-    result[ids[0]] = target.mainStems
-    const rest = target.stems - target.mainStems
-    const others = ids.slice(1)
-    others.forEach((id, index) => { result[id] = Math.floor(rest / others.length) + (index < rest % others.length ? 1 : 0) })
-    return result
   }
 
   const toggleFlower = (id: string) => {
@@ -503,7 +537,7 @@ export default function DiyPage() {
               <p className="mb-1 text-sm font-bold text-emerald-700">FLOWER BOUQUET DIY</p>
               <h1 className="text-2xl font-bold tracking-tight text-stone-900 sm:text-3xl">나만의 꽃다발 만들기·주문</h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-500 sm:text-base">
-                직접 만들 재료를 찾거나 같은 화면에서 꽃집 제작을 주문하세요. 현재 판매 가능한 꽃만 보여드려요.
+                직접 만들 재료를 찾거나 같은 화면에서 꽃집 제작을 주문하세요. 사주 오행 추천 꽃을 포함한 전체 꽃에서 고르고, 재고 있는 꽃만 따로 볼 수도 있어요.
               </p>
             </div>
           </div>
@@ -537,23 +571,38 @@ export default function DiyPage() {
               </div>
             </section>
 
-            <section className="rounded-2xl border border-stone-200 bg-white p-5 sm:p-6">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div>
+            <section id="diy-flowers" className="scroll-mt-28 rounded-2xl border border-stone-200 bg-white p-5 sm:p-6">
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div className="min-w-0 flex-1 basis-64">
                   <h2 className="font-bold text-stone-900">② 원하는 꽃 선택</h2>
-                  <p className="mt-1 text-sm text-stone-500">현재 판매처에 재고가 있는 꽃만 골라볼 수 있어요.</p>
+                  <p className="mt-1 text-sm text-stone-500">재고와 관계없이 전체 꽃을 보여드려요. 재고 있는 꽃만 보려면 필터를 켜세요.</p>
                 </div>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={15} />
-                  <input
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="꽃 이름 검색"
-                    className="h-10 w-full rounded-xl border border-stone-200 bg-stone-50 pl-9 pr-3 text-sm outline-none focus:border-emerald-400 sm:w-48"
-                  />
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={inStockOnly}
+                    onClick={() => setInStockOnly((current) => !current)}
+                    disabled={!availableFlowerIds}
+                    className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-600 disabled:opacity-40"
+                  >
+                    <span className={`relative h-5 w-9 rounded-full transition ${inStockOnly ? "bg-emerald-500" : "bg-stone-300"}`}>
+                      <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${inStockOnly ? "left-[18px]" : "left-0.5"}`} />
+                    </span>
+                    재고 있는 꽃만{availableFlowerIds && <span className="text-xs font-medium text-stone-400">({FLOWERS.filter((flower) => availableFlowerIds.has(flower.id)).length}종)</span>}
+                  </button>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={15} />
+                    <input
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder="꽃 이름 검색"
+                      className="h-10 w-full rounded-xl border border-stone-200 bg-stone-50 pl-9 pr-3 text-sm outline-none focus:border-emerald-400 sm:w-48"
+                    />
+                  </div>
                 </div>
               </div>
-              {availabilityError && <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700">{availabilityError} 임시 목록을 표시합니다.</p>}
+              {availabilityError && <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700">{availabilityError} 전체 꽃을 표시합니다.</p>}
               {specialDates.length > 0 && (
                 <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-xs text-rose-700">
                   <span className="font-semibold">저장한 기념일 추천</span>
@@ -661,6 +710,7 @@ export default function DiyPage() {
                     <div key={flower.id} className={`overflow-hidden rounded-2xl border ${quantity ? "border-emerald-400 ring-1 ring-emerald-100" : "border-stone-100"}`}>
                       <button type="button" onClick={() => toggleFlower(flower.id)} aria-pressed={quantity > 0} aria-label={`${flower.name} ${quantity ? "선택 해제" : "선택"}`} className="relative block aspect-[4/3] w-full bg-stone-100">
                         <Image src={flower.img} alt={flower.name} fill sizes="(max-width: 640px) 45vw, 220px" className="object-cover" />
+                        {availableFlowerIds && !availableFlowerIds.has(flower.id) && <span className="absolute left-2 top-2 rounded-full bg-stone-700/75 px-2 py-0.5 text-[10px] font-semibold text-white">판매처 재고 없음</span>}
                         {quantity > 0 ? (
                           <span className="absolute right-2 top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-emerald-600 px-1.5 text-xs font-bold text-white">
                             {quantity}
