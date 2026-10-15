@@ -191,6 +191,7 @@ model Seller {
   commissionRate        Int          @default(10)
   sellsFinishedProducts Boolean      @default(true)
   offersCustomBouquet   Boolean      @default(false)
+  bouquetMakingFee      Int?
   offersDiyFlowers      Boolean      @default(false)
   isOpen                Boolean      @default(true)
   termsVersion          String

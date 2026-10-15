@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase"
 import { SIZES } from "@/lib/customFlowers"
+import { bouquetPrice } from "@/lib/bouquetFees"
 
 type RequestedFlower = { id: string; quantity: number }
 type SellerRow = {
@@ -14,6 +15,7 @@ type SellerRow = {
   longitude: number | string | null
   isOpen: boolean
   offersCustomBouquet: boolean
+  bouquetMakingFee: number | null
   offersDiyFlowers: boolean
   customDeliveryScope: string
   customDeliveryRegions: string[]
@@ -109,7 +111,7 @@ export async function POST(req: Request) {
 
   const { data: sellerData, error: sellerError } = await supabaseAdmin
     .from("Seller")
-    .select("id, marketName, sellerType, roadAddress, detailAddress, publicPhone, latitude, longitude, isOpen, offersCustomBouquet, offersDiyFlowers, customDeliveryScope, customDeliveryRegions")
+    .select("id, marketName, sellerType, roadAddress, detailAddress, publicPhone, latitude, longitude, isOpen, offersCustomBouquet, bouquetMakingFee, offersDiyFlowers, customDeliveryScope, customDeliveryRegions")
     .in("id", sellerIds)
     .eq("status", "APPROVED")
     .eq("isOpen", true)
@@ -152,7 +154,7 @@ export async function POST(req: Request) {
     const customComplete = seller.offersCustomBouquet && seller.customDeliveryScope !== "NONE" && customFulfilledCount === flowers.length
     const diyPrice = diyComplete ? diyItems.reduce((sum, item) => sum + (item.subtotal ?? 0), 0) : null
     const customPrice = customComplete
-      ? customItems.reduce((sum, item) => sum + (item.subtotal ?? 0), 0) + 10000
+      ? bouquetPrice(customItems.reduce((sum, item) => sum + (item.subtotal ?? 0), 0), seller.bouquetMakingFee)
       : null
     return {
       sellerId: seller.id,
@@ -176,6 +178,8 @@ export async function POST(req: Request) {
       customComplete,
       diyPrice,
       customPrice,
+      makingFee: seller.bouquetMakingFee,
+      customMaterialPrice: customComplete ? customItems.reduce((sum, item) => sum + (item.subtotal ?? 0), 0) : null,
       withinRadius,
       preferred: seller.id === preferredSellerId,
       customDeliveryScope: seller.customDeliveryScope,

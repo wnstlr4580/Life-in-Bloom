@@ -11,7 +11,10 @@ describe("공판장 실제 가격 안내", () => {
     const html = renderToStaticMarkup(<PublicMarketGuide markets={markets} flowers={[{ id: "rose-red", name: "빨간 장미", group: "장미", quantity: 12, stemsPerBundle: 10 }]} onFocus={() => {}} />)
     expect(html).toContain("18,000원")
     expect(html).not.toContain("시연")
-    expect(html).not.toContain('id="market-at-yangjae"')
+    expect(html.indexOf('id="market-gwangju-pungam"')).toBeLessThan(html.indexOf('id="market-at-yangjae"'))
+    expect(html).not.toContain('id="market-kflower-eumseong"')
+    expect(html).not.toContain("구매 메모 복사")
+    expect(html).not.toContain("<input")
     expect(html).toContain('id="market-gwangju-pungam"')
   })
   it("자료가 전혀 없어도 가짜 금액이나 NaN을 만들지 않는다", () => {

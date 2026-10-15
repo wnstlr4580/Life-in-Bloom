@@ -51,6 +51,8 @@ type Match = {
   customComplete: boolean
   diyPrice: number | null
   customPrice: number | null
+  makingFee: number | null
+  customMaterialPrice: number | null
   preferred?: boolean
   customDeliveryScope: "NONE" | "NATIONWIDE" | "REGIONAL"
   customDeliveryRegions: string[]
@@ -840,8 +842,11 @@ export default function DiyPage() {
                               {match.distanceKm !== null && <p className="mt-1 text-xs font-semibold text-emerald-700">현재 위치에서 약 {match.distanceKm}km</p>}
                             </div>
                             <div className="shrink-0 text-right text-xs text-stone-500">
-                              {match.diyPrice !== null && <p>DIY 약 <strong className="text-base text-emerald-700">{(match.diyPrice + wrapping.price).toLocaleString()}원</strong></p>}
-                              {match.customPrice !== null && <p>제작 약 <strong className="text-base text-rose-600">{(match.customPrice + wrapping.price).toLocaleString()}원</strong></p>}
+                              {match.diyPrice !== null && <p>재료 구매 <strong className="text-base text-emerald-700">{(match.diyPrice + wrapping.price).toLocaleString()}원</strong></p>}
+                              {match.customPrice !== null && <p>꽃다발 제작 <strong className="text-base text-rose-600">{(match.customPrice + wrapping.price).toLocaleString()}원</strong></p>}
+                              {match.customComplete && match.makingFee == null && <p>제작비 미등록 · 판매처 확인 필요</p>}
+                              <p className="mt-1">포장 재료 {wrapping.price.toLocaleString()}원 포함</p>
+                              {match.makingFee != null && match.customComplete && <p>제작 작업비 {match.makingFee.toLocaleString()}원 · 배송비 별도</p>}
                             </div>
                           </div>
                           <div className="mt-3 flex flex-wrap gap-1.5">
@@ -854,7 +859,7 @@ export default function DiyPage() {
                           {match.publicPhone && <p className="mt-3 text-xs text-stone-500">방문 전 재고 확인: {match.publicPhone}</p>}
                           <div className="mt-4 grid gap-2 sm:grid-cols-2">
                             {fulfillmentMode === "diy" && match.diyComplete && <Button onClick={() => chooseSeller(match, "diy")} className="h-11 w-full bg-emerald-600 text-white hover:bg-emerald-700">✂️ 여기서 재료 전부 픽업</Button>}
-                            {fulfillmentMode === "custom" && match.customComplete && <Button onClick={() => chooseSeller(match, "custom")} className="h-11 w-full bg-rose-500 text-white hover:bg-rose-600">💐 이 꽃집에 전국배송 주문</Button>}
+                            {fulfillmentMode === "custom" && match.customComplete && <Button disabled={match.customPrice == null} onClick={() => chooseSeller(match, "custom")} className="h-11 w-full bg-rose-500 text-white hover:bg-rose-600">{match.customPrice == null ? "제작비 확인 후 주문 가능" : "💐 이 꽃집에 배송 주문"}</Button>}
                             {!modeComplete && match.preferred && hasMissing && <Button onClick={() => requestRestock(match)} variant="outline" className="h-11 w-full border-violet-200 text-violet-700 hover:bg-violet-50">🔔 이 판매처에 재입고 알림 신청</Button>}
                             {!modeComplete && match.preferred && !hasMissing && fulfillmentMode === "diy" && <p className="self-center text-xs text-stone-500">재고는 있지만 설정한 픽업 반경 밖이에요. 주문제작·전국 배송을 확인해보세요.</p>}
                           </div>
@@ -871,7 +876,7 @@ export default function DiyPage() {
                     </p>
                   </div>
                 ) : <p className="rounded-xl bg-stone-50 p-4 text-sm text-stone-600">{matching ? "꽃집 재고를 확인하고 있어요. 공판장 위치는 아래에서 먼저 확인할 수 있어요." : "꽃을 고른 뒤 ‘가능한 판매처·가격 확인’을 누르면 꽃집 재고와 공판장 시세를 조회해요."}</p>}
-                {fulfillmentMode === "diy" && <PublicMarketGuide markets={displayPublicMarkets} flowers={selected.map(([id, quantity]) => { const flower = FLOWERS.find(item => item.id === id)!; return { id, name: flower.name, group: flower.group, quantity, stemsPerBundle: APPROX_STEMS_PER_BUNDLE[flower.group] ?? null } })} onFocus={(id) => { setFocusMarketId(id); document.getElementById("diy-seller-map")?.scrollIntoView({ behavior: "smooth", block: "center" }) }}/>}
+                {fulfillmentMode === "diy" && <PublicMarketGuide markets={displayPublicMarkets} wrappingPrice={wrapping.price} nearbyStores={matches ?? []} flowers={selected.map(([id, quantity]) => { const flower = FLOWERS.find(item => item.id === id)!; return { id, name: flower.name, group: flower.group, quantity, stemsPerBundle: APPROX_STEMS_PER_BUNDLE[flower.group] ?? null } })} onFocus={(id) => { setFocusMarketId(id); document.getElementById("diy-seller-map")?.scrollIntoView({ behavior: "smooth", block: "center" }) }}/>}
               </section>
             )}
           </div>

@@ -25,6 +25,9 @@ export function isVerifiedCutFlower(row: AuctionObservation) {
 export function auctionReference(rows: AuctionObservation[], marketId: string, group: string, today: string) {
   const all = rows.filter(row => row.marketId === marketId && matchesFlowerGroup(row.itemName, group))
   const valid = all.filter(row => isVerifiedCutFlower(row) && Number.isFinite(row.averagePrice) && row.averagePrice > 0
+    // aT explicitly excludes Tue/Thu/Sat online trades from representative cut-flower prices.
+    && (marketId !== "at-yangjae" || [1, 3, 5].includes(new Date(`${row.tradeDate}T00:00:00Z`).getUTCDay()))
+    && !["kflower-eumseong", "kflower-gwacheon", "kflower-goyang"].includes(marketId)
     && Number.isFinite(row.quantity) && row.quantity > 0 && row.tradeDate <= today
     && Date.parse(today) - Date.parse(row.tradeDate) <= 7 * 86400000)
   const days = [...new Set(valid.map(row => row.tradeDate))].sort().reverse()
@@ -56,4 +59,25 @@ export function purchaseLine(quantity: number, stemsPerBundle: number | null, qu
   if (!valid) return { bundles: null, spareStems: null, total: null }
   const bundles = Math.ceil(quantity / stemsPerBundle!)
   return { bundles, spareStems: bundles * stemsPerBundle! - quantity, total: quotePerBundle !== null && Number.isFinite(quotePerBundle) && quotePerBundle > 0 ? Math.round(bundles * quotePerBundle) : null }
+}
+
+// Initial planning assumptions, NOT fitted retail margins or a validated prediction interval.
+export const RETAIL_PLANNING = { lowMultiplier: 1.2, midpointMultiplier: 1.4, highMultiplier: 1.6, version: "auction-budget-v1" } as const
+export function estimatedMarketPurchase(flowers: { quantity: number; stemsPerBundle: number | null; reference?: { average: number | null; low: number | null; high: number | null } }[], wrappingPrice = 0) {
+  if (!flowers.length || !Number.isFinite(wrappingPrice) || wrappingPrice < 0) return null
+  const lines = flowers.map(flower => {
+    const plan = purchaseLine(flower.quantity, flower.stemsPerBundle, flower.reference?.average ?? null)
+    if (plan.total === null || !flower.reference?.low || !flower.reference.high) return null
+    return { ...plan, purchased: plan.bundles! * flower.stemsPerBundle!,
+      low: plan.bundles! * flower.reference.low * RETAIL_PLANNING.lowMultiplier,
+      high: plan.bundles! * flower.reference.high * RETAIL_PLANNING.highMultiplier }
+  })
+  if (lines.some(line => !line)) return null
+  const valid = lines.map(line => line!)
+  const round = (value: number) => Math.round(value / 500) * 500
+  return { estimate: round(valid.reduce((sum, line) => sum + line.total! * RETAIL_PLANNING.midpointMultiplier, 0) + wrappingPrice),
+    low: Math.floor((valid.reduce((sum, line) => sum + line.low, 0) + wrappingPrice) / 500) * 500,
+    high: Math.ceil((valid.reduce((sum, line) => sum + line.high, 0) + wrappingPrice) / 500) * 500,
+    purchased: valid.reduce((sum, line) => sum + line.purchased, 0), spare: valid.reduce((sum, line) => sum + line.spareStems!, 0),
+    wrappingPrice, modelVersion: RETAIL_PLANNING.version, calibrated: false }
 }

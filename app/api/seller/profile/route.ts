@@ -6,7 +6,7 @@ const FIELDS = [
   "id", "status", "legalBusinessName", "businessNumber", "representativeName",
   "marketName", "sellerType", "managerName", "managerPhone", "publicPhone",
   "introduction", "postalCode", "roadAddress", "detailAddress", "approvedAt",
-  "submittedAt", "sellsFinishedProducts", "offersCustomBouquet", "offersDiyFlowers",
+  "submittedAt", "sellsFinishedProducts", "offersCustomBouquet", "offersDiyFlowers", "bouquetMakingFee",
   "customDeliveryScope", "customDeliveryRegions", "productDeliveryScope", "productDeliveryRegions",
   "isOpen", "businessHours", "settlementBank", "settlementAccount", "settlementHolder",
   "businessLicensePath",
@@ -38,6 +38,7 @@ export async function PATCH(req: Request) {
   if (!actor) return NextResponse.json({ error: "판매자 로그인이 필요해요" }, { status: 403 })
   const sellerId = actor.seller!.id
   const body = await req.json()
+  if (body.bouquetMakingFee != null && (!Number.isInteger(body.bouquetMakingFee) || body.bouquetMakingFee < 0 || body.bouquetMakingFee > 100000)) return NextResponse.json({ error: "제작비는 0~100,000원의 정수로 입력해주세요" }, { status: 400 })
   const { data: currentSeller } = await supabaseAdmin.from("Seller").select("status, sellsFinishedProducts, offersCustomBouquet, offersDiyFlowers").eq("id", sellerId).single()
   const serviceChanged = Boolean(currentSeller) && (
     Boolean(body.sellsFinishedProducts) !== currentSeller?.sellsFinishedProducts ||
@@ -70,6 +71,7 @@ export async function PATCH(req: Request) {
   if (body.offersCustomBouquet && customDeliveryScope === "REGIONAL" && customDeliveryRegions.length === 0) return NextResponse.json({ error: "주문제작 배송 가능 지역을 선택해주세요" }, { status: 400 })
   if (body.sellsFinishedProducts && productDeliveryScope === "REGIONAL" && productDeliveryRegions.length === 0) return NextResponse.json({ error: "완제품 배송 가능 지역을 선택해주세요" }, { status: 400 })
   const update = {
+    ...(body.bouquetMakingFee !== undefined ? { bouquetMakingFee: body.bouquetMakingFee } : {}),
     marketName, managerName, managerPhone, publicPhone, postalCode, roadAddress, detailAddress, introduction,
     sellsFinishedProducts: Boolean(body.sellsFinishedProducts),
     offersCustomBouquet: Boolean(body.offersCustomBouquet),

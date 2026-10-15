@@ -14,6 +14,7 @@ type Seller = {
   settlementBank: string; settlementAccount: string; settlementHolder: string; isOpen: boolean
   businessLicenseUrl: string | null; status?: string
   sellsFinishedProducts: boolean; offersCustomBouquet: boolean; offersDiyFlowers: boolean
+  bouquetMakingFee: number | null
   customDeliveryScope: "NONE" | "NATIONWIDE" | "REGIONAL"; customDeliveryRegions: string[]
   productDeliveryScope: "NONE" | "NATIONWIDE" | "REGIONAL"; productDeliveryRegions: string[]
   productSortStrategy: "MANUAL" | "LOW_STOCK" | "HIGH_STOCK" | "BEST_SELLING" | "LATEST"
@@ -86,6 +87,10 @@ export default function SellerSettingsPage() {
           <Service checked={seller.offersCustomBouquet} onChange={(v) => set("offersCustomBouquet", v)} label="나만의 꽃다발 주문" />
           <Service checked={seller.offersDiyFlowers} onChange={(v) => set("offersDiyFlowers", v)} label="개별 꽃·소재 판매" />
         </div>
+      </Section>
+      <Section title="꽃다발 제작비" icon={<Store size={18} />}>
+        <p className="mb-3 text-sm text-stone-600">개별 꽃 재료비와 선택 포장비에 더할 작업비입니다. 미등록 시 고객에게 임의 금액을 부과하지 않고 제작비 확인이 필요하다고 안내합니다.</p>
+        <Field label="제작 작업비 (원)"><Input type="number" min="0" max="100000" value={seller.bouquetMakingFee ?? ""} placeholder="예: 3000" onChange={e => set("bouquetMakingFee", e.target.value === "" ? null : Number(e.target.value))}/></Field>
       </Section>
       <Section title="내 상품 노출 순서" icon={<Store size={18} />}>
         <p className="mb-3 text-sm text-stone-500">관리자 정책과 고객이 선택한 정렬이 먼저 적용된 뒤, 내 상품끼리의 순서를 정합니다. 상품별 ‘우선노출’이 이 정렬보다 먼저 적용됩니다.</p>

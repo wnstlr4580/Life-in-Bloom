@@ -1,10 +1,37 @@
 import { describe, expect, it } from "vitest"
-import { auctionReference, purchaseLine, type AuctionObservation } from "../publicMarketPricing"
+import { auctionReference, purchaseLine, estimatedMarketPurchase, type AuctionObservation } from "../publicMarketPricing"
+import { bouquetPrice } from "../bouquetFees"
 import { parseAtDailyRows } from "../atDailyAuction"
 const sourceUrl = "https://flower.at.or.kr/excel/excelDownLoad.do?flowerGubn=1&unit=BUNDLE&parser=2"
 const row = (tradeDate: string, quantity: number, averagePrice: number): AuctionObservation => ({ marketId: "at-yangjae", tradeDate, itemName: "장미", quantity, averagePrice, minPrice: 1000, maxPrice: 50000, sourceUrl, fetchedAt: "2026-10-12T04:00:00Z" })
 
 describe("경매 근거와 구매 수량", () => {
+  it("양재 온라인 거래는 거래량이 많아도 본경매 시세에 섞지 않는다", () => {
+    const result = auctionReference([row("2026-10-13", 10000, 1800), row("2026-10-12", 5000, 9000)], "at-yangjae", "장미", "2026-10-14")
+    expect(result.average).toBe(9000)
+    expect(result.dates).toEqual(["2026-10-12"])
+  })
+  it("음성의 장미 이름이 있는 분화 파일을 절화로 사용하지 않는다", () => {
+    expect(auctionReference([{...row("2026-10-12", 500, 9000), marketId: "kflower-eumseong"}], "kflower-eumseong", "장미", "2026-10-14").average).toBeNull()
+  })
+  it("12줄기를 2속으로 올림하고 포장비를 한 번만 더한다", () => {
+    const result = estimatedMarketPurchase([{quantity:12,stemsPerBundle:10,reference:{average:10000,low:9000,high:11000}}],1500)!
+    expect(result).toMatchObject({estimate:29500,low:23000,high:37000,purchased:20,spare:8,calibrated:false})
+    expect(result.low).toBeLessThanOrEqual(result.estimate)
+    expect(result.high).toBeGreaterThanOrEqual(result.estimate)
+  })
+  it("다른 색상은 각각 묶음을 사고 미확보 품목을 0원 취급하지 않는다", () => {
+    const flower={quantity:5,stemsPerBundle:10,reference:{average:10000,low:10000,high:10000}}
+    expect(estimatedMarketPurchase([flower,flower])?.purchased).toBe(20)
+    expect(estimatedMarketPurchase([flower,{quantity:1,stemsPerBundle:null}])).toBeNull()
+    expect(estimatedMarketPurchase([])).toBeNull()
+  })
+  it("등록한 제작비만 더하고 미등록 값을 임의 금액으로 대체하지 않는다", () => {
+    expect(bouquetPrice(24000,3000)).toBe(27000)
+    expect(bouquetPrice(24000,0)).toBe(24000)
+    expect(bouquetPrice(24000,null)).toBeNull()
+    expect(bouquetPrice(24000,-1)).toBeNull()
+  })
   it("소량 최신일이 정상 경매일 대표값을 덮어쓰지 않는다", () => {
     const result = auctionReference([row("2026-10-10", 12, 2100), row("2026-10-09", 14414, 8790), row("2026-10-07", 17084, 8177)], "at-yangjae", "장미", "2026-10-12")
     expect(result.dates).toEqual(["2026-10-09", "2026-10-07"])
