@@ -54,24 +54,32 @@ export function auctionReference(rows: AuctionObservation[], marketId: string, g
   }
 }
 
-export function purchaseLine(quantity: number, stemsPerBundle: number | null, quotePerBundle: number | null) {
+// 꽃시장 매장에서 1단(묶음)이 아니라 1송이씩 파는 꽃. 경매는 속 단위지만 매장 구매는 낱개로 계산한다.
+export const SOLD_BY_STEM = new Set(["수국"])
+
+// 매장 구매량: 대부분 1단(경매 1속과 같은 송이 수) 단위로 올림, 낱개 판매 꽃은 필요한 송이만.
+// quotePerBundle 은 경매 1속 가격 — 낱개 판매 꽃은 1속 가격을 송이 수로 나눠 쓴다.
+export function purchaseLine(quantity: number, stemsPerBundle: number | null, quotePerBundle: number | null, byStem = false) {
   const valid = Number.isInteger(quantity) && quantity > 0 && stemsPerBundle !== null && Number.isInteger(stemsPerBundle) && stemsPerBundle > 0
-  if (!valid) return { bundles: null, spareStems: null, total: null }
-  const bundles = Math.ceil(quantity / stemsPerBundle!)
-  return { bundles, spareStems: bundles * stemsPerBundle! - quantity, total: quotePerBundle !== null && Number.isFinite(quotePerBundle) && quotePerBundle > 0 ? Math.round(bundles * quotePerBundle) : null }
+  if (!valid) return { bundles: null, spareStems: null, total: null, unitStems: null }
+  const unitStems = byStem ? 1 : stemsPerBundle!
+  const bundles = Math.ceil(quantity / unitStems)
+  const unitQuote = quotePerBundle !== null && Number.isFinite(quotePerBundle) && quotePerBundle > 0 ? quotePerBundle * unitStems / stemsPerBundle! : null
+  return { bundles, spareStems: bundles * unitStems - quantity, total: unitQuote !== null ? Math.round(bundles * unitQuote) : null, unitStems }
 }
 
 // 꽃시장(공판장 주변 도소매 매장) 1단 구매가 ÷ 같은 시기 aT 경락가로 산정한 매장 가산율.
 // 근거와 계산: docs/market-purchase-analysis.md (관측 약 1.1~1.45배, 중심 약 1.25배)
 export const RETAIL_PLANNING = { lowMultiplier: 1.1, midpointMultiplier: 1.25, highMultiplier: 1.45, version: "auction-budget-v2" } as const
-export function estimatedMarketPurchase(flowers: { quantity: number; stemsPerBundle: number | null; reference?: { average: number | null; low: number | null; high: number | null } }[], wrappingPrice = 0) {
+export function estimatedMarketPurchase(flowers: { quantity: number; stemsPerBundle: number | null; group?: string; reference?: { average: number | null; low: number | null; high: number | null } }[], wrappingPrice = 0) {
   if (!flowers.length || !Number.isFinite(wrappingPrice) || wrappingPrice < 0) return null
   const lines = flowers.map(flower => {
-    const plan = purchaseLine(flower.quantity, flower.stemsPerBundle, flower.reference?.average ?? null)
+    const plan = purchaseLine(flower.quantity, flower.stemsPerBundle, flower.reference?.average ?? null, SOLD_BY_STEM.has(flower.group ?? ""))
     if (plan.total === null || !flower.reference?.low || !flower.reference.high) return null
-    return { ...plan, purchased: plan.bundles! * flower.stemsPerBundle!,
-      low: plan.bundles! * flower.reference.low * RETAIL_PLANNING.lowMultiplier,
-      high: plan.bundles! * flower.reference.high * RETAIL_PLANNING.highMultiplier }
+    const share = plan.unitStems! / flower.stemsPerBundle!
+    return { ...plan, purchased: plan.bundles! * plan.unitStems!,
+      low: plan.bundles! * share * flower.reference.low * RETAIL_PLANNING.lowMultiplier,
+      high: plan.bundles! * share * flower.reference.high * RETAIL_PLANNING.highMultiplier }
   })
   if (lines.some(line => !line)) return null
   const valid = lines.map(line => line!)

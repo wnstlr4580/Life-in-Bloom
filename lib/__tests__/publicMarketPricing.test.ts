@@ -20,6 +20,10 @@ describe("경매 근거와 구매 수량", () => {
     expect(result.low).toBeLessThanOrEqual(result.estimate)
     expect(result.high).toBeGreaterThanOrEqual(result.estimate)
   })
+  it("꽃시장에서 낱개로 파는 수국은 필요한 송이만 사고 1속 가격을 송이 수로 나눈다", () => {
+    const result = estimatedMarketPurchase([{quantity:3,stemsPerBundle:5,group:"수국",reference:{average:10000,low:10000,high:10000}}])!
+    expect(result).toMatchObject({purchased:3,spare:0,estimate:7500})
+  })
   it("다른 색상은 각각 묶음을 사고 미확보 품목을 0원 취급하지 않는다", () => {
     const flower={quantity:5,stemsPerBundle:10,reference:{average:10000,low:10000,high:10000}}
     expect(estimatedMarketPurchase([flower,flower])?.purchased).toBe(20)
@@ -45,7 +49,7 @@ describe("경매 근거와 구매 수량", () => {
   })
   it("포장단위 미확인 꽃을 임의로 1속으로 계산하지 않는다", () => {
     expect(purchaseLine(12, null, 9000).total).toBeNull()
-    expect(purchaseLine(12, 10, 9000)).toEqual({ bundles: 2, spareStems: 8, total: 18000 })
+    expect(purchaseLine(12, 10, 9000)).toEqual({ bundles: 2, spareStems: 8, total: 18000, unitStems: 10 })
     expect(purchaseLine(12, 0, 9000).total).toBeNull()
     expect(purchaseLine(12, 5, null).total).toBeNull()
   })

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { FLOWERS } from "@/lib/customFlowers"
 import { publicMarketDirectory } from "@/lib/publicMarketDirectory"
-import { APPROX_STEMS_PER_BUNDLE, auctionReference, purchaseLine, type AuctionObservation } from "@/lib/publicMarketPricing"
+import { APPROX_STEMS_PER_BUNDLE, auctionReference, purchaseLine, type AuctionObservation, SOLD_BY_STEM } from "@/lib/publicMarketPricing"
 import { supabaseAdmin } from "@/lib/supabase"
 
 export const maxDuration = 25
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     const pricedFlowers = flowers.map(flower => {
       const reference = auctionReference(rows, market.id, flower.group, today)
       const stemsPerBundle = APPROX_STEMS_PER_BUNDLE[flower.group] ?? null
-      const purchase = purchaseLine(flower.quantity, stemsPerBundle, reference.average)
+      const purchase = purchaseLine(flower.quantity, stemsPerBundle, reference.average, SOLD_BY_STEM.has(flower.group))
       return { id: flower.id, name: flower.name, group: flower.group, quantity: flower.quantity,
         stemsPerBundle, bundleCount: purchase.bundles, spareStems: purchase.spareStems,
         averageBundlePrice: reference.average, referenceTotal: purchase.total, reference }
