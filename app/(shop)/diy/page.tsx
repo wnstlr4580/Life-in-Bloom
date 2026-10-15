@@ -801,13 +801,13 @@ export default function DiyPage() {
             <section id="diy-find" className="scroll-mt-28 rounded-2xl border border-stone-200 bg-white p-5 sm:p-6">
               <h2 className="font-bold text-stone-900">③ 받는 방법과 판매처 찾기</h2>
               <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl bg-stone-100 p-1.5">
-                <button onClick={() => { setFulfillmentMode("custom"); setMatches(null); setMatchError("") }} className={`rounded-xl px-4 py-3.5 text-left transition ${fulfillmentMode === "custom" ? "bg-white shadow-sm" : ""}`}>
-                  <span className={`block text-base font-bold sm:text-lg ${fulfillmentMode === "custom" ? "text-rose-600" : "text-stone-500"}`}>💐 주문제작</span>
-                  <span className="mt-0.5 block text-xs text-stone-500 sm:text-sm">꽃집이 만들어 배송·픽업</span>
+                <button onClick={() => { setFulfillmentMode("custom"); setMatches(null); setMatchError("") }} className={`rounded-xl px-3 py-3 text-left transition ${fulfillmentMode === "custom" ? "bg-white shadow-sm" : ""}`}>
+                  <span className={`block text-[15px] font-bold ${fulfillmentMode === "custom" ? "text-rose-600" : "text-stone-500"}`}>💐 주문제작</span>
+                  <span className="mt-0.5 block text-xs text-stone-500">꽃집이 만들어 배송·픽업</span>
                 </button>
-                <button onClick={() => { setFulfillmentMode("diy"); setMatches(null); setMatchError(""); if (gpsStatus === "idle" && !location.source) void locateCurrentPosition() }} className={`rounded-xl px-4 py-3.5 text-left transition ${fulfillmentMode === "diy" ? "bg-white shadow-sm" : ""}`}>
-                  <span className={`block text-base font-bold sm:text-lg ${fulfillmentMode === "diy" ? "text-emerald-700" : "text-stone-500"}`}>✂️ 직접 만들기</span>
-                  <span className="mt-0.5 block text-xs text-stone-500 sm:text-sm">꽃 매장·공판장 방문 구매</span>
+                <button onClick={() => { setFulfillmentMode("diy"); setMatches(null); setMatchError(""); if (gpsStatus === "idle" && !location.source) void locateCurrentPosition() }} className={`rounded-xl px-3 py-3 text-left transition ${fulfillmentMode === "diy" ? "bg-white shadow-sm" : ""}`}>
+                  <span className={`block text-[15px] font-bold ${fulfillmentMode === "diy" ? "text-emerald-700" : "text-stone-500"}`}>✂️ 직접 만들기</span>
+                  <span className="mt-0.5 block text-xs text-stone-500">꽃 매장·공판장 방문 구매</span>
                 </button>
               </div>
               <p className="mt-3 text-sm leading-6 text-stone-500">{fulfillmentMode === "diy" ? "개별 꽃을 파는 매장과 화훼공판장 중 가까운 곳을 찾아드려요. 꽃을 사서 직접 묶어보세요." : "맞춤 꽃다발을 제작하는 꽃집을 찾아드려요. 꽃집마다 등록한 포장재료비·제작 작업비로 가격을 계산하고, 배송 또는 매장 픽업을 고를 수 있어요."}</p>
@@ -857,7 +857,7 @@ export default function DiyPage() {
                 {visibleMatches.length > 0 ? (
                   <>
                     <div className="flex items-center gap-3">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"><Check size={20} /></span>
+                      <span className={`flex h-10 w-10 items-center justify-center rounded-full ${fulfillmentMode === "diy" ? "bg-sky-100 text-sky-700" : "bg-emerald-100 text-emerald-700"}`}><Check size={20} /></span>
                       <div>
                         <h2 className="font-bold text-stone-900">{completeMatches.length > 0 ? (fulfillmentMode === "diy" ? "이 꽃을 모두 살 수 있는 매장" : "이 꽃다발을 만들 수 있는 꽃집") : "원 리뷰 판매처에 재고를 요청해보세요"}</h2>
                         <p className="text-sm text-stone-500">{fulfillmentMode === "diy" ? "개별 꽃을 판매하는 매장 중 반경 안에서 한 번에 살 수 있는 곳이에요." : "등록된 재료 단가와 꽃집별 포장재료비·제작 작업비로 계산했어요."}</p>
@@ -873,19 +873,17 @@ export default function DiyPage() {
                         const diyTotal = diyTotalOf(match)
                         const canDeliver = match.customDeliveryScope !== "NONE"
                         return (
-                        <article key={match.sellerId} className={`rounded-2xl border p-4 ${modeComplete ? "border-emerald-200 bg-emerald-50/40" : match.preferred ? "border-violet-200 bg-violet-50/30" : "border-stone-200"}`}>
+                        <article key={match.sellerId} className={`rounded-2xl border p-4 ${modeComplete ? (fulfillmentMode === "diy" ? "border-sky-200 bg-sky-50/40" : "border-emerald-200 bg-emerald-50/40") : match.preferred ? "border-violet-200 bg-violet-50/30" : "border-stone-200"}`}>
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
                                 <h3 className="font-bold text-stone-900">{match.marketName}</h3>{match.preferred && <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-bold text-violet-700">리뷰 구매처 · 우선 확인</span>}
-                                <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${modeComplete ? "bg-emerald-600 text-white" : "bg-stone-100 text-stone-500"}`}>
-                                  {modeComplete ? (fulfillmentMode === "diy" ? "전부 구매 가능" : "제작 가능") : "재고 부족"}
-                                </span>
+                                <SellerBadges coop={match.isCoopMember} florist={match.isProfessionalFlorist} farm={match.sellerType === "FARM"} />
+                                {!modeComplete && <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[11px] font-bold text-stone-500">재고 부족</span>}
                               </div>
-                              <SellerBadges coop={match.isCoopMember} florist={match.isProfessionalFlorist} farm={match.sellerType === "FARM"} className="mt-1.5" />
                               <p className="mt-1 text-xs text-stone-500">{match.roadAddress}</p>
                               {fulfillmentMode === "custom" && <p className="mt-1 text-xs font-semibold text-rose-600">{match.customDeliveryScope === "NATIONWIDE" ? "🚚 전국 배송" : match.customDeliveryScope === "REGIONAL" ? `🚚 배송 ${match.customDeliveryRegions.join("·") || "지역 문의"}` : <span className="text-stone-400">🚚 배송 안 함</span>}<span className="text-amber-700"> · 🛍️ 매장 픽업 가능</span></p>}
-                              {fulfillmentMode === "diy" && modeComplete && <p className="mt-1 text-xs font-semibold text-emerald-700">🏬 매장 방문 구매</p>}
+                              {fulfillmentMode === "diy" && modeComplete && <p className="mt-1 text-xs font-semibold text-sky-700">🏬 매장 방문 구매</p>}
                               {match.distanceKm !== null && <p className="mt-1 text-xs font-semibold text-emerald-700">현재 위치에서 약 {match.distanceKm}km</p>}
                             </div>
                             <div className="shrink-0 text-right text-xs text-stone-500">
@@ -896,7 +894,7 @@ export default function DiyPage() {
                                 {canDeliver && <p className="mt-0.5 text-stone-400">배송비 별도</p>}
                               </>}
                               {fulfillmentMode === "diy" && diyTotal !== null && <>
-                                <p>재료 구매 <strong className="text-base text-emerald-700">{diyTotal.toLocaleString()}원</strong></p>
+                                <p>재료 구매 <strong className="text-base text-sky-700">{diyTotal.toLocaleString()}원</strong></p>
                                 <p className="mt-1">꽃 {match.diyPrice!.toLocaleString()}원 + 포장 {wrapPrice !== null ? `${wrapPrice.toLocaleString()}원` : "매장 문의"}</p>
                               </>}
                             </div>
@@ -913,7 +911,7 @@ export default function DiyPage() {
                             {reviewedSellers.has(match.marketName) && <Link href={`/gallery?seller=${encodeURIComponent(match.marketName)}`} target="_blank" className="font-semibold text-violet-700 hover:underline">📷 이 꽃집 꽃다발 후기 보기 ↗</Link>}
                           </div>
                           <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                            {fulfillmentMode === "diy" && match.diyComplete && <Button onClick={() => chooseSeller(match, "diy")} className="h-11 w-full bg-emerald-600 text-white hover:bg-emerald-700">✂️ 이 매장에서 꽃 사기 (방문)</Button>}
+                            {fulfillmentMode === "diy" && match.diyComplete && <Button onClick={() => chooseSeller(match, "diy")} className="h-11 w-full bg-sky-600 text-white hover:bg-sky-700">✂️ 이 매장에서 꽃 사기 (방문)</Button>}
                             {fulfillmentMode === "custom" && match.customComplete && (customTotal === null
                               ? <p className="self-center text-xs text-amber-700 sm:col-span-2">이 꽃집은 {wrapPrice === null ? `‘${wrapping.name}’ 포장재료비` : "제작 작업비"}를 아직 등록하지 않았어요. 다른 포장을 고르거나 전화로 문의해주세요.</p>
                               : <>

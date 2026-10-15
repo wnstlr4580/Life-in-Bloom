@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from "next/server"
 
+// Cloudflare 무료 한도(하루 1만 뉴런, 09:00 KST 초기화)를 다 쓰면 Pollinations(무료·키 없음)로 대신 생성한다.
+async function fallbackImage(prompt: string, seed: number) {
+  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt.slice(0, 1500))}?width=768&height=768&model=flux&nologo=true&seed=${seed}`
+  const res = await fetch(url, { signal: AbortSignal.timeout(90000), cache: "no-store" })
+  const type = res.headers.get("content-type") ?? ""
+  if (!res.ok || !type.startsWith("image/")) throw new Error(`fallback ${res.status}`)
+  return new Response(await res.arrayBuffer(), { headers: { "Content-Type": type } })
+}
+
 export async function POST(req: NextRequest) {
-  const { prompt } = await req.json()
+  const { prompt, seed } = await req.json()
+  const imageSeed = Number.isInteger(seed) ? Math.abs(seed) % 2147483647 : Math.floor(Math.random() * 1e9)
 
   if (!prompt) {
     return NextResponse.json({ error: "프롬프트가 없습니다." }, { status: 400 })
@@ -31,7 +41,7 @@ export async function POST(req: NextRequest) {
         Authorization: `Bearer ${apiToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ prompt: fullPrompt, steps: 8 }),
+      body: JSON.stringify({ prompt: fullPrompt, steps: 4 }), // schnell 권장 단계 — 한도 소모를 줄인다
       cache: "no-store",
     })
     clearTimeout(timeoutId)
@@ -39,8 +49,11 @@ export async function POST(req: NextRequest) {
     if (!res.ok) {
       const detail = (await res.text()).slice(0, 300)
       console.error("[bouquet-image] Cloudflare error", res.status, detail)
+      if (res.status === 429) {
+        try { return await fallbackImage(fullPrompt, imageSeed) } catch (fallbackError) { console.error("[bouquet-image] fallback failed", fallbackError) }
+      }
       return NextResponse.json(
-        { error: res.status === 401 || res.status === 403 ? "Cloudflare 이미지 생성 인증 정보를 확인해 주세요." : res.status === 429 ? "오늘의 무료 이미지 생성 한도를 모두 사용했어요." : `이미지 생성 서비스 오류(${res.status})가 발생했어요.` },
+        { error: res.status === 401 || res.status === 403 ? "Cloudflare 이미지 생성 인증 정보를 확인해 주세요." : res.status === 429 ? "지금 이미지 생성 요청이 많아요. 잠시 후 다시 시도해 주세요." : `이미지 생성 서비스 오류(${res.status})가 발생했어요.` },
         { status: res.status === 429 ? 429 : 502 },
       )
     }

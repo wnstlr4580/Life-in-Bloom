@@ -105,7 +105,7 @@ try {
         "sellsFinishedProducts" = true, "isOpen" = true, "status" = 'APPROVED', "updatedAt" = NOW()`,
       [
         sellerId, userId, store.name, businessNumber, `테스트대표${index + 1}`, `02-9${String(index).padStart(3, "0")}-1000`,
-        `${store.name}의 테스트용 꽃과 소재 재고입니다.`, store.address, store.latitude, store.longitude,
+        '제철 꽃과 소재를 송이 단위로 판매하고, 고르신 꽃으로 꽃다발도 만들어 드려요.', store.address, store.latitude, store.longitude,
         JSON.stringify({ mon: "09:00-19:00", sat: "10:00-17:00" }), `110-${String(100000 + index)}`,
       ],
     )
@@ -144,7 +144,7 @@ try {
           "useTags" = EXCLUDED."useTags", "isActive" = true`,
         [
           productId, `${store.name} ${main[1]} ${productIndex === 0 ? "데일리 꽃다발" : "축하 꽃다발"}`,
-          `${main[1]}를 중심으로 매장마다 다르게 구성한 테스트 완제품입니다.`, `${main[1]}, 계절 소재, 그린 소재`,
+          `${main[1]}를 중심으로 계절 소재와 함께 풍성하게 묶은 꽃다발이에요.`, `${main[1]}, 계절 소재, 그린 소재`,
           price, 5 + ((index + productIndex) % 16), [main[4]], main[2], ["화"], ["all"], [main[3]], useTags, sellerId,
         ],
       )

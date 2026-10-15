@@ -41,6 +41,11 @@ export default function ProductDetailPage() {
   const [selectedImage, setSelectedImage] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
+  // 꽃다발 후기가 있는 꽃집이면 ‘이 꽃집 꽃다발 후기 보기’ 링크를 보여준다
+  const [reviewedSellers, setReviewedSellers] = useState<Set<string>>(new Set())
+  useEffect(() => {
+    fetch("/api/bouquet-reviews?limit=1").then((r) => r.json()).then((data) => setReviewedSellers(new Set(data.facets?.sellers ?? []))).catch(() => {})
+  }, [])
   const addItem = useCartStore((s) => s.addItem)
 
   // 리뷰 작성 폼
@@ -192,7 +197,7 @@ export default function ProductDetailPage() {
             <h1 className="text-3xl font-bold text-stone-800">{product.name}</h1>
             {marketName && <div className={`mt-4 flex items-center gap-3 rounded-2xl border p-3 ${isNonghyupName(marketName) ? "border-[#8bc7aa] bg-gradient-to-r from-[#f1faf5] to-[#fff8dc]" : external ? "border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50" : "border-emerald-100 bg-emerald-50/70"}`}>
               <span className={`flex h-10 min-w-10 items-center justify-center rounded-lg ${external ? "bg-gradient-to-br from-amber-300 to-yellow-600 text-white shadow" : "bg-white text-emerald-700"}`}>{isNonghyupName(marketName) ? <NonghyupMark compact/> : external ? <BadgeCheck size={20} /> : <Store size={19} />}</span>
-              <div className="flex-1"><p className={`text-xs font-bold ${external ? "text-amber-700" : "text-emerald-700"}`}>{external ? (product.partnerBadge || "공식 제휴 판매처") : "이 상품을 준비하는 꽃집"}</p><p className="mt-0.5 font-semibold text-stone-800">{marketName}</p>{!external && <SellerBadges coop={seller?.isCoopMember} florist={seller?.isProfessionalFlorist} farm={seller?.sellerType === "FARM"} className="mt-1.5" />}</div>
+              <div className="flex-1"><p className={`text-xs font-bold ${external ? "text-amber-700" : "text-emerald-700"}`}>{external ? (product.partnerBadge || "공식 제휴 판매처") : "이 상품을 준비하는 꽃집"}</p><p className="mt-0.5 font-semibold text-stone-800">{marketName}</p>{!external && <SellerBadges coop={seller?.isCoopMember} florist={seller?.isProfessionalFlorist} farm={seller?.sellerType === "FARM"} className="mt-1.5" />}{!external && marketName && reviewedSellers.has(marketName) && <Link href={`/gallery?seller=${encodeURIComponent(marketName)}`} className="mt-1.5 block text-xs font-semibold text-violet-700 hover:underline">📷 이 꽃집 꽃다발 후기 보기 →</Link>}</div>
               {external && <ExternalLink size={17} className="text-amber-600" />}
             </div>}
             {product.flowerMeaning && (
