@@ -36,7 +36,7 @@ export async function PATCH(req: Request) {
   if (body.bouquetMakingFee != null && (!Number.isInteger(body.bouquetMakingFee) || body.bouquetMakingFee < 0 || body.bouquetMakingFee > 100000)) return NextResponse.json({ error: "제작비는 0~100,000원의 정수로 입력해주세요" }, { status: 400 })
   const wrappingPrices = body.wrappingPrices !== undefined ? cleanWrappingPrices(body.wrappingPrices) : undefined
   if (wrappingPrices === null) return NextResponse.json({ error: "포장재료비는 0~100,000원의 정수로 입력해주세요" }, { status: 400 })
-  const { data: currentSeller } = await supabaseAdmin.from("Seller").select("status, sellsFinishedProducts, offersCustomBouquet, offersDiyFlowers").eq("id", sellerId).single()
+  const { data: currentSeller } = await supabaseAdmin.from("Seller").select("status, sellsFinishedProducts, offersCustomBouquet, offersDiyFlowers, floristCertificatePaths").eq("id", sellerId).single()
   const serviceChanged = Boolean(currentSeller) && (
     Boolean(body.sellsFinishedProducts) !== currentSeller?.sellsFinishedProducts ||
     Boolean(body.offersCustomBouquet) !== currentSeller?.offersCustomBouquet ||
@@ -70,7 +70,8 @@ export async function PATCH(req: Request) {
   const update = {
     ...(body.bouquetMakingFee !== undefined ? { bouquetMakingFee: body.bouquetMakingFee } : {}),
     ...(wrappingPrices !== undefined ? { wrappingPrices } : {}),
-    ...(body.isProfessionalFlorist !== undefined ? { isProfessionalFlorist: Boolean(body.isProfessionalFlorist) } : {}),
+    // 플로리스트 표시는 자격증이 1개 이상 등록된 경우에만 켠다 (자격증 업로드 시 자동으로 켜짐)
+    ...(body.isProfessionalFlorist !== undefined ? { isProfessionalFlorist: Boolean(body.isProfessionalFlorist) && (currentSeller?.floristCertificatePaths?.length ?? 0) > 0 } : {}),
     marketName, managerName, managerPhone, publicPhone, postalCode, roadAddress, detailAddress, introduction,
     sellsFinishedProducts: Boolean(body.sellsFinishedProducts),
     offersCustomBouquet: Boolean(body.offersCustomBouquet),

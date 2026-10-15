@@ -55,10 +55,12 @@ export default function GalleryPage() {
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [appliedQuery, setAppliedQuery] = useState("")
-  const load = async (next = filters) => { setLoading(true); const params = new URLSearchParams({ limit: "50", ...next }); const response = await fetch(`/api/bouquet-reviews?${params}`, { cache: "no-store" }); const data = await response.json(); setReviews(data.reviews ?? []); setTotal(data.total ?? data.reviews?.length ?? 0); if (data.facets) setFacets(data.facets); setAppliedQuery(next.q); setLoading(false) }
+  const load = async (next = filters) => { setLoading(true); const params = new URLSearchParams({ limit: "50", ...next }); const response = await fetch(`/api/bouquet-reviews?${params}`, { cache: "no-store" }); const data = await response.json(); setFilters(next); setReviews(data.reviews ?? []); setTotal(data.total ?? data.reviews?.length ?? 0); if (data.facets) setFacets(data.facets); setAppliedQuery(next.q); setLoading(false) }
   useEffect(() => {
-    load()
     const params = new URLSearchParams(window.location.search)
+    // 꽃다발 만들기의 ‘이 꽃집 꽃다발 후기 보기’ → /gallery?seller=마켓명
+    const sellerParam = params.get("seller")
+    load(sellerParam ? { ...filters, seller: sellerParam } : filters)
     setWriting(params.get("write") === "1")
     setProductId(params.get("productId") ?? undefined)
     const reviewId = params.get("review")

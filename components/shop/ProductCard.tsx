@@ -1,6 +1,6 @@
 import Image from "next/image"
 import Link from "next/link"
-import { BadgeCheck, ExternalLink, Store } from "lucide-react"
+import { Award, BadgeCheck, ExternalLink, Store } from "lucide-react"
 import { WishlistButton } from "@/components/shop/WishlistButton"
 import { isNonghyupName, NonghyupMark } from "@/components/brand/NonghyupMark"
 
@@ -14,7 +14,7 @@ interface Props {
   stock?: number
   ratingAvg?: number | null
   reviewCount?: number
-  seller?: { marketName: string; productDeliveryScope?: string; productDeliveryRegions?: string[]; isCoopMember?: boolean; sellerType?: string } | { marketName: string; productDeliveryScope?: string; productDeliveryRegions?: string[]; isCoopMember?: boolean; sellerType?: string }[] | null
+  seller?: { marketName: string; productDeliveryScope?: string; productDeliveryRegions?: string[]; isCoopMember?: boolean; isProfessionalFlorist?: boolean; sellerType?: string } | { marketName: string; productDeliveryScope?: string; productDeliveryRegions?: string[]; isCoopMember?: boolean; isProfessionalFlorist?: boolean; sellerType?: string }[] | null
   purchaseType?: string
   externalUrl?: string | null
   partnerName?: string | null
@@ -88,6 +88,7 @@ export function ProductCard({ id, name, price, images, flowerMeaning, category, 
               {external && <ExternalLink size={11} className="shrink-0 text-amber-600" />}
             </div>
           )}
+          {!external && sellerInfo?.isProfessionalFlorist && <p className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-bold text-violet-700"><Award size={10}/>플로리스트 인증</p>}
           {!external && sellerInfo?.productDeliveryScope && <p className={`mt-1.5 text-[10px] font-semibold ${sellerInfo.productDeliveryScope === "NATIONWIDE" ? "text-rose-600" : "text-amber-700"}`}>{sellerInfo.productDeliveryScope === "NATIONWIDE" ? "🚚 전국 배송" : sellerInfo.productDeliveryScope === "REGIONAL" ? `🚚 ${sellerInfo.productDeliveryRegions?.join(" · ") || "지역 배송"}` : "🏬 방문 수령"}</p>}
           {flowerMeaning && (
             <p className="text-xs text-stone-400 mt-0.5 line-clamp-1">{flowerMeaning}</p>

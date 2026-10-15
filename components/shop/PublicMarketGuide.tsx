@@ -14,8 +14,8 @@ const priceSource = "https://flower.at.or.kr/yfmc/front/stat/aucPrice.do?menuId=
 
 // 1속을 칸으로 나눠 필요한 줄기(채움)와 남는 줄기(빈칸)를 한눈에 보여준다
 function BundleBlocks({ bundles, stemsPerBundle, needed }: { bundles: number; stemsPerBundle: number; needed: number }) {
-  if (bundles > 4) return <span className="text-xs font-semibold text-emerald-800">{bundles}속</span>
-  return <div className="flex flex-wrap gap-1" aria-hidden>{Array.from({ length: bundles }, (_, b) => <div key={b} className="flex gap-px rounded-md bg-white p-0.5 ring-1 ring-emerald-200">{Array.from({ length: stemsPerBundle }, (_, i) => <span key={i} className={`h-3 w-1.5 rounded-sm ${b * stemsPerBundle + i < needed ? "bg-emerald-500" : "bg-stone-200"}`}/>)}</div>)}</div>
+  if (bundles > 4) return null
+  return <span className="inline-flex gap-0.5" aria-hidden>{Array.from({ length: bundles }, (_, b) => <span key={b} className="inline-flex gap-px rounded p-px ring-1 ring-sky-200">{Array.from({ length: stemsPerBundle }, (_, i) => <span key={i} className={`h-2.5 w-1 rounded-sm ${b * stemsPerBundle + i < needed ? "bg-sky-500" : "bg-stone-200"}`}/>)}</span>)}</span>
 }
 
 function MarketCard({ market, flowers, wrappingPrice, nearest, onFocus }: { market: PublicMarketView; flowers: FlowerPlan[]; wrappingPrice: number; nearest?: NearbyStore; onFocus: (id: string) => void }) {
@@ -24,51 +24,41 @@ function MarketCard({ market, flowers, wrappingPrice, nearest, onFocus }: { mark
   const shopTotal = nearest?.diyPrice ?? null
   // 범위 막대 위 중심값 위치 (%)
   const marker = prediction && prediction.high > prediction.low ? Math.min(100, Math.max(0, (prediction.estimate - prediction.low) / (prediction.high - prediction.low) * 100)) : 50
-  return <article id={`market-${market.id}`} className="overflow-hidden rounded-2xl border border-emerald-200 bg-white">
-    <div className="flex items-start gap-3 p-4 sm:p-5">
-      {market.isNonghyup ? <NonghyupMark compact className="rounded-xl bg-emerald-50 p-3"/> : <span className="rounded-xl bg-sky-50 p-3">🏛️</span>}
-      <div className="min-w-0 flex-1"><h3 className="font-bold">{market.marketName}</h3><p className="mt-1 text-sm text-stone-500">{market.distanceKm != null ? `직선 약 ${market.distanceKm}km · ` : ""}{market.roadAddress}</p></div>
-      <button type="button" onClick={() => onFocus(market.sellerId)} className="shrink-0 rounded-lg border px-3 py-2 text-xs font-semibold text-emerald-700">지도에서 보기</button>
-    </div>
-
-    <div className="mx-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 p-4 sm:mx-5 sm:p-5">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <p className="text-xs font-bold tracking-wide text-emerald-700">경매가 기반 예상 구매예산</p>
-        {prediction && <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-emerald-800 shadow-sm">🌿 {prediction.purchased}줄기 구매 · {prediction.spare}줄기 남음</span>}
-      </div>
-      {prediction ? <>
-        <p className="mt-1 text-3xl font-extrabold tracking-tight text-emerald-950">약 {won(prediction.estimate)}</p>
-        <div className="mt-4">
-          <div className="relative h-2 rounded-full bg-gradient-to-r from-emerald-200 via-emerald-400 to-amber-300">
-            <span className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-emerald-800 shadow" style={{ left: `${marker}%` }}/>
-          </div>
-          <div className="mt-1.5 flex justify-between text-[11px] text-stone-500"><span>저렴한 날 <strong className="text-stone-700">{won(prediction.low)}</strong></span><span>비싼 날 <strong className="text-stone-700">{won(prediction.high)}</strong></span></div>
+  return <article id={`market-${market.id}`} className="rounded-2xl border border-sky-200 bg-sky-50/30 p-4">
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="font-bold text-stone-900">{market.marketName}</h3>
+          <span className="inline-flex items-center gap-1 rounded-full bg-sky-600 px-2 py-0.5 text-[11px] font-bold text-white">{market.isNonghyup ? <NonghyupMark compact className="rounded-full bg-white"/> : "🏛️"} 화훼공판장</span>
         </div>
-        <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
-          <div className="rounded-xl bg-white/80 px-2 py-2.5"><dt className="text-[10px] text-stone-500">꽃값</dt><dd className="mt-0.5 text-sm font-bold text-stone-800">{won(prediction.estimate - prediction.wrappingPrice)}</dd></div>
-          <div className="rounded-xl bg-white/80 px-2 py-2.5"><dt className="text-[10px] text-stone-500">포장 재료</dt><dd className="mt-0.5 text-sm font-bold text-stone-800">{won(prediction.wrappingPrice)}</dd></div>
-          <div className="rounded-xl bg-white/80 px-2 py-2.5"><dt className="text-[10px] text-stone-500">남는 꽃</dt><dd className="mt-0.5 text-sm font-bold text-stone-800">{prediction.spare}줄기</dd></div>
-        </dl>
-        <p className="mt-3 text-[11px] text-stone-500">교통비 제외 · 직접 만들기라 제작비 없음</p>
-      </> : <p className="mt-2 text-sm">{market.auctionReferenceTotal != null ? `경매 참고액 ${won(market.auctionReferenceTotal)} · 매장 구매예산 분석 준비 중` : "선택 품목 자료 미확보 · 전체 구성의 합계는 산정할 수 없어요."}</p>}
+        <p className="mt-1 text-xs text-stone-500">{market.roadAddress}</p>
+        <p className="mt-1 text-xs font-semibold text-sky-700">🏬 주변 생화 도매상가 방문 구매</p>
+        {market.distanceKm != null && <p className="mt-1 text-xs font-semibold text-emerald-700">현재 위치에서 약 {market.distanceKm}km</p>}
+      </div>
+      <div className="w-40 shrink-0 text-right text-xs text-stone-500 sm:w-48">
+        {prediction ? <>
+          <p>예상 구매예산 <strong className="text-base text-sky-700">약 {won(prediction.estimate)}</strong></p>
+          <div className="relative ml-auto mt-2 h-1.5 w-full rounded-full bg-gradient-to-r from-sky-200 via-sky-400 to-amber-300"><span className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-sky-800 shadow" style={{ left: `${marker}%` }}/></div>
+          <p className="mt-1 flex justify-between text-[10px]"><span>{won(prediction.low)}</span><span>{won(prediction.high)}</span></p>
+          <p className="mt-1">꽃 {won(prediction.estimate - prediction.wrappingPrice)} + 포장 {won(prediction.wrappingPrice)}</p>
+          <p>{prediction.purchased}줄기 구매 · {prediction.spare}줄기 남음</p>
+        </> : <p className="leading-5">{market.auctionReferenceTotal != null ? `경매 참고액 ${won(market.auctionReferenceTotal)} · 매장 구매예산 분석 준비 중` : "선택 품목 자료 미확보 · 전체 구성의 합계는 산정할 수 없어요."}</p>}
+      </div>
     </div>
 
-    <div className="p-4 sm:p-5">
-      <h4 className="text-sm font-bold text-stone-800">묶음 단위로 자동 계산한 구매량</h4>
-      <p className="mt-0.5 text-[11px] text-stone-500"><span className="mr-1 inline-block h-2 w-1.5 rounded-sm bg-emerald-500 align-middle"/>쓰는 줄기 <span className="ml-2 mr-1 inline-block h-2 w-1.5 rounded-sm bg-stone-200 align-middle"/>남는 줄기</p>
-      <ul className="mt-3 divide-y divide-stone-100 rounded-xl border border-stone-100">{flowers.map(f => {
-        const plan = purchaseLine(f.quantity, f.stemsPerBundle, f.reference?.average ?? null)
-        const storePrice = plan.total != null ? Math.round(plan.total * RETAIL_PLANNING.midpointMultiplier / 100) * 100 : null
-        return <li key={f.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-3">
-          <div className="min-w-24 flex-1"><p className="text-sm font-semibold text-stone-800">{f.name}</p><p className="text-[11px] text-stone-500">필요 {f.quantity}줄기{f.stemsPerBundle ? ` · 1속 ${f.stemsPerBundle}줄기` : ""}</p></div>
-          {plan.bundles != null && f.stemsPerBundle ? <div className="flex items-center gap-2"><BundleBlocks bundles={plan.bundles} stemsPerBundle={f.stemsPerBundle} needed={f.quantity}/><span className="whitespace-nowrap text-xs text-stone-600"><strong className="text-emerald-800">{plan.bundles}속</strong>{plan.spareStems ? ` · ${plan.spareStems}줄기 남음` : ""}</span></div> : <span className="text-xs text-stone-400">중량·묶음 규격 매장 확인</span>}
-          <div className="ml-auto text-right">{storePrice != null ? <><p className="text-sm font-bold text-stone-800">약 {won(storePrice)}</p><p className="text-[10px] text-stone-400">경매 1속 {won(f.reference!.average!)}</p></> : <p className="text-xs text-stone-400">시세 자료 없음</p>}</div>
-        </li>})}</ul>
-    </div>
+    <div className="mt-3 flex flex-wrap gap-1.5">{flowers.map(f => {
+      const plan = purchaseLine(f.quantity, f.stemsPerBundle, f.reference?.average ?? null)
+      const storePrice = plan.total != null ? Math.round(plan.total * RETAIL_PLANNING.midpointMultiplier / 100) * 100 : null
+      return <span key={f.id} className="inline-flex items-center gap-1.5 rounded-full bg-white px-2 py-1 text-[11px] text-stone-600">
+        {f.name} {f.quantity}송이
+        {plan.bundles != null && f.stemsPerBundle ? <><span className="text-stone-300">→</span><BundleBlocks bundles={plan.bundles} stemsPerBundle={f.stemsPerBundle} needed={f.quantity}/><strong className="text-sky-800">{plan.bundles}속</strong></> : <span className="text-stone-400">· 묶음 매장 확인</span>}
+        {storePrice != null && <span className="text-stone-400">약 {won(storePrice)}</span>}
+      </span>})}</div>
+    <p className="mt-1.5 text-[10px] text-stone-400"><span className="mr-1 inline-block h-2 w-1 rounded-sm bg-sky-500 align-middle"/>쓰는 줄기 <span className="ml-1.5 mr-1 inline-block h-2 w-1 rounded-sm bg-stone-200 align-middle"/>남는 줄기 · 묶음(속) 단위로만 살 수 있어 남는 꽃이 생겨요</p>
 
-    {shopTotal != null && <div className="mx-4 mb-4 rounded-xl bg-stone-50 p-3 text-sm sm:mx-5"><strong>가까운 꽃 매장과 비교</strong><p className="mt-1">{nearest!.marketName} · 필요한 수량만 구매 {won(shopTotal)}</p>{prediction && <p className="mt-1 text-stone-600">{shopTotal > prediction.high ? `공판장 묶음 구매가 약 ${won(shopTotal - prediction.estimate)} 저렴하지만 ${prediction.spare}줄기가 남아요.` : shopTotal < prediction.low ? `필요한 만큼만 사는 꽃 매장이 약 ${won(prediction.estimate - shopTotal)} 저렴해요.` : "비슷한 가격대예요. 거리와 남는 꽃을 함께 비교하세요."}</p>}</div>}
-    <div className="flex flex-wrap gap-2 px-4 pb-4 sm:px-5"><a href={mapUrl} target="_blank" rel="noreferrer" className="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white">주변 매장·길찾기 ↗</a>{market.publicPhone && <a href={`tel:${market.publicPhone}`} className="rounded-xl border px-4 py-2.5 text-sm font-semibold">매장 안내 문의</a>}</div>
-    <details className="border-t px-4 py-3 text-sm text-stone-600 sm:px-5"><summary className="cursor-pointer font-semibold">이 금액의 경매자료 보기</summary><p className="mt-2">{market.oldestBasisDate ?? market.basisDate ?? "최근 자료 없음"}{market.basisDate ? ` ~ ${market.basisDate}` : ""} · 해당 공판장 품목 전체 기준</p>{flowers.map(f => <p key={f.id} className="mt-2">{f.name}: {f.reference?.average != null ? `1속 ${won(f.reference.average)} · ${f.reference.dates.length}거래일 / ${f.reference.volume.toLocaleString()}속` : "계산 가능한 자료 없음"}</p>)}<a href={market.auctionInfoUrl ?? `/api/diy/public-markets/${market.id}/at`} target="_blank" rel="noreferrer" className="mt-3 inline-block text-sky-700 underline">공식 원자료 ↗</a></details>
+    {shopTotal != null && prediction && <p className="mt-3 rounded-xl bg-white px-3 py-2 text-xs text-stone-600"><strong className="text-stone-800">가까운 꽃 매장과 비교</strong> · {nearest!.marketName} {won(shopTotal)} — {shopTotal > prediction.high ? `공판장이 약 ${won(shopTotal - prediction.estimate)} 저렴하지만 ${prediction.spare}줄기가 남아요.` : shopTotal < prediction.low ? `필요한 만큼만 사는 꽃 매장이 약 ${won(prediction.estimate - shopTotal)} 저렴해요.` : "비슷한 가격대예요. 거리와 남는 꽃을 함께 비교하세요."}</p>}
+    <div className="mt-4 grid gap-2 sm:grid-cols-2"><a href={mapUrl} target="_blank" rel="noreferrer" className="flex h-11 items-center justify-center rounded-lg bg-sky-600 text-sm font-semibold text-white hover:bg-sky-700">🗺️ 주변 매장·길찾기</a><button type="button" onClick={() => onFocus(market.sellerId)} className="h-11 rounded-lg border border-sky-200 bg-white text-sm font-semibold text-sky-700 hover:bg-sky-50">📍 지도에서 보기</button></div>
+    <details className="mt-3 text-xs text-stone-500"><summary className="cursor-pointer font-semibold">이 금액의 경매자료 보기</summary><p className="mt-2">{market.oldestBasisDate ?? market.basisDate ?? "최근 자료 없음"}{market.basisDate ? ` ~ ${market.basisDate}` : ""} · 해당 공판장 품목 전체 기준</p>{flowers.map(f => <p key={f.id} className="mt-1">{f.name}: {f.reference?.average != null ? `1속 ${won(f.reference.average)} · ${f.reference.dates.length}거래일 / ${f.reference.volume.toLocaleString()}속` : "계산 가능한 자료 없음"}</p>)}{market.publicPhone && <a href={`tel:${market.publicPhone}`} className="mt-2 block">매장 안내 문의 {market.publicPhone}</a>}<a href={market.auctionInfoUrl ?? `/api/diy/public-markets/${market.id}/at`} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sky-700 underline">공식 원자료 ↗</a></details>
   </article>
 }
 

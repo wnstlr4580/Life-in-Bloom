@@ -17,6 +17,8 @@ type SellerRow = {
   offersCustomBouquet: boolean
   bouquetMakingFee: number | null
   wrappingPrices: Record<string, number> | null
+  isCoopMember: boolean
+  isProfessionalFlorist: boolean
   offersDiyFlowers: boolean
   customDeliveryScope: string
   customDeliveryRegions: string[]
@@ -112,7 +114,7 @@ export async function POST(req: Request) {
 
   const { data: sellerData, error: sellerError } = await supabaseAdmin
     .from("Seller")
-    .select("id, marketName, sellerType, roadAddress, detailAddress, publicPhone, latitude, longitude, isOpen, offersCustomBouquet, bouquetMakingFee, wrappingPrices, offersDiyFlowers, customDeliveryScope, customDeliveryRegions")
+    .select("id, marketName, sellerType, roadAddress, detailAddress, publicPhone, latitude, longitude, isOpen, offersCustomBouquet, bouquetMakingFee, wrappingPrices, isCoopMember, isProfessionalFlorist, offersDiyFlowers, customDeliveryScope, customDeliveryRegions")
     .in("id", sellerIds)
     .eq("status", "APPROVED")
     .eq("isOpen", true)
@@ -182,6 +184,8 @@ export async function POST(req: Request) {
       customPrice,
       makingFee: seller.bouquetMakingFee,
       wrappingPrices: seller.wrappingPrices ?? null,
+      isCoopMember: Boolean(seller.isCoopMember),
+      isProfessionalFlorist: Boolean(seller.isProfessionalFlorist),
       customMaterialPrice: customComplete ? customItems.reduce((sum, item) => sum + (item.subtotal ?? 0), 0) : null,
       withinRadius,
       preferred: seller.id === preferredSellerId,

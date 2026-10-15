@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button"
 import { useCartStore } from "@/store/cartStore"
 import Link from "next/link"
 import { isNonghyupName, NonghyupMark } from "@/components/brand/NonghyupMark"
+import { SellerBadges } from "@/components/shop/SellerBadges"
+
+type SellerInfo = { marketName: string; introduction: string | null; publicPhone: string | null; isCoopMember?: boolean; isProfessionalFlorist?: boolean; sellerType?: string }
 
 interface Review {
   id: string; rating: number; content: string; createdAt: string; userId: string
@@ -23,7 +26,7 @@ interface Product {
   useTags?: string[] | null
   saleStatus?: string
   purchaseType?: string; externalUrl?: string | null; partnerName?: string | null; partnerBadge?: string | null
-  seller?: { marketName: string; introduction: string | null; publicPhone: string | null } | { marketName: string; introduction: string | null; publicPhone: string | null }[] | null
+  seller?: SellerInfo | SellerInfo[] | null
   reviews?: Review[]
 }
 
@@ -189,7 +192,7 @@ export default function ProductDetailPage() {
             <h1 className="text-3xl font-bold text-stone-800">{product.name}</h1>
             {marketName && <div className={`mt-4 flex items-center gap-3 rounded-2xl border p-3 ${isNonghyupName(marketName) ? "border-[#8bc7aa] bg-gradient-to-r from-[#f1faf5] to-[#fff8dc]" : external ? "border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50" : "border-emerald-100 bg-emerald-50/70"}`}>
               <span className={`flex h-10 min-w-10 items-center justify-center rounded-lg ${external ? "bg-gradient-to-br from-amber-300 to-yellow-600 text-white shadow" : "bg-white text-emerald-700"}`}>{isNonghyupName(marketName) ? <NonghyupMark compact/> : external ? <BadgeCheck size={20} /> : <Store size={19} />}</span>
-              <div className="flex-1"><p className={`text-xs font-bold ${external ? "text-amber-700" : "text-emerald-700"}`}>{external ? (product.partnerBadge || "공식 제휴 판매처") : "이 상품을 준비하는 꽃집"}</p><p className="mt-0.5 font-semibold text-stone-800">{marketName}</p></div>
+              <div className="flex-1"><p className={`text-xs font-bold ${external ? "text-amber-700" : "text-emerald-700"}`}>{external ? (product.partnerBadge || "공식 제휴 판매처") : "이 상품을 준비하는 꽃집"}</p><p className="mt-0.5 font-semibold text-stone-800">{marketName}</p>{!external && <SellerBadges coop={seller?.isCoopMember} florist={seller?.isProfessionalFlorist} farm={seller?.sellerType === "FARM"} className="mt-1.5" />}</div>
               {external && <ExternalLink size={17} className="text-amber-600" />}
             </div>}
             {product.flowerMeaning && (
