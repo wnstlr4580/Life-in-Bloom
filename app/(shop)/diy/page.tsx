@@ -17,7 +17,7 @@ import { marketsNear } from "@/lib/publicMarketDirectory"
 import { APPROX_STEMS_PER_BUNDLE } from "@/lib/publicMarketPricing"
 import { sellerWrappingPrice } from "@/lib/bouquetFees"
 import { SellerBadges } from "@/components/shop/SellerBadges"
-import Link from "next/link"
+import { SellerReviewLink, type SellerReviewStat } from "@/components/shop/SellerReviewLink"
 
 type LocationState = {
   address: string
@@ -132,9 +132,9 @@ export default function DiyPage() {
   const [preferredSellerId, setPreferredSellerId] = useState<string | null>(null)
   const [fulfillmentMode, setFulfillmentMode] = useState<"diy" | "custom">("custom")
   // 꽃다발 후기가 있는 판매처만 ‘후기 보기’ 링크를 보여준다
-  const [reviewedSellers, setReviewedSellers] = useState<Set<string>>(new Set())
+  const [sellerReviews, setSellerReviews] = useState<Record<string, SellerReviewStat>>({})
   useEffect(() => {
-    fetch("/api/bouquet-reviews?limit=1").then((r) => r.json()).then((data) => setReviewedSellers(new Set(data.facets?.sellers ?? []))).catch(() => {})
+    fetch("/api/bouquet-reviews?limit=1").then((r) => r.json()).then((data) => setSellerReviews(data.facets?.sellerStats ?? {})).catch(() => {})
   }, [])
 
   const selected = useMemo(
@@ -149,6 +149,21 @@ export default function DiyPage() {
     setFocusMarketId(null)
     return () => { lookupRef.current?.abort() }
   }, [quantities, location, radiusKm, preferredSellerId, fulfillmentMode, size.id])
+
+  // 직접 만들기에서는 위치와 꽃이 정해지면 버튼을 누르지 않아도 공판장 시세를 불러온다
+  const marketQuery = fulfillmentMode === "diy" && location.latitude != null && location.longitude != null && selected.length > 0
+    ? JSON.stringify({ flowers: selected.map(([id, quantity]) => ({ id, quantity })), latitude: location.latitude, longitude: location.longitude })
+    : null
+  useEffect(() => {
+    if (!marketQuery) return
+    const controller = new AbortController()
+    const timer = setTimeout(() => {
+      postDiyLookup<{ markets?: PublicMarket[] }>("/api/diy/public-markets", JSON.parse(marketQuery), controller.signal, 20000)
+        .then((data) => { if (!controller.signal.aborted && data.markets?.length) setPublicMarkets(data.markets) })
+        .catch(() => {})
+    }, 400)
+    return () => { clearTimeout(timer); controller.abort() }
+  }, [marketQuery])
 
   const displayPublicMarkets = useMemo(() => publicMarkets.length ? publicMarkets : marketsNear(location.latitude, location.longitude), [publicMarkets, location.latitude, location.longitude])
   const selectedCount = selected.reduce((sum, [, quantity]) => sum + quantity, 0)
@@ -882,8 +897,7 @@ export default function DiyPage() {
                                 {!modeComplete && <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[11px] font-bold text-stone-500">재고 부족</span>}
                               </div>
                               <p className="mt-1 text-xs text-stone-500">{match.roadAddress}</p>
-                              {fulfillmentMode === "custom" && <p className="mt-1 text-xs font-semibold text-rose-600">{match.customDeliveryScope === "NATIONWIDE" ? "🚚 전국 배송" : match.customDeliveryScope === "REGIONAL" ? `🚚 배송 ${match.customDeliveryRegions.join("·") || "지역 문의"}` : <span className="text-stone-400">🚚 배송 안 함</span>}<span className="text-amber-700"> · 🛍️ 매장 픽업 가능</span></p>}
-                              {fulfillmentMode === "diy" && modeComplete && <p className="mt-1 text-xs font-semibold text-sky-700">🏬 매장 방문 구매</p>}
+                              {fulfillmentMode === "custom" && canDeliver && <p className="mt-1 text-xs font-semibold text-rose-600">🚚 {match.customDeliveryScope === "NATIONWIDE" ? "전국 배송" : `배송 지역 ${match.customDeliveryRegions.join("·") || "문의"}`}</p>}
                               {match.distanceKm !== null && <p className="mt-1 text-xs font-semibold text-emerald-700">현재 위치에서 약 {match.distanceKm}km</p>}
                             </div>
                             <div className="shrink-0 text-right text-xs text-stone-500">
@@ -906,16 +920,16 @@ export default function DiyPage() {
                               </span>
                             ))}
                           </div>
-                          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-500">
-                            {match.publicPhone && <span>문의 <a href={`tel:${match.publicPhone}`} className="font-semibold text-stone-700 hover:underline">{match.publicPhone}</a></span>}
-                            {reviewedSellers.has(match.marketName) && <Link href={`/gallery?seller=${encodeURIComponent(match.marketName)}`} target="_blank" className="font-semibold text-violet-700 hover:underline">📷 이 꽃집 꽃다발 후기 보기 ↗</Link>}
+                          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-stone-500">
+                            {match.publicPhone ? <span>문의 <a href={`tel:${match.publicPhone}`} className="font-semibold text-stone-700 hover:underline">{match.publicPhone}</a></span> : <span />}
+                            <SellerReviewLink marketName={match.marketName} stat={sellerReviews[match.marketName]} />
                           </div>
                           <div className="mt-4 grid gap-2 sm:grid-cols-2">
                             {fulfillmentMode === "diy" && match.diyComplete && <Button onClick={() => chooseSeller(match, "diy")} className="h-11 w-full bg-sky-600 text-white hover:bg-sky-700">✂️ 이 매장에서 꽃 사기 (방문)</Button>}
                             {fulfillmentMode === "custom" && match.customComplete && (customTotal === null
                               ? <p className="self-center text-xs text-amber-700 sm:col-span-2">이 꽃집은 {wrapPrice === null ? `‘${wrapping.name}’ 포장재료비` : "제작 작업비"}를 아직 등록하지 않았어요. 다른 포장을 고르거나 전화로 문의해주세요.</p>
                               : <>
-                                {canDeliver && <Button onClick={() => chooseSeller(match, "custom", "delivery")} className="h-11 w-full bg-rose-500 text-white hover:bg-rose-600">🚚 배송 주문</Button>}
+                                <Button disabled={!canDeliver} onClick={() => chooseSeller(match, "custom", "delivery")} className="h-11 w-full bg-rose-500 text-white hover:bg-rose-600 disabled:bg-stone-200 disabled:text-stone-400 disabled:opacity-100">{canDeliver ? "🚚 배송 주문" : "🚚 배송 불가 (픽업만 가능)"}</Button>
                                 <Button onClick={() => chooseSeller(match, "custom", "pickup")} className="h-11 w-full bg-amber-500 text-white hover:bg-amber-600">🛍️ 매장 픽업 주문</Button>
                               </>)}
                             {!modeComplete && match.preferred && hasMissing && <Button onClick={() => requestRestock(match)} variant="outline" className="h-11 w-full border-violet-200 text-violet-700 hover:bg-violet-50">🔔 이 판매처에 재입고 알림 신청</Button>}

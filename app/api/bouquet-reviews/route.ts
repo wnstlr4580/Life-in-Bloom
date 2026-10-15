@@ -36,6 +36,14 @@ export async function GET(req: Request) {
     return { ...review, isExample: isStyleExample(review), searchSeller: seller?.marketName ?? "", searchProduct: product?.name ?? "", flowerIds: flowerIds(review.composition), price: item?.price ?? 0 }
   })
   const sellers = [...new Set(all.map((review) => review.searchSeller).filter(Boolean))].sort()
+  // 꽃집별 후기 수·평점·대표 사진 — 꽃다발 만들기·상품 상세의 ‘이 꽃집 후기’ 버튼용
+  const sellerStats: Record<string, { count: number; rating: number; image: string | null }> = {}
+  for (const review of all) {
+    if (!review.searchSeller) continue
+    const stat = sellerStats[review.searchSeller] ??= { count: 0, rating: 0, image: review.images?.[0] ?? null }
+    stat.rating = (stat.rating * stat.count + review.rating) / (stat.count + 1)
+    stat.count += 1
+  }
   const usedFlowerIds = [...new Set(all.flatMap((review) => review.flowerIds))]
   const flowers = FLOWERS.filter((flower) => usedFlowerIds.includes(flower.id)).map((flower) => ({ id: flower.id, name: flower.name })).sort((a, b) => a.name.localeCompare(b.name, "ko"))
   let filtered = all.filter((review) => {
@@ -46,7 +54,7 @@ export async function GET(req: Request) {
     return true
   })
   filtered = filtered.sort((a, b) => sort === "rating" ? b.rating - a.rating || +new Date(b.createdAt) - +new Date(a.createdAt) : sort === "price_asc" ? a.price - b.price : sort === "price_desc" ? b.price - a.price : sort === "popular" ? b.derivedOrderCount - a.derivedOrderCount : +new Date(b.createdAt) - +new Date(a.createdAt))
-  return NextResponse.json({ reviews: filtered.slice(0, limit), total: filtered.length, facets: { sellers, flowers } })
+  return NextResponse.json({ reviews: filtered.slice(0, limit), total: filtered.length, facets: { sellers, flowers, sellerStats } })
 }
 
 export async function POST(req: Request) {

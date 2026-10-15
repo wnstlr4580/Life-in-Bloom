@@ -31,8 +31,7 @@ function MarketCard({ market, flowers, wrappingPrice, nearest, onFocus }: { mark
           <button type="button" onClick={() => onFocus(market.sellerId)} title="지도에서 위치 보기" className="text-left font-bold text-stone-900 hover:underline">{market.marketName}</button>
           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-bold text-white">{market.isNonghyup ? <NonghyupMark compact className="rounded-full bg-white"/> : "🏛️"} 화훼공판장</span>
         </div>
-        <p className="mt-1 text-xs text-stone-500">{market.roadAddress}</p>
-        <p className="mt-1 text-xs font-semibold text-emerald-700">🏬 주변 생화 도매상가 방문 구매 · <a href={mapUrl} target="_blank" rel="noreferrer" className="font-normal text-stone-500 underline underline-offset-2">길찾기 ↗</a></p>
+        <p className="mt-1 text-xs text-stone-500">{market.roadAddress} · <a href={mapUrl} target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-emerald-700">길찾기 ↗</a></p>
         {market.distanceKm != null && <p className="mt-1 text-xs font-semibold text-emerald-700">현재 위치에서 약 {market.distanceKm}km</p>}
       </div>
       <div className="w-40 shrink-0 text-right text-xs text-stone-500 sm:w-48">

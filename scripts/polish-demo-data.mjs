@@ -10,6 +10,17 @@ config({ path: ".env.local", quiet: true })
 
 const USER_RENAMES = [["시연_하늘", "김하늘"], ["시연_도윤", "박도윤"], ["시연_서아", "윤서아"], ["시연_지우", "이지우"], ["시연_민서", "정민서"], ["시연_준호", "최준호"], ["시연고객", "김민지"]]
 
+// 꽃다발 만들기에서 만든 AI 예상 이미지 (같은 꽃 구성의 기존 생성 이미지 재사용)
+const BLOB = "https://pdop4ebzrmutjcch.public.blob.vercel-storage.com"
+const AI_PREVIEW = {
+  white: `${BLOB}/bouquet-posts/DoY2J48JZ20ymOuwFoPYK-NCoZfDKHQBX5lTr73lD0dWVtRiMz5C.jpg`,
+  tulip: `${BLOB}/bouquet-gallery/tSlyA1NEm2oBykqwjnkez-MZ87bt8uPYZ2XWXArw6IOVeBEbwYKF.jpg`,
+  calla: `${BLOB}/bouquet-gallery/IvTMa3Hd-om42NHd_mq9K-fxbPEAaaLWbKPUDKyUJAByEq15H6qk.jpg`,
+  yellow: `${BLOB}/bouquet-gallery/zkcCo9JXwmMwIHoS2VTdn-QY5i3cLliSOIqCOaF5ytbESRJ3FKmV.jpg`,
+  sunflower: "/reviews/curated/sunflower-ai.png",
+  blue: "/reviews/curated/blue-ai.png",
+}
+
 // [후기 key, 주문 방식, 사진, 상품명, 포장, 꽃 구성, 별점, 태그, 가격, 작성자, 본문]
 const REVIEWS = [
   ["white", "custom", "/reviews/curated/white.png", "화이트 장미 안개꽃 꽃다발", "kraft", [["rose-white", 10], ["babysbreath-white", 4]], 5, ["포장이 꼼꼼해요", "선물하기 좋아요"], 47500, "송지아",
@@ -30,8 +41,8 @@ const REVIEWS = [
     "백합은 꽃가루가 옷에 묻는다고 해서 사장님이 수술을 미리 떼 주셨어요. 장미 다섯 송이랑 같이 묶었더니 차에 두고 사진 찍기 딱 좋은 크기예요. 백합 향이 강해서 차 안이 꽃향기로 가득했어요."],
   ["sunflower", "custom", "/reviews/curated/sunflower.png", "해바라기 유칼립투스 꽃다발", "linen", [["sunflower", 7], ["eucalyptus", 3]], 5, ["색감이 예뻐요", "재구매하고 싶어요"], 49000, "한예린",
     "남편 승진 축하로 주문했는데 해바라기가 크고 싱싱해서 깜짝 놀랐어요. 꽃머리가 무거운데도 고개 안 숙이게 잘 잡아주셨어요. 다음 기념일에도 여기서 주문하려고요."],
-  ["pink", "custom", "/reviews/presentation-ai-pink.jpg", "핑크 장미 감사 꽃다발", "kraft", [["rose-pink", 7], ["rose-white", 3], ["babysbreath-white", 3]], 5, ["사진과 같아요", "선물하기 좋아요"], 44000, "김민지",
-    "스승의 날 선물로 매장 픽업했어요. 진한 핑크랑 연한 핑크 장미를 섞어서 그라데이션처럼 묶어주셨는데 너무 예뻐요. 픽업 시간에 맞춰 물올림까지 해두셔서 바로 드렸어요."],
+  ["blue", "custom", "/reviews/curated/blue.png", "파란 수국 화이트 장미 꽃다발", "bouquet", [["hydrangea-blue", 3], ["rose-white", 5]], 5, ["사진과 같아요", "선물하기 좋아요"], 54000, "김민지",
+    "결혼기념일에 매장 픽업으로 주문했어요. 수국이 크고 탐스러워서 장미 다섯 송이만 넣었는데도 엄청 풍성해요. 픽업 시간에 맞춰 물올림까지 해두셔서 집에 와서 바로 화병에 꽂았어요. 수국은 물을 많이 먹는다고 알려주셔서 매일 물 갈아주는 중이에요."],
 ]
 
 const client = new pg.Client({ connectionString: process.env.DIRECT_URL || process.env.DATABASE_URL, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 15000 })
@@ -72,6 +83,7 @@ try {
     const userId = `seed-review-user-${index + 1}`, productId = `seed-review-product-${key}`, orderId = `seed-review-order-${key}`, itemId = `seed-review-item-${key}`, reviewId = `seed-review-${key}`
     const composition = { sizeId: flowers.reduce((sum, [, q]) => sum + q, 0) > 15 ? "large" : "basic", wrappingId: wrapping, flowers: flowers.map(([id, quantity]) => ({ id, quantity })) }
     const daysAgo = 3 + index * 4
+    const preview = AI_PREVIEW[key.replace("-diy", "")]
     const commission = Math.round(price * 0.1), vat = Math.round(commission * 0.1)
     await client.query(`INSERT INTO "User" ("id", "email", "name", "role", "status", "createdAt") VALUES ($1, $2, $3, 'CUSTOMER', 'ACTIVE', NOW() - interval '60 days')
       ON CONFLICT ("id") DO UPDATE SET "name" = EXCLUDED."name"`, [userId, `review${index + 1}@life-in-bloom.test`, author])
@@ -82,14 +94,19 @@ try {
       VALUES ($1, $2, 'DELIVERED', $3, 0, $4, $5::jsonb, 'CARD', NOW() - ($6 || ' days')::interval) ON CONFLICT ("id") DO NOTHING`,
       [orderId, userId, price, mode === "diy" || index % 3 === 2 ? "pickup" : "standard", JSON.stringify({ name: author, phone: "010-0000-0000", address: "서울", detailAddress: "" }), daysAgo + 2])
     await client.query(`INSERT INTO "OrderItem" ("id", "orderId", "productId", "sellerId", "quantity", "price", "itemType", "fulfillmentStatus", "commissionRate", "commissionFee", "commissionVat", "settlementAmount", "settlementStatus", "confirmedAt", "deliveredAt", "composition", "bouquetMode", "previewImageUrl")
-      VALUES ($1, $2, $3, $4, 1, $5, 'CUSTOM_BOUQUET', 'PURCHASE_CONFIRMED', 10, $6, $7, $8, 'READY', NOW() - ($9 || ' days')::interval, NOW() - ($9 || ' days')::interval, $10::jsonb, $11, NULL)
-      ON CONFLICT ("id") DO UPDATE SET "productId" = EXCLUDED."productId", "sellerId" = EXCLUDED."sellerId", "composition" = EXCLUDED."composition", "bouquetMode" = EXCLUDED."bouquetMode"`,
-      [itemId, orderId, productId, seller.id, price, commission, vat, price - commission - vat, daysAgo, JSON.stringify(composition), mode])
-    await client.query(`INSERT INTO "Review" ("id", "userId", "productId", "orderItemId", "rating", "content", "images", "tags", "orderMode", "composition", "createdAt")
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, NOW() - ($11 || ' days')::interval)
-      ON CONFLICT ("id") DO UPDATE SET "productId" = EXCLUDED."productId", "rating" = EXCLUDED."rating", "content" = EXCLUDED."content", "images" = EXCLUDED."images", "tags" = EXCLUDED."tags", "orderMode" = EXCLUDED."orderMode", "composition" = EXCLUDED."composition", "isHidden" = false`,
-      [reviewId, userId, productId, itemId, rating, content, [image], tags, mode, JSON.stringify(composition), daysAgo])
+      VALUES ($1, $2, $3, $4, 1, $5, 'CUSTOM_BOUQUET', 'PURCHASE_CONFIRMED', 10, $6, $7, $8, 'READY', NOW() - ($9 || ' days')::interval, NOW() - ($9 || ' days')::interval, $10::jsonb, $11, $12)
+      ON CONFLICT ("id") DO UPDATE SET "productId" = EXCLUDED."productId", "sellerId" = EXCLUDED."sellerId", "composition" = EXCLUDED."composition", "bouquetMode" = EXCLUDED."bouquetMode", "previewImageUrl" = EXCLUDED."previewImageUrl"`,
+      [itemId, orderId, productId, seller.id, price, commission, vat, price - commission - vat, daysAgo, JSON.stringify(composition), mode, preview])
+    await client.query(`INSERT INTO "Review" ("id", "userId", "productId", "orderItemId", "rating", "content", "images", "tags", "orderMode", "composition", "previewImageUrl", "createdAt")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $12, NOW() - ($11 || ' days')::interval)
+      ON CONFLICT ("id") DO UPDATE SET "productId" = EXCLUDED."productId", "rating" = EXCLUDED."rating", "content" = EXCLUDED."content", "images" = EXCLUDED."images", "tags" = EXCLUDED."tags", "orderMode" = EXCLUDED."orderMode", "composition" = EXCLUDED."composition", "previewImageUrl" = EXCLUDED."previewImageUrl", "isHidden" = false`,
+      [reviewId, userId, productId, itemId, rating, content, [image], tags, mode, JSON.stringify(composition), daysAgo, preview])
   }
+  // 이전 실행에서 만든 핑크 후기는 파란 수국 후기로 대체
+  await client.query(`DELETE FROM "Review" WHERE "id" = 'seed-review-pink'`)
+  await client.query(`DELETE FROM "OrderItem" WHERE "id" = 'seed-review-item-pink'`)
+  await client.query(`DELETE FROM "Order" WHERE "id" = 'seed-review-order-pink'`)
+  await client.query(`DELETE FROM "Product" WHERE "id" = 'seed-review-product-pink'`)
   await client.query("COMMIT")
   console.log(`적용 완료: 표시 정리 + 꽃집 후기 ${plan.length}건`)
 } catch (error) {
