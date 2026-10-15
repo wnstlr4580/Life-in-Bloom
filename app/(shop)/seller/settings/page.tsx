@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react"
 import Script from "next/script"
-import { CheckCircle2, FileText, LockKeyhole, MapPin, Save, Store } from "lucide-react"
+import { Award, CheckCircle2, FileText, LockKeyhole, MapPin, Save, Store, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { WRAPPING } from "@/lib/customFlowers"
 
 type Seller = {
   legalBusinessName: string; businessNumber: string; representativeName: string
@@ -14,7 +15,8 @@ type Seller = {
   settlementBank: string; settlementAccount: string; settlementHolder: string; isOpen: boolean
   businessLicenseUrl: string | null; status?: string
   sellsFinishedProducts: boolean; offersCustomBouquet: boolean; offersDiyFlowers: boolean
-  bouquetMakingFee: number | null
+  bouquetMakingFee: number | null; wrappingPrices: Record<string, number> | null
+  isProfessionalFlorist: boolean; floristCertificates: { index: number; name: string; url: string | null }[]
   customDeliveryScope: "NONE" | "NATIONWIDE" | "REGIONAL"; customDeliveryRegions: string[]
   productDeliveryScope: "NONE" | "NATIONWIDE" | "REGIONAL"; productDeliveryRegions: string[]
   productSortStrategy: "MANUAL" | "LOW_STOCK" | "HIGH_STOCK" | "BEST_SELLING" | "LATEST"
@@ -27,6 +29,7 @@ export default function SellerSettingsPage() {
   const [error, setError] = useState("")
   const [message, setMessage] = useState("")
   const [reviewReason, setReviewReason] = useState("")
+  const [uploading, setUploading] = useState(false)
   useEffect(() => { fetch("/api/seller/profile").then((r) => r.json()).then((data) => setSeller(data.seller ?? null)) }, [])
   if (!seller) return <div className="py-32 text-center text-stone-400">판매처 정보를 불러오는 중...</div>
   const set = <K extends keyof Seller>(key: K, value: Seller[K]) => setSeller((current) => current ? { ...current, [key]: value } : current)
@@ -44,6 +47,31 @@ export default function SellerSettingsPage() {
     if (response.ok) { setSeller(data.seller); setMessage("판매처 정보가 저장됐습니다.") }
     else setError(data.error ?? "저장하지 못했어요")
     setSaving(false)
+  }
+  const setWrappingPrice = (id: string, value: string) => setSeller((current) => {
+    if (!current) return current
+    const next = { ...(current.wrappingPrices ?? {}) }
+    if (value === "") delete next[id]
+    else next[id] = Number(value)
+    return { ...current, wrappingPrices: next }
+  })
+  const uploadCertificate = async (file: File | undefined) => {
+    if (!file) return
+    setUploading(true); setError(""); setMessage("")
+    const body = new FormData(); body.append("certificate", file)
+    const response = await fetch("/api/seller/florist-certificates", { method: "POST", body })
+    const data = await response.json()
+    if (response.ok) { setSeller((current) => current ? { ...current, ...data } : current); setMessage("자격증을 등록했어요.") }
+    else setError(data.error ?? "자격증을 등록하지 못했어요")
+    setUploading(false)
+  }
+  const removeCertificate = async (index: number) => {
+    setUploading(true); setError(""); setMessage("")
+    const response = await fetch(`/api/seller/florist-certificates?index=${index}`, { method: "DELETE" })
+    const data = await response.json()
+    if (response.ok) setSeller((current) => current ? { ...current, ...data } : current)
+    else setError(data.error ?? "자격증을 삭제하지 못했어요")
+    setUploading(false)
   }
   const requestReview = async () => {
     setSaving(true); setError(""); setMessage("")
@@ -88,9 +116,23 @@ export default function SellerSettingsPage() {
           <Service checked={seller.offersDiyFlowers} onChange={(v) => set("offersDiyFlowers", v)} label="개별 꽃·소재 판매" />
         </div>
       </Section>
-      <Section title="꽃다발 제작비" icon={<Store size={18} />}>
-        <p className="mb-3 text-sm text-stone-600">개별 꽃 재료비와 선택 포장비에 더할 작업비입니다. 미등록 시 고객에게 임의 금액을 부과하지 않고 제작비 확인이 필요하다고 안내합니다.</p>
-        <Field label="제작 작업비 (원)"><Input type="number" min="0" max="100000" value={seller.bouquetMakingFee ?? ""} placeholder="예: 3000" onChange={e => set("bouquetMakingFee", e.target.value === "" ? null : Number(e.target.value))}/></Field>
+      <Section title="주문제작 가격 (포장재료비·제작 작업비)" icon={<Store size={18} />}>
+        <p className="mb-4 text-sm text-stone-600">고객이 ‘나만의 꽃다발 만들기’에서 이 꽃집에 주문제작할 때, 꽃 재료비에 아래 금액이 더해져 표시됩니다. 등록하지 않은 포장은 고객에게 ‘가격 확인 필요’로 안내되고 주문할 수 없어요.</p>
+        <div className="grid gap-4 sm:grid-cols-[220px_1fr]">
+          <Field label="제작 작업비 (원)"><Input type="number" min="0" max="100000" step="500" value={seller.bouquetMakingFee ?? ""} placeholder="예: 5000" onChange={e => set("bouquetMakingFee", e.target.value === "" ? null : Number(e.target.value))}/></Field>
+          <div>
+            <Label className="mb-1.5 block text-xs text-stone-600">포장 방식별 포장재료비 (원)</Label>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{WRAPPING.map((item) => <label key={item.id} className="rounded-xl border border-stone-200 bg-stone-50 p-2.5"><span className="block text-xs font-semibold text-stone-700">{item.emoji} {item.name}</span><Input type="number" min="0" max="100000" step="500" value={seller.wrappingPrices?.[item.id] ?? ""} placeholder="미등록" onChange={(e) => setWrappingPrice(item.id, e.target.value)} className="mt-1.5 h-9 bg-white"/></label>)}</div>
+            <p className="mt-2 text-[11px] text-stone-400">개별 꽃·소재 판매(직접 만들기) 고객에게도 같은 포장재료비가 안내됩니다.</p>
+          </div>
+        </div>
+      </Section>
+      <Section title="전문 플로리스트" icon={<Award size={18} />}>
+        <label className="flex items-center justify-between gap-4 rounded-xl bg-stone-50 p-4"><span><strong className="block text-sm">전문 플로리스트가 제작해요</strong><span className="text-xs text-stone-500">플로리스트·화훼장식기능사 등 자격증을 등록하면 관리자 확인 자료로 사용됩니다.</span></span><input type="checkbox" checked={seller.isProfessionalFlorist} onChange={(e) => set("isProfessionalFlorist", e.target.checked)} className="h-5 w-5 accent-emerald-700" /></label>
+        {seller.isProfessionalFlorist && <div className="mt-4 space-y-2">
+          {seller.floristCertificates?.map((cert) => <div key={cert.index} className="flex items-center justify-between gap-3 rounded-xl border border-stone-200 px-4 py-3 text-sm"><span className="flex min-w-0 items-center gap-2"><FileText size={16} className="shrink-0 text-emerald-700" /><span className="truncate">{cert.name}</span></span><span className="flex shrink-0 items-center gap-3">{cert.url && <a href={cert.url} target="_blank" rel="noreferrer" className="text-xs font-semibold text-emerald-700 hover:underline">열기 ↗</a>}<button type="button" disabled={uploading} onClick={() => removeCertificate(cert.index)} aria-label="자격증 삭제" className="text-stone-400 hover:text-red-500"><Trash2 size={15} /></button></span></div>)}
+          {(seller.floristCertificates?.length ?? 0) < 5 && <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-emerald-300 bg-emerald-50/50 py-4 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"><Award size={16} />{uploading ? "업로드 중..." : "자격증 파일 추가 (PDF·JPG·PNG, 10MB)"}<input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" disabled={uploading} className="hidden" onChange={(e) => { void uploadCertificate(e.target.files?.[0]); e.target.value = "" }} /></label>}
+        </div>}
       </Section>
       <Section title="내 상품 노출 순서" icon={<Store size={18} />}>
         <p className="mb-3 text-sm text-stone-500">관리자 정책과 고객이 선택한 정렬이 먼저 적용된 뒤, 내 상품끼리의 순서를 정합니다. 상품별 ‘우선노출’이 이 정렬보다 먼저 적용됩니다.</p>

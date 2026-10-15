@@ -4,8 +4,9 @@ import { nanoid } from "nanoid"
 import { supabaseAdmin } from "@/lib/supabase"
 import { adminEmails, sendEmail } from "@/lib/email"
 import { isValidBirthDate } from "@/lib/coopVerification"
+import { FLORIST_CERT_TYPES, MAX_FLORIST_CERTS } from "@/lib/sellerDocuments"
 
-const SELLER_TYPES = new Set(["FLOWER_SHOP", "FARM", "WHOLESALE", "OTHER"])
+const SELLER_TYPES = new Set(["FLOWER_SHOP", "FARM"])
 const TERMS_VERSION = "seller-2026-07-18"
 
 function text(form: FormData, key: string) {
@@ -61,6 +62,11 @@ export async function POST(req: NextRequest) {
   if (text(form, "termsAgreed") !== "true") {
     return NextResponse.json({ error: "판매자 약관 동의가 필요해요" }, { status: 400 })
   }
+  const isProfessionalFlorist = text(form, "isProfessionalFlorist") === "true"
+  const certificates = isProfessionalFlorist ? form.getAll("floristCertificates").filter((file): file is File => file instanceof File && file.size > 0) : []
+  if (isProfessionalFlorist && certificates.length === 0) return NextResponse.json({ error: "플로리스트·화훼 관련 자격증을 1개 이상 첨부해주세요" }, { status: 400 })
+  if (certificates.length > MAX_FLORIST_CERTS) return NextResponse.json({ error: `자격증은 최대 ${MAX_FLORIST_CERTS}개까지 첨부할 수 있어요` }, { status: 400 })
+  if (certificates.some((file) => file.size > 10 * 1024 * 1024 || !FLORIST_CERT_TYPES.includes(file.type))) return NextResponse.json({ error: "자격증은 10MB 이하의 PDF, JPG, PNG, WEBP 파일만 가능해요" }, { status: 400 })
   const coopRequested = text(form, "coopRequested") === "true"
   const coopBirthDate = text(form, "coopBirthDate").replace(/\D/g, "")
   if (coopRequested && !isValidBirthDate(coopBirthDate)) return NextResponse.json({ error: "조합원 확인용 생년월일 8자리를 확인해주세요" }, { status: 400 })
@@ -124,6 +130,19 @@ export async function POST(req: NextRequest) {
   if (error) {
     await supabaseAdmin.storage.from("seller-documents").remove([documentPath])
     return NextResponse.json({ error: "판매자 가입에 실패했어요. 입력 정보를 확인해주세요" }, { status: 500 })
+  }
+
+  // register_seller RPC는 기존 가입 필드만 다루므로 플로리스트 자격증은 가입 직후 따로 저장한다.
+  if (isProfessionalFlorist) {
+    const certificatePaths: string[] = []
+    for (const [index, file] of certificates.entries()) {
+      const path = `${sellerId}/florist-certificate-${index + 1}.${file.name.split(".").pop()?.toLowerCase() || "bin"}`
+      const { error: certError } = await supabaseAdmin.storage.from("seller-documents").upload(path, file, { contentType: file.type, upsert: false })
+      if (certError) console.error("[seller-signup] florist certificate upload failed", certError)
+      else certificatePaths.push(path)
+    }
+    const { error: floristError } = await supabaseAdmin.from("Seller").update({ isProfessionalFlorist: true, floristCertificatePaths: certificatePaths }).eq("id", sellerId)
+    if (floristError) console.error("[seller-signup] florist save failed", floristError)
   }
 
   // register_seller RPC는 기존 가입 필드만 다루므로 조합원 신청 정보는 가입 직후 따로 저장한다.

@@ -16,7 +16,7 @@ describe("경매 근거와 구매 수량", () => {
   })
   it("12줄기를 2속으로 올림하고 포장비를 한 번만 더한다", () => {
     const result = estimatedMarketPurchase([{quantity:12,stemsPerBundle:10,reference:{average:10000,low:9000,high:11000}}],1500)!
-    expect(result).toMatchObject({estimate:29500,low:23000,high:37000,purchased:20,spare:8,calibrated:false})
+    expect(result).toMatchObject({estimate:26500,low:21000,high:33500,purchased:20,spare:8})
     expect(result.low).toBeLessThanOrEqual(result.estimate)
     expect(result.high).toBeGreaterThanOrEqual(result.estimate)
   })

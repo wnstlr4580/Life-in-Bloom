@@ -192,6 +192,7 @@ model Seller {
   sellsFinishedProducts Boolean      @default(true)
   offersCustomBouquet   Boolean      @default(false)
   bouquetMakingFee      Int?
+  wrappingPrices        Json? // 포장 방식 id별 판매자 포장재료비 { kraft: 2000, ... }
   offersDiyFlowers      Boolean      @default(false)
   isOpen                Boolean      @default(true)
   termsVersion          String
@@ -213,6 +214,8 @@ model Seller {
   customDeliveryRegions String[]     @default([])
   productDeliveryScope  String       @default("NATIONWIDE")
   productDeliveryRegions String[]    @default([])
+  isProfessionalFlorist Boolean     @default(false) // 가입 시 [전문 플로리스트] 체크
+  floristCertificatePaths String[]   @default([]) // seller-documents 버킷의 자격증 파일 경로
 
   user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   reviews    SellerReview[]

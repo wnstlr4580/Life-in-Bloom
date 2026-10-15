@@ -16,6 +16,7 @@ type SellerRow = {
   isOpen: boolean
   offersCustomBouquet: boolean
   bouquetMakingFee: number | null
+  wrappingPrices: Record<string, number> | null
   offersDiyFlowers: boolean
   customDeliveryScope: string
   customDeliveryRegions: string[]
@@ -111,7 +112,7 @@ export async function POST(req: Request) {
 
   const { data: sellerData, error: sellerError } = await supabaseAdmin
     .from("Seller")
-    .select("id, marketName, sellerType, roadAddress, detailAddress, publicPhone, latitude, longitude, isOpen, offersCustomBouquet, bouquetMakingFee, offersDiyFlowers, customDeliveryScope, customDeliveryRegions")
+    .select("id, marketName, sellerType, roadAddress, detailAddress, publicPhone, latitude, longitude, isOpen, offersCustomBouquet, bouquetMakingFee, wrappingPrices, offersDiyFlowers, customDeliveryScope, customDeliveryRegions")
     .in("id", sellerIds)
     .eq("status", "APPROVED")
     .eq("isOpen", true)
@@ -151,7 +152,8 @@ export async function POST(req: Request) {
     const customFulfilledCount = customItems.filter((item) => item.available >= item.requested).length
     const withinRadius = distance === null || distance <= radiusKm
     const diyComplete = seller.offersDiyFlowers && withinRadius && diyFulfilledCount === flowers.length
-    const customComplete = seller.offersCustomBouquet && seller.customDeliveryScope !== "NONE" && customFulfilledCount === flowers.length
+    // 주문제작은 배송이 안 되는 꽃집도 매장 픽업으로 받을 수 있어 배송 범위와 무관하게 판단한다.
+    const customComplete = seller.offersCustomBouquet && customFulfilledCount === flowers.length
     const diyPrice = diyComplete ? diyItems.reduce((sum, item) => sum + (item.subtotal ?? 0), 0) : null
     const customPrice = customComplete
       ? bouquetPrice(customItems.reduce((sum, item) => sum + (item.subtotal ?? 0), 0), seller.bouquetMakingFee)
@@ -179,6 +181,7 @@ export async function POST(req: Request) {
       diyPrice,
       customPrice,
       makingFee: seller.bouquetMakingFee,
+      wrappingPrices: seller.wrappingPrices ?? null,
       customMaterialPrice: customComplete ? customItems.reduce((sum, item) => sum + (item.subtotal ?? 0), 0) : null,
       withinRadius,
       preferred: seller.id === preferredSellerId,
@@ -187,9 +190,10 @@ export async function POST(req: Request) {
     }
   }).filter((match) => match.diyComplete || match.customComplete || match.preferred)
     .sort((a, b) => {
-      if (fulfillmentMode === "custom" && (a.customDeliveryScope === "NATIONWIDE") !== (b.customDeliveryScope === "NATIONWIDE")) return a.customDeliveryScope === "NATIONWIDE" ? -1 : 1
       if (a.preferred !== b.preferred) return a.preferred ? -1 : 1
-      if (a.diyComplete !== b.diyComplete) return a.diyComplete ? -1 : 1
+      const aComplete = fulfillmentMode === "diy" ? a.diyComplete : a.customComplete
+      const bComplete = fulfillmentMode === "diy" ? b.diyComplete : b.customComplete
+      if (aComplete !== bComplete) return aComplete ? -1 : 1
       if (hasCoordinates) return (a.distanceKm ?? 9999) - (b.distanceKm ?? 9999)
       if (a.addressScore !== b.addressScore) return b.addressScore - a.addressScore
       return b.fulfilledCount - a.fulfilledCount

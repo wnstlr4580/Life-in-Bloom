@@ -17,6 +17,7 @@ export interface CartItem {
     orderMode: "diy" | "custom"
     supportsPickup: boolean
     supportsDelivery: boolean
+    preferredMethod?: "pickup" | "delivery"
     deliveryScope?: "NONE" | "NATIONWIDE" | "REGIONAL"
     deliveryRegions?: string[]
   }

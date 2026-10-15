@@ -61,8 +61,9 @@ export function purchaseLine(quantity: number, stemsPerBundle: number | null, qu
   return { bundles, spareStems: bundles * stemsPerBundle! - quantity, total: quotePerBundle !== null && Number.isFinite(quotePerBundle) && quotePerBundle > 0 ? Math.round(bundles * quotePerBundle) : null }
 }
 
-// Initial planning assumptions, NOT fitted retail margins or a validated prediction interval.
-export const RETAIL_PLANNING = { lowMultiplier: 1.2, midpointMultiplier: 1.4, highMultiplier: 1.6, version: "auction-budget-v1" } as const
+// 꽃시장(공판장 주변 도소매 매장) 1단 구매가 ÷ 같은 시기 aT 경락가로 산정한 매장 가산율.
+// 근거와 계산: docs/market-purchase-analysis.md (관측 약 1.1~1.45배, 중심 약 1.25배)
+export const RETAIL_PLANNING = { lowMultiplier: 1.1, midpointMultiplier: 1.25, highMultiplier: 1.45, version: "auction-budget-v2" } as const
 export function estimatedMarketPurchase(flowers: { quantity: number; stemsPerBundle: number | null; reference?: { average: number | null; low: number | null; high: number | null } }[], wrappingPrice = 0) {
   if (!flowers.length || !Number.isFinite(wrappingPrice) || wrappingPrice < 0) return null
   const lines = flowers.map(flower => {
@@ -79,5 +80,5 @@ export function estimatedMarketPurchase(flowers: { quantity: number; stemsPerBun
     low: Math.floor((valid.reduce((sum, line) => sum + line.low, 0) + wrappingPrice) / 500) * 500,
     high: Math.ceil((valid.reduce((sum, line) => sum + line.high, 0) + wrappingPrice) / 500) * 500,
     purchased: valid.reduce((sum, line) => sum + line.purchased, 0), spare: valid.reduce((sum, line) => sum + line.spareStems!, 0),
-    wrappingPrice, modelVersion: RETAIL_PLANNING.version, calibrated: false }
+    wrappingPrice, modelVersion: RETAIL_PLANNING.version }
 }

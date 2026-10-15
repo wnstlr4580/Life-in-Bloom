@@ -1,15 +1,17 @@
 import { NextResponse } from "next/server"
 import { requireSeller } from "@/lib/authorization"
 import { supabaseAdmin } from "@/lib/supabase"
+import { cleanWrappingPrices } from "@/lib/bouquetFees"
+import { withDocumentUrls } from "@/lib/sellerDocuments"
 
 const FIELDS = [
   "id", "status", "legalBusinessName", "businessNumber", "representativeName",
   "marketName", "sellerType", "managerName", "managerPhone", "publicPhone",
   "introduction", "postalCode", "roadAddress", "detailAddress", "approvedAt",
-  "submittedAt", "sellsFinishedProducts", "offersCustomBouquet", "offersDiyFlowers", "bouquetMakingFee",
+  "submittedAt", "sellsFinishedProducts", "offersCustomBouquet", "offersDiyFlowers", "bouquetMakingFee", "wrappingPrices",
   "customDeliveryScope", "customDeliveryRegions", "productDeliveryScope", "productDeliveryRegions",
   "isOpen", "businessHours", "settlementBank", "settlementAccount", "settlementHolder",
-  "businessLicensePath",
+  "businessLicensePath", "isProfessionalFlorist", "floristCertificatePaths",
   "productSortStrategy",
 ].join(",")
 
@@ -23,14 +25,7 @@ export async function GET() {
     supabaseAdmin.from("SellerReview").select("toStatus, reason, createdAt").eq("sellerId", sellerId).order("createdAt", { ascending: false }).limit(1),
   ])
   if (error) return NextResponse.json({ error: "판매처 정보를 불러오지 못했어요" }, { status: 500 })
-  const sellerRecord = seller as unknown as Record<string, unknown>
-  let businessLicenseUrl: string | null = null
-  if (typeof sellerRecord.businessLicensePath === "string" && sellerRecord.businessLicensePath) {
-    const { data } = await supabaseAdmin.storage.from("seller-documents").createSignedUrl(sellerRecord.businessLicensePath, 300)
-    businessLicenseUrl = data?.signedUrl ?? null
-  }
-  const { businessLicensePath: _path, ...safeSeller } = sellerRecord
-  return NextResponse.json({ seller: { ...safeSeller, businessLicenseUrl }, latestReview: reviews?.[0] ?? null })
+  return NextResponse.json({ seller: await withDocumentUrls(seller as unknown as Record<string, unknown>), latestReview: reviews?.[0] ?? null })
 }
 
 export async function PATCH(req: Request) {
@@ -39,6 +34,8 @@ export async function PATCH(req: Request) {
   const sellerId = actor.seller!.id
   const body = await req.json()
   if (body.bouquetMakingFee != null && (!Number.isInteger(body.bouquetMakingFee) || body.bouquetMakingFee < 0 || body.bouquetMakingFee > 100000)) return NextResponse.json({ error: "제작비는 0~100,000원의 정수로 입력해주세요" }, { status: 400 })
+  const wrappingPrices = body.wrappingPrices !== undefined ? cleanWrappingPrices(body.wrappingPrices) : undefined
+  if (wrappingPrices === null) return NextResponse.json({ error: "포장재료비는 0~100,000원의 정수로 입력해주세요" }, { status: 400 })
   const { data: currentSeller } = await supabaseAdmin.from("Seller").select("status, sellsFinishedProducts, offersCustomBouquet, offersDiyFlowers").eq("id", sellerId).single()
   const serviceChanged = Boolean(currentSeller) && (
     Boolean(body.sellsFinishedProducts) !== currentSeller?.sellsFinishedProducts ||
@@ -72,6 +69,8 @@ export async function PATCH(req: Request) {
   if (body.sellsFinishedProducts && productDeliveryScope === "REGIONAL" && productDeliveryRegions.length === 0) return NextResponse.json({ error: "완제품 배송 가능 지역을 선택해주세요" }, { status: 400 })
   const update = {
     ...(body.bouquetMakingFee !== undefined ? { bouquetMakingFee: body.bouquetMakingFee } : {}),
+    ...(wrappingPrices !== undefined ? { wrappingPrices } : {}),
+    ...(body.isProfessionalFlorist !== undefined ? { isProfessionalFlorist: Boolean(body.isProfessionalFlorist) } : {}),
     marketName, managerName, managerPhone, publicPhone, postalCode, roadAddress, detailAddress, introduction,
     sellsFinishedProducts: Boolean(body.sellsFinishedProducts),
     offersCustomBouquet: Boolean(body.offersCustomBouquet),
@@ -85,12 +84,5 @@ export async function PATCH(req: Request) {
   }
   const { data, error } = await supabaseAdmin.from("Seller").update(update).eq("id", sellerId).select(FIELDS).single()
   if (error) return NextResponse.json({ error: "설정을 저장하지 못했어요" }, { status: 500 })
-  const sellerRecord = data as unknown as Record<string, unknown>
-  let businessLicenseUrl: string | null = null
-  if (typeof sellerRecord.businessLicensePath === "string" && sellerRecord.businessLicensePath) {
-    const { data: signed } = await supabaseAdmin.storage.from("seller-documents").createSignedUrl(sellerRecord.businessLicensePath, 300)
-    businessLicenseUrl = signed?.signedUrl ?? null
-  }
-  const { businessLicensePath: _path, ...safeSeller } = sellerRecord
-  return NextResponse.json({ seller: { ...safeSeller, businessLicenseUrl } })
+  return NextResponse.json({ seller: await withDocumentUrls(data as unknown as Record<string, unknown>) })
 }

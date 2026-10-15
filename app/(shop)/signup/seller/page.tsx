@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { signIn } from "next-auth/react"
 import Link from "next/link"
 import Script from "next/script"
-import { Building2, CheckCircle2, Circle, FileCheck2, Landmark, Leaf, ShieldCheck, Store, UserRound } from "lucide-react"
+import { Award, Building2, CheckCircle2, Circle, FileCheck2, Landmark, Leaf, ShieldCheck, Store, UserRound } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -19,6 +19,7 @@ const initial = {
   settlementHolder: "", sellsFinishedProducts: true, offersCustomBouquet: false,
   offersDiyFlowers: false, termsAgreed: false,
   coopRequested: false, coopBirthDate: "", coopConsent: false,
+  isProfessionalFlorist: false,
 }
 
 type FormKey = keyof typeof initial
@@ -27,6 +28,7 @@ export default function SellerSignupPage() {
   const router = useRouter()
   const [form, setForm] = useState(initial)
   const [license, setLicense] = useState<File | null>(null)
+  const [certificates, setCertificates] = useState<File[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -66,6 +68,8 @@ export default function SellerSignupPage() {
     if (!/^\d{10}$/.test(form.businessNumber.replace(/\D/g, ""))) errors.businessNumber = "사업자등록번호 숫자 10자리를 입력해주세요."
     for (const key of ["legalBusinessName", "representativeName", "businessType", "businessCategory", "marketName", "settlementBank", "settlementAccount", "settlementHolder"] as FormKey[]) if (!String(form[key]).trim()) errors[key] = "필수 입력 항목입니다."
     if (!license) errors.businessLicense = "사업자등록증을 첨부해주세요."
+    if (form.isProfessionalFlorist && certificates.length === 0) errors.floristCertificates = "플로리스트·화훼 관련 자격증을 1개 이상 첨부해주세요."
+    if (certificates.some((file) => file.size > 10 * 1024 * 1024)) errors.floristCertificates = "자격증 파일은 각각 10MB 이하만 가능해요."
     if (form.coopRequested && !/^\d{8}$/.test(form.coopBirthDate.replace(/\D/g, ""))) errors.coopBirthDate = "생년월일 8자리를 입력해주세요. (예: 19700101)"
     if (form.coopRequested && !form.coopConsent) errors.coopConsent = "조합원 확인을 위한 정보 조회에 동의해주세요."
     if (!form.postalCode || !form.roadAddress) errors.postalCode = "도로명주소 검색으로 주소를 선택해주세요."
@@ -87,6 +91,7 @@ export default function SellerSignupPage() {
       const body = new FormData()
       Object.entries(form).forEach(([key, value]) => body.append(key, String(value)))
       body.append("businessLicense", license)
+      if (form.isProfessionalFlorist) certificates.forEach((file) => body.append("floristCertificates", file))
       const response = await fetch("/api/auth/signup/seller", { method: "POST", body })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error ?? "판매자 가입에 실패했어요")
@@ -196,11 +201,9 @@ export default function SellerSignupPage() {
                 {field("publicPhone", "고객 문의 전화번호", "선택 입력", "tel", false)}
                 <div className="sm:col-span-2 space-y-2">
                   <Label className="text-xs font-medium text-stone-600">판매처 형태 *</Label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <SellerType value="FLOWER_SHOP" current={form.sellerType} onChange={(value) => set("sellerType", value)} label="동네 꽃집" detail="제작·픽업" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <SellerType value="FLOWER_SHOP" current={form.sellerType} onChange={(value) => set("sellerType", value)} label="꽃집" detail="제작·픽업·배송" />
                     <SellerType value="FARM" current={form.sellerType} onChange={(value) => set("sellerType", value)} label="화훼 농가" detail="산지 직송" />
-                    <SellerType value="WHOLESALE" current={form.sellerType} onChange={(value) => set("sellerType", value)} label="도매 판매처" detail="대량 납품" />
-                    <SellerType value="OTHER" current={form.sellerType} onChange={(value) => set("sellerType", value)} label="기타" detail="복합 운영" />
                   </div>
                 </div>
                 <div className="space-y-1.5"><Label className="text-xs font-medium text-stone-600">우편번호 *</Label><div className="flex gap-2"><Input required readOnly value={form.postalCode} placeholder="주소 검색" className="h-11 bg-stone-50" /><Button type="button" variant="outline" onClick={openAddressSearch} className="h-11 whitespace-nowrap">도로명주소 검색</Button></div></div>
@@ -226,6 +229,18 @@ export default function SellerSignupPage() {
                 <Check checked={form.offersDiyFlowers} onChange={(v) => set("offersDiyFlowers", v)} title="개별 꽃·소재 판매" description="송이 단위 재고와 가격을 고객에게 보여줘요." badge="DIY·재료" />
               </div>
               {fieldErrors.services && <p id="services" tabIndex={-1} className="mt-3 text-xs text-red-500">{fieldErrors.services}</p>}
+              <div id="floristCertificates" tabIndex={-1} className={`mt-5 rounded-xl border p-4 ${form.isProfessionalFlorist ? "border-emerald-500 bg-emerald-50/60" : "border-stone-200 bg-white"}`}>
+                <label className="flex cursor-pointer items-start gap-3">
+                  <input type="checkbox" checked={form.isProfessionalFlorist} onChange={(e) => set("isProfessionalFlorist", e.target.checked)} className="mt-1 accent-emerald-700" />
+                  <span><span className="flex items-center gap-1.5 text-sm font-semibold text-stone-800"><Award size={15} className="text-emerald-700" />전문 플로리스트가 꽃다발을 제작해요</span><span className="mt-1 block text-xs leading-5 text-stone-500">플로리스트 민간자격, 화훼장식기능사·화훼장식산업기사 등 화훼 관련 자격증을 올려주세요. 입점 심사 때 함께 확인합니다.</span></span>
+                </label>
+                {form.isProfessionalFlorist && <div className="mt-4 space-y-2 rounded-xl border border-dashed border-stone-300 bg-white p-4">
+                  <Label htmlFor="floristCertificateFiles" className="text-xs font-medium text-stone-600">자격증 파일 * (최대 5개)</Label>
+                  <Input id="floristCertificateFiles" type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={(e) => { setCertificates(Array.from(e.target.files ?? []).slice(0, 5)); setFieldErrors((current) => { const next = { ...current }; delete next.floristCertificates; return next }) }} className={`h-11 bg-white file:text-stone-600 ${fieldErrors.floristCertificates ? "border-red-400" : "border-stone-200"}`} />
+                  <p className="text-[11px] text-stone-400">{certificates.length ? certificates.map((file) => file.name).join(", ") : "PDF, JPG, PNG, WEBP · 파일당 최대 10MB"}</p>
+                </div>}
+                {fieldErrors.floristCertificates && <p className="mt-2 text-xs text-red-500">{fieldErrors.floristCertificates}</p>}
+              </div>
             </Section>
 
             <Section id="coop" eyebrow="STEP 6 · 선택" title="농협 조합원이신가요?" description="조합원 인증과 교육이수 확인을 거치면 조합원꽃집으로 승인돼요. 조합원이 아니면 건너뛰어도 가입할 수 있어요.">

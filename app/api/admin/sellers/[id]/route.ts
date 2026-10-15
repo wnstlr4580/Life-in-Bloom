@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/authorization"
 import { supabaseAdmin } from "@/lib/supabase"
+import { withDocumentUrls } from "@/lib/sellerDocuments"
 
 export async function GET(_req: Request, context: { params: Promise<{ id: string }> }) {
   if (!await requireAdmin()) return NextResponse.json({ error: "관리자 권한이 필요해요" }, { status: 403 })
@@ -17,21 +18,9 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
 
   if (error || !seller) return NextResponse.json({ error: "판매처 신청을 찾을 수 없어요" }, { status: 404 })
 
-  let documentUrl: string | null = null
-  if (seller.businessLicensePath) {
-    const { data } = await supabaseAdmin.storage
-      .from("seller-documents")
-      .createSignedUrl(seller.businessLicensePath, 300)
-    documentUrl = data?.signedUrl ?? null
-  }
-
-  const { settlementAccount, businessLicensePath: _path, ...safeSeller } = seller
+  const { settlementAccount, ...rest } = seller
   return NextResponse.json({
-    seller: {
-      ...safeSeller,
-      settlementAccount,
-      businessLicenseUrl: documentUrl,
-    },
+    seller: { ...await withDocumentUrls(rest), settlementAccount },
     reviews: reviews ?? [],
   })
 }

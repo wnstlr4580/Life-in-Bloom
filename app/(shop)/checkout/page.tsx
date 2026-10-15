@@ -25,7 +25,7 @@ export default function CheckoutPage() {
     deliveryDate: "", deliveryTime: "anytime",
     giftMessage: "", giftWrapping: false,
   })
-  const [deliveryType, setDeliveryType] = useState<DeliveryType>("standard")
+  const [deliveryType, setDeliveryType] = useState<DeliveryType | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   // 결제 모듈 테스트 중에는 체크 시 실제 결제 없이 바로 주문 완료 처리
@@ -37,10 +37,13 @@ export default function CheckoutPage() {
     fetch("/api/me").then((r) => r.json()).then((d) => setMyPoints(d?.points ?? 0)).catch(() => {})
   }, [])
   const bouquetFulfillment = items.find((item) => item.fulfillment)?.fulfillment
-  const pickupOnly = items.some((item) => item.fulfillment?.orderMode === "diy")
+  // 직접 만들기 재료나 배송을 하지 않는 꽃집의 주문제작은 매장 픽업만 가능
+  const pickupOnly = items.some((item) => item.fulfillment && (item.fulfillment.orderMode === "diy" || !item.fulfillment.supportsDelivery))
+  // 꽃다발 만들기에서 ‘매장 픽업 주문’을 눌렀다면 픽업을 기본 선택
+  const defaultDeliveryType: DeliveryType = bouquetFulfillment?.preferredMethod === "pickup" ? "pickup" : "standard"
   const pickupStoreName = bouquetFulfillment?.sellerName
 
-  const selectedDeliveryType: DeliveryType = pickupOnly ? "pickup" : deliveryType
+  const selectedDeliveryType: DeliveryType = pickupOnly ? "pickup" : deliveryType ?? defaultDeliveryType
   const shippingFee = selectedDeliveryType === "pickup" || total >= 50000 ? 0 : 3000
 
   // 받는 날짜 최소값 (오늘)
