@@ -47,6 +47,8 @@ function SajuPageContent() {
   const { data: session, status: sessionStatus } = useSession()
   const searchParams = useSearchParams()
   const kioskBirthDate = searchParams.get("birthDate")
+  // 공유카드 외부 브라우저 이어보기에서 음력 입력도 그대로 다시 분석한다 (키오스크는 양력이라 기본값)
+  const kioskCalendar = searchParams.get("calendar") === "lunar" ? "lunar" : "solar"
   const kioskPhotoId = searchParams.get("kiosk")
 
   const [result, setResult] = useState<AnalyzeResult | null>(null)
@@ -54,6 +56,8 @@ function SajuPageContent() {
   const [error, setError] = useState("")
   const [birthYear, setBirthYear] = useState<number | null>(null)
   const [userName, setUserName] = useState("")
+  // 공유카드를 외부 브라우저에서 다시 띄울 때 넘기는 생년월일과 양·음력
+  const [shareBirth, setShareBirth] = useState<{ birthDate: string; calendarType: string } | null>(null)
   const [fortuneOpen, setFortuneOpen] = useState(false)
   const [savedProfile, setSavedProfile] = useState<SavedProfile | null>(null)
   const [loadKey, setLoadKey] = useState(0)
@@ -86,7 +90,7 @@ function SajuPageContent() {
       if ((state.userId ?? null) !== (session?.user?.id ?? null)) {
         sessionStorage.removeItem(SAJU_CACHE_KEY); return
       }
-      setSavedProfile(state.input); setResult(state.result); setBirthYear(state.birthYear); setUserName(state.userName); setLoadKey((key) => key + 1)
+      setSavedProfile(state.input); setShareBirth(state.input?.birthDate ? { birthDate: state.input.birthDate, calendarType: state.input.calendarType } : null); setResult(state.result); setBirthYear(state.birthYear); setUserName(state.userName); setLoadKey((key) => key + 1)
     } catch { sessionStorage.removeItem(SAJU_CACHE_KEY) }
   }, [kioskBirthDate, sessionStatus, session?.user?.id])
 
@@ -140,6 +144,7 @@ function SajuPageContent() {
   const handleSubmit = useCallback(async (data: SubmitData) => {
     setBirthYear(new Date(data.birthDate).getFullYear())
     setUserName(data.name)
+    setShareBirth({ birthDate: data.birthDate, calendarType: data.calendarType })
     setLoading(true)
     setError("")
     setResult(null)
@@ -185,9 +190,9 @@ function SajuPageContent() {
       birthDate: kioskBirthDate,
       birthHour: "unknown",
       city: "미입력",
-      calendarType: "solar",
+      calendarType: kioskCalendar,
     })
-  }, [kioskBirthDate, handleSubmit])
+  }, [kioskBirthDate, kioskCalendar, handleSubmit])
 
   // 저장된 데이터로 불러오기
   const handleLoad = () => {
@@ -262,7 +267,7 @@ function SajuPageContent() {
               loadKey > 0
                 ? savedProfile ?? undefined
                 : kioskBirthDate
-                ? { birthDate: kioskBirthDate, calendarType: "solar" }
+                ? { birthDate: kioskBirthDate, calendarType: kioskCalendar }
                 : undefined
             }
           />
@@ -328,6 +333,7 @@ function SajuPageContent() {
                   pillars={result.pillars}
                   birthYear={birthYear}
                   name={userName}
+                  birth={shareBirth}
                 />
               </div>
             )}

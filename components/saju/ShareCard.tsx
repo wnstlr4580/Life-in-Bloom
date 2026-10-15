@@ -40,9 +40,11 @@ interface Props {
   pillars: PillarInfo[]
   birthYear: number
   name?: string
+  /** 입력한 생년월일과 양·음력 — 카카오톡 인앱에서 외부 브라우저로 넘길 때 같은 결과를 다시 띄우는 데 쓴다 */
+  birth?: { birthDate: string; calendarType: string } | null
 }
 
-export function ShareCard({ ohaeng, pillars, birthYear, name }: Props) {
+export function ShareCard({ ohaeng, pillars, birthYear, name, birth }: Props) {
   // 화면에 보이는 앞면은 뒤집기 3D 변형 아래 있어서 html2canvas가 안정적으로 못 찍는다 —
   // 캡처 전용으로 변형 없는 사본을 화면 밖에 따로 둔다(그림이 있으면 이쪽은 아예 안 쓴다).
   const captureRef = useRef<HTMLDivElement>(null)
@@ -122,13 +124,26 @@ export function ShareCard({ ohaeng, pillars, birthYear, name }: Props) {
     } finally {
       setSharing(false)
     }
-    // 파일 공유를 지원하지 않으면 텍스트 공유나 링크 복사로 대체한다
+    // 안드로이드 카카오톡 인앱 브라우저는 공유 기능(Web Share) 자체가 없다 — 외부 브라우저로 넘겨서 공유하게 한다.
+    // (iOS 카카오톡 인앱은 공유를 지원해서 위에서 처리된다)
+    if (!navigator.share && /KAKAOTALK/i.test(navigator.userAgent)) {
+      if (confirm("카카오톡 안에서는 공유하기가 안 돼요.\n크롬 등 다른 브라우저로 열어서 공유할까요?")) {
+        const url = new URL("/saju", window.location.origin)
+        if (birth) {
+          url.searchParams.set("birthDate", birth.birthDate)
+          if (birth.calendarType === "lunar") url.searchParams.set("calendar", "lunar")
+        }
+        window.location.href = `kakaotalk://web/openExternal?url=${encodeURIComponent(url.toString())}`
+      }
+      return
+    }
+    // 그 밖에 파일 공유를 못 하는 환경 — 글·링크만 공유하거나, 공유 기능이 없으면 이미지를 저장해 준다
     try {
       if (navigator.share) {
         await navigator.share({ title: `인생내꽃 — 나는 ${type.name}`, text, url: window.location.href })
       } else {
-        await navigator.clipboard.writeText(text + "\n" + window.location.href)
-        alert("링크가 복사됐어요!")
+        await downloadCard()
+        alert("이 브라우저는 공유하기를 지원하지 않아 카드 이미지를 저장했어요.\n인스타그램 스토리에서 저장한 이미지를 올려 주세요.")
       }
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") return
