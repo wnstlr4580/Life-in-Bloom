@@ -41,6 +41,12 @@ if (process.env.KAKAO_CLIENT_ID && process.env.KAKAO_CLIENT_SECRET) {
     KakaoProvider({
       clientId: process.env.KAKAO_CLIENT_ID,
       clientSecret: process.env.KAKAO_CLIENT_SECRET,
+      // 이메일을 명시적으로 요청해야 예전에 이메일 동의를 건너뛴 계정에도 다시 동의를 받는다.
+      // 콘솔 [카카오 로그인 > 동의항목]에 세 항목이 모두 설정돼 있어야 한다(아니면 KOE205).
+      authorization: {
+        url: "https://kauth.kakao.com/oauth/authorize",
+        params: { scope: "profile_nickname profile_image account_email" },
+      },
     })
   )
 }

@@ -193,10 +193,7 @@ export function ShareCard({ ohaeng, pillars, birthYear, name }: Props) {
       {/* 하단 */}
       <div className="relative z-10 text-center space-y-2">
         <p className="text-[10px] opacity-75">#일주 #사주 #{type.name.replace(/\s+/g, "")} #인생내꽃</p>
-        <span className="inline-flex items-center gap-1.5 bg-white/90 text-rose-600 text-[10.5px] font-bold pl-1.5 pr-3 py-1 rounded-full">
-          <span aria-hidden className="w-4 h-4 rounded-full bg-gradient-to-br from-rose-400 to-red-600" />
-          @LifeInBloom
-        </span>
+        <p className="text-[10.5px] font-semibold opacity-90">@LifeInBloom</p>
       </div>
     </div>
   )
@@ -242,7 +239,7 @@ export function ShareCard({ ohaeng, pillars, birthYear, name }: Props) {
       <p className="text-center text-[11px] text-stone-400 -mt-2 flex items-center justify-center gap-1">
         <RotateCw size={11} /> 카드를 눌러 일주의 의미 보기
       </p>
-      <p className="text-center text-base font-bold text-rose-500 -mt-2">{type.flower}</p>
+      <p className="text-center text-base font-bold text-stone-600 -mt-2">{type.flower}</p>
 
       {/* 캡처 전용 사본 — 3D 변형이 없어야 html2canvas가 제대로 찍는다. 그림이 있으면 안 쓰인다. */}
       {!imageSrc && (
