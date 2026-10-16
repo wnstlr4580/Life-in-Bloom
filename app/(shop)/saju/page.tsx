@@ -377,7 +377,7 @@ function SajuPageContent() {
           )}
 
           {/* 농협 농심천심운동 포털 연계 */}
-          <NongsimBanner />
+          <NongsimBanner lacking={result.lackingOhaeng} />
         </div>
       )}
     </div>
