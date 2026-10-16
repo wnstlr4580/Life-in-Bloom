@@ -10,6 +10,7 @@ import { FortuneResult } from "@/components/saju/FortuneResult"
 import { FlowerRecommendList } from "@/components/saju/FlowerRecommendList"
 import { FlowerGuide } from "@/components/saju/FlowerGuide"
 import { ShareCard } from "@/components/saju/ShareCard"
+import { NongsimBanner } from "@/components/brand/NongsimBanner"
 import type { FortuneResult as FortuneData } from "@/lib/fortune"
 import type { AnalyzeResult as SharedAnalyzeResult } from "@/types/saju"
 
@@ -374,6 +375,9 @@ function SajuPageContent() {
               availableIds={availableIds ?? undefined}
             />
           )}
+
+          {/* 농협 농심천심운동 포털 연계 */}
+          <NongsimBanner />
         </div>
       )}
     </div>

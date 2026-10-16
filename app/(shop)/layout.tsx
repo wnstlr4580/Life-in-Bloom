@@ -8,6 +8,7 @@ import { useCartStore } from "@/store/cartStore"
 import { signOut, useSession } from "next-auth/react"
 import { ShoppingCart, User, LogIn, LogOut, Search, Shield, Store } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { NONGSIM_URL } from "@/components/brand/NongsimBanner"
 
 interface NavChild { href: string; label: string }
 interface NavItem { href: string; label: string; children?: NavChild[] }
@@ -261,6 +262,15 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
                 <br />
                 감성 플라워 커머스
               </p>
+              <a
+                href={NONGSIM_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 pt-1 text-xs text-stone-500 hover:text-emerald-700 transition-colors"
+              >
+                <Image src="/partners/nongsim/nongsim_logo.png" alt="농심N천심" width={90} height={20} className="h-5 w-auto" />
+                <span>농심천심운동 포털 바로가기 →</span>
+              </a>
             </div>
             <div className="space-y-3">
               <p className="text-sm font-bold text-stone-700">서비스</p>
