@@ -43,13 +43,10 @@ if (process.env.KAKAO_CLIENT_ID && process.env.KAKAO_CLIENT_SECRET) {
     KakaoProvider({
       clientId: process.env.KAKAO_CLIENT_ID,
       clientSecret: process.env.KAKAO_CLIENT_SECRET,
-      // 비즈 앱 전환 전이라 이메일(account_email)은 '권한 없음' — 요청하면 KOE205가 난다.
-      // 닉네임·프로필 사진만 받고, 이메일은 signIn 콜백에서 카카오 회원번호로 대체 이메일을 만든다.
-      // 비즈 앱으로 전환해 이메일을 켜면 scope에 account_email을 다시 추가하면 된다.
-      authorization: {
-        url: "https://kauth.kakao.com/oauth/authorize",
-        params: { scope: "profile_nickname profile_image" },
-      },
+      // scope를 지정하지 않는다 — 콘솔 [카카오 로그인 > 동의항목]에 켜 둔 항목만 받아 온다.
+      // 콘솔에 없는 항목을 scope로 요청하면 카카오가 로그인 자체를 막는다(KOE205).
+      // 이메일(account_email)은 비즈 앱 전환 전이라 못 받으므로 signIn 콜백에서 회원번호로 대체 이메일을 만든다.
+      // 닉네임이 안 켜져 있으면 이름이 비어 오므로 signIn 콜백에서 기본 이름을 붙인다.
     })
   )
 }
@@ -121,6 +118,9 @@ const nextAuth = NextAuth({
           // 처음 온 소셜 계정 → 일반 회원으로 자동 가입. 실패하면 세션만 생기고 DB 회원이 없는
           // 어정쩡한 상태가 되므로 로그인을 막고 원인을 로그로 남긴다.
           const newId = user.id ?? crypto.randomUUID()
+          // 공급자가 닉네임을 주지 않은 경우(카카오 동의항목 미설정 등) 기본 이름 — 마이페이지에서 바꿀 수 있다
+          const PROVIDER_NAME: Record<string, string> = { kakao: "카카오", naver: "네이버", google: "구글" }
+          if (!user.name) user.name = `${PROVIDER_NAME[provider] ?? "SNS"} 회원`
           const { error: insertError } = await supabaseAdmin
             .from("User")
             .insert({ id: newId, email: normalizedEmail, name: user.name, image: user.image })
