@@ -80,6 +80,8 @@ const nextAuth = NextAuth({
   providers,
   trustHost: true,
   session: { strategy: "jwt" },
+  // 로그인 오류를 Auth.js 기본 영어 오류 페이지 대신 우리 로그인 화면(?error=코드)으로 보낸다.
+  pages: { signIn: "/login", error: "/login" },
   callbacks: {
     signIn: async ({ user, account }) => {
       if (!supabaseAdmin) return true
@@ -92,21 +94,42 @@ const nextAuth = NextAuth({
       }
       if (!user.email) return account?.provider === "credentials" ? true : "/login?error=NoEmailFromProvider"
       if (account?.provider !== "credentials") {
+        const provider = account?.provider ?? "unknown"
         const normalizedEmail = user.email.toLowerCase().trim()
-        const { data: existing } = await supabaseAdmin
+        user.email = normalizedEmail
+        const { data: existing, error: lookupError } = await supabaseAdmin
           .from("User")
-          .select("id, role, status, suspendedUntil")
+          .select("id, image, role, status, suspendedUntil")
           .eq("email", normalizedEmail)
           .maybeSingle()
+        if (lookupError) {
+          console.error(`[auth] ${provider} 로그인 — 회원 조회 실패:`, lookupError)
+          return "/login?error=SocialSignupFailed"
+        }
         // 판매자 계정은 이메일/비밀번호 로그인만 허용한다 (사업자 인증·정산 계정이라 소셜 연동 안 함).
         if (existing?.role === "SELLER") return "/login?error=SellerUseEmail"
         if (existing?.status === "SUSPENDED" && (!existing.suspendedUntil || new Date(existing.suspendedUntil) > new Date())) return false
         if (existing) {
-          // 소셜 공급자의 id로 기존 사용자 PK를 덮어쓰면 주문·리뷰 관계가 깨질 수 있다.
-          await supabaseAdmin.from("User").update({ name: user.name, image: user.image }).eq("id", existing.id)
+          // 이미 가입한 회원 → 로그인. 소셜 공급자의 id로 기존 PK를 덮어쓰면 주문·리뷰 관계가 깨지므로
+          // 세션 id를 DB의 id로 맞춘다. 사이트에서 바꾼 닉네임은 유지하고, 프로필 사진만 비어 있으면 채운다.
+          if (!existing.image && user.image) {
+            await supabaseAdmin.from("User").update({ image: user.image }).eq("id", existing.id)
+          }
           user.id = existing.id
+          console.log(`[auth] ${provider} 로그인 — 기존 회원`)
         } else {
-          await supabaseAdmin.from("User").insert({ id: user.id ?? normalizedEmail, email: normalizedEmail, name: user.name, image: user.image })
+          // 처음 온 소셜 계정 → 일반 회원으로 자동 가입. 실패하면 세션만 생기고 DB 회원이 없는
+          // 어정쩡한 상태가 되므로 로그인을 막고 원인을 로그로 남긴다.
+          const newId = user.id ?? crypto.randomUUID()
+          const { error: insertError } = await supabaseAdmin
+            .from("User")
+            .insert({ id: newId, email: normalizedEmail, name: user.name, image: user.image })
+          if (insertError) {
+            console.error(`[auth] ${provider} 가입 — 회원 생성 실패:`, insertError)
+            return "/login?error=SocialSignupFailed"
+          }
+          user.id = newId
+          console.log(`[auth] ${provider} 가입 — 새 회원 생성`)
         }
       }
       return true

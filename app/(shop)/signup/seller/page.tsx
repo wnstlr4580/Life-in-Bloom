@@ -134,6 +134,7 @@ export default function SellerSignupPage() {
             <p className="text-sm font-semibold text-emerald-700 mb-2">FLOWER PARTNER ONBOARDING</p>
             <h1 className="text-3xl font-bold tracking-tight text-stone-900">꽃을 잘 아는 판매자님을 기다려요</h1>
             <p className="text-sm text-stone-500 mt-3">사업자와 판매처 정보를 등록하면 검토 후 인생내꽃의 고객과 연결해 드립니다.</p>
+            <p className="text-xs text-stone-400 mt-2">판매자 계정은 이메일·비밀번호로만 가입하고 로그인할 수 있어요 (카카오·네이버·구글 로그인 불가).</p>
           </div>
           <div className="flex items-center gap-2 text-sm text-stone-500 bg-white border border-stone-200 rounded-full px-4 py-2">
             <ShieldCheck size={16} className="text-emerald-600" /> 제출 정보는 입점 심사에만 사용돼요

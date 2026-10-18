@@ -28,7 +28,7 @@ export default function SignupTypePage() {
             판매자 회원가입 <ChevronRight size={18} className="text-stone-300 group-hover:text-emerald-500" />
           </h2>
           <p className="text-sm text-stone-500 mt-2 leading-6">판매처와 사업자 정보를 등록하고 상품·꽃 재고를 관리해요.</p>
-          <p className="text-xs text-emerald-600 mt-4">사업자 정보 제출 후 관리자 승인 필요</p>
+          <p className="text-xs text-emerald-600 mt-4">이메일로만 가입·로그인 (SNS 로그인 불가) · 사업자 정보 제출 후 관리자 승인 필요</p>
         </Link>
       </div>
     </div>

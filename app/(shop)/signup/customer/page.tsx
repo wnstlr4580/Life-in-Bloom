@@ -83,7 +83,7 @@ export default function CustomerSignupPage() {
         </p>
       </form>
 
-      <SocialLoginButtons callbackUrl="/account" />
+      <SocialLoginButtons callbackUrl="/account" mode="signup" />
     </div>
   )
 }
