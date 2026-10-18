@@ -62,6 +62,10 @@ function LoginContent() {
 
       <div className="md:grid md:grid-cols-2 md:gap-10 md:items-start">
       <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-stone-100 p-6 space-y-4">
+        <div>
+          <h2 className="text-sm font-bold text-stone-700">일반 로그인</h2>
+          <p className="mt-0.5 text-xs text-stone-400">이메일과 비밀번호로 로그인해요 · 판매자 회원은 여기로</p>
+        </div>
         <div className="space-y-1.5">
           <Label className="text-xs text-stone-500">이메일</Label>
           <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="rounded-xl border-stone-200" />

@@ -29,10 +29,15 @@ export function SocialLoginButtons({ callbackUrl, mode = "login" }: { callbackUr
 
   return (
     <>
-      <div className="flex items-center gap-3 my-6 md:mt-0 md:mb-4">
+      {/* 모바일에서는 이메일 폼 아래 '또는' 구분선, PC에서는 오른쪽 열 제목만 */}
+      <div className="flex items-center gap-3 my-6 md:hidden">
         <div className="flex-1 h-px bg-stone-100" />
-        <span className="text-xs text-stone-400">{mode === "login" ? "또는 SNS 계정으로 로그인" : "또는 SNS 계정으로 간편 가입"}</span>
+        <span className="text-xs text-stone-400">또는</span>
         <div className="flex-1 h-px bg-stone-100" />
+      </div>
+      <div className="mb-4 px-1 md:pt-6">
+        <h2 className="text-sm font-bold text-stone-700">{mode === "login" ? "SNS 로그인" : "SNS 간편 가입"}</h2>
+        <p className="mt-0.5 text-xs text-stone-400">카카오 · 네이버 · 구글 계정으로 {mode === "login" ? "로그인해요" : "바로 가입해요"}</p>
       </div>
       <div className="flex flex-col gap-2">
         {Object.entries(PROVIDERS)
