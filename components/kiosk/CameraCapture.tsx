@@ -4,13 +4,28 @@ import { useEffect, useRef, useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { RotateCw } from "lucide-react"
 import { preloadSegmenter } from "@/lib/kiosk/segmentation"
+import { CUT_ASPECT } from "@/lib/kiosk/compositeCanvas"
 
 const TOTAL_CUTS = 4
 const AUTO_NEXT_DELAY_MS = 1200 // 컷 사이 포즈를 바꿀 시간
 
 // 배포된 코드가 최신 수정사항을 포함하는지 콘솔에서 바로 확인하기 위한 빌드 마커.
 // 새로 수정할 때마다 이 문자열을 바꿔서, 지금 보고 있는 화면이 실제로 그 수정을 반영한 빌드인지 헷갈리지 않게 한다.
-console.log("[kiosk/camera] build marker: video-always-mounted-fix-v3")
+console.log("[kiosk/camera] build marker: mobile-fov-fix-v4")
+
+// 일부 안드로이드 기기는 줌이 1보다 크게 잡힌 채로 열린다. 지원하는 경우 최소 줌으로 되돌린다.
+async function resetZoom(stream: MediaStream) {
+  const track = stream.getVideoTracks()[0]
+  if (!track?.getCapabilities) return
+  try {
+    const caps = track.getCapabilities() as MediaTrackCapabilities & { zoom?: { min: number } }
+    if (caps.zoom && typeof caps.zoom.min === "number") {
+      await track.applyConstraints({ advanced: [{ zoom: caps.zoom.min } as MediaTrackConstraintSet] })
+    }
+  } catch (error) {
+    console.warn("[kiosk/camera] zoom reset skipped:", error)
+  }
+}
 
 // video에 실제 프레임이 준비될 때까지 기다린다.
 // 이전엔 100ms씩 고정으로 재시도했는데, 배포 환경처럼 초기 디코딩이
@@ -51,6 +66,12 @@ export function CameraCapture({ onComplete }: Props) {
   const [count, setCount] = useState<number | null>(null)
   const [cutIndex, setCutIndex] = useState(0) // 지금까지 촬영 완료한 컷 수
   const capturedRef = useRef<ImageBitmap[]>([])
+  // 실제 카메라 프레임 비율. 메타데이터를 받기 전에는 네컷 칸 비율로 둔다.
+  const [videoAspect, setVideoAspect] = useState<number>(CUT_ASPECT)
+  // 미리보기 = 최종 결과에 담기는 영역.
+  // - 세로 사진(휴대폰): 합성 시 잘리지 않고 전체가 들어가므로 프레임 비율 그대로
+  // - 가로 사진(웹캠): 합성 시 칸 비율로 좌우가 잘리므로 칸 비율로 보여준다
+  const previewAspect = Math.min(videoAspect, CUT_ASPECT)
 
   const stopStream = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop())
@@ -65,14 +86,25 @@ export function CameraCapture({ onComplete }: Props) {
     setStatus("loading")
     stopStream()
     try {
+      // 휴대폰 카메라 센서는 4:3이 기본 화각이다. 예전처럼 9:16(1080x1920)을 요청하면
+      // 브라우저가 센서 좌우를 잘라낸 모드를 골라 기본 카메라보다 확대돼 보였다.
+      // 화면 방향에 맞춘 4:3 해상도를 요청해 센서 전체 화각을 쓰도록 한다.
+      const portrait = window.matchMedia?.("(orientation: portrait)").matches ?? false
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode, width: { ideal: 1080 }, height: { ideal: 1920 } },
+        video: portrait
+          ? { facingMode, width: { ideal: 960 }, height: { ideal: 1280 } }
+          : { facingMode, width: { ideal: 1280 }, height: { ideal: 960 } },
         audio: false,
       })
       streamRef.current = stream
+      await resetZoom(stream)
       // 원인 진단용 — 실제 트랙 상태를 콘솔에서 확인하기 위해 남겨둔다.
       console.log("[kiosk/camera] track settings:", stream.getVideoTracks()[0]?.getSettings())
       if (videoRef.current) {
+        videoRef.current.onloadedmetadata = () => {
+          const v = videoRef.current
+          if (v && v.videoWidth > 0 && v.videoHeight > 0) setVideoAspect(v.videoWidth / v.videoHeight)
+        }
         videoRef.current.srcObject = stream
         videoRef.current.muted = true // React가 video의 muted 속성을 안정적으로 반영하지 않아 직접 설정
         await videoRef.current.play()
@@ -170,7 +202,11 @@ export function CameraCapture({ onComplete }: Props) {
 
   return (
     <div className="w-full space-y-6">
-      <div className="relative aspect-[9/16] w-full rounded-3xl overflow-hidden bg-stone-900">
+      <div
+        className="relative w-full mx-auto rounded-3xl overflow-hidden bg-stone-900"
+        /* 세로로 긴 미리보기가 화면을 넘지 않도록, 높이 70vh에 맞춰 폭을 제한한다(비율 유지) */
+        style={{ aspectRatio: previewAspect, maxWidth: `calc(70vh * ${previewAspect})` }}
+      >
         {/* status와 상관없이 video 태그는 항상 DOM에 존재해야 한다.
             예전엔 ready/counting일 때만 렌더링했는데, getUserMedia가 오래 걸리는
             환경(배포 서버 등)에서는 그 사이 이 태그가 사라졌다 다시 생기면서

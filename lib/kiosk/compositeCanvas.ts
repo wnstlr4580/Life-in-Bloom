@@ -33,14 +33,23 @@ function drawCover(
 /**
  * 한 컷(인물 + 오행 꽃 배경)을 합성한다.
  * 최종 네컷 스트립에 조립하기 전 단계라 뱃지/워터마크 없이 순수 합성만 한다.
+ *
+ * 네컷 칸은 가로형(CUT_ASPECT ≈ 4:3)이다. 휴대폰 세로 촬영본(3:4, 9:16)을 그대로
+ * 칸에 cover로 채우면 세로의 절반 가까이 잘려 얼굴만 남는다. 그래서 세로 사진은
+ * 캔버스를 칸 비율로 좌우로 넓히고, 인물은 전체 높이 그대로 가운데 두고,
+ * 늘어난 좌우는 꽃 배경으로 채운다 (인물은 누끼라 배경과 자연스럽게 이어진다).
+ * 가로 사진(데스크톱 웹캠 등)은 기존처럼 원본 크기를 유지한다.
  */
 export async function compositeSingleCut(
   personImage: ImageBitmap,
   mask: Float32Array, // segmentPerson() 결과, 인물일 확률(0~1)
   backgroundUrl: string
 ): Promise<HTMLCanvasElement> {
-  const width = personImage.width
-  const height = personImage.height
+  const srcW = personImage.width
+  const srcH = personImage.height
+  const isTallerThanCut = srcW / srcH < CUT_ASPECT
+  const width = isTallerThanCut ? Math.round(srcH * CUT_ASPECT) : srcW
+  const height = srcH
   const canvas = document.createElement("canvas")
   canvas.width = width
   canvas.height = height
@@ -51,18 +60,18 @@ export async function compositeSingleCut(
   drawCover(ctx, bg, width, height)
 
   const personCanvas = document.createElement("canvas")
-  personCanvas.width = width
-  personCanvas.height = height
+  personCanvas.width = srcW
+  personCanvas.height = srcH
   const pctx = personCanvas.getContext("2d")
   if (!pctx) throw new Error("canvas context를 가져올 수 없습니다.")
-  pctx.drawImage(personImage, 0, 0, width, height)
-  const imageData = pctx.getImageData(0, 0, width, height)
+  pctx.drawImage(personImage, 0, 0, srcW, srcH)
+  const imageData = pctx.getImageData(0, 0, srcW, srcH)
   for (let i = 0; i < mask.length; i++) {
     imageData.data[i * 4 + 3] = Math.round(mask[i] * 255)
   }
   pctx.putImageData(imageData, 0, 0)
 
-  ctx.drawImage(personCanvas, 0, 0)
+  ctx.drawImage(personCanvas, Math.round((width - srcW) / 2), 0)
 
   return canvas
 }
@@ -83,6 +92,9 @@ const CELL_W = PANEL_W - PANEL_PAD * 2
 const CELL_H = 300
 const CELL_GAP = 12
 const PANEL_H = PANEL_PAD * 2 + CELL_H * 4 + CELL_GAP * 3 // = 1260, 패널 끝 y=1320
+
+/** 네컷 한 칸의 가로/세로 비율 (396/300 ≈ 1.32). 촬영 미리보기도 이 비율을 기준으로 맞춘다. */
+export const CUT_ASPECT = CELL_W / CELL_H
 
 // 꽃 색(id 접미사)별 텍스트 색 — 파스텔 종이 프레임과 어울리는 톤.
 // main: 꽃말·브랜드, soft: 날짜·구분선·영문 꽃말
