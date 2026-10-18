@@ -11,6 +11,7 @@ import { FlowerRecommendList } from "@/components/saju/FlowerRecommendList"
 import { FlowerGuide } from "@/components/saju/FlowerGuide"
 import { ShareCard } from "@/components/saju/ShareCard"
 import { NongsimBanner } from "@/components/brand/NongsimBanner"
+import { sharePhoto, downloadBlob, fetchImageBlob } from "@/lib/sharePhoto"
 import type { FortuneResult as FortuneData } from "@/lib/fortune"
 import type { AnalyzeResult as SharedAnalyzeResult } from "@/types/saju"
 
@@ -64,6 +65,7 @@ function SajuPageContent() {
   const [loadKey, setLoadKey] = useState(0)
   const [kioskPhoto, setKioskPhoto] = useState<KioskPhoto | null>(null)
   const [kioskPhotoExpired, setKioskPhotoExpired] = useState(false)
+  const [kioskSharing, setKioskSharing] = useState(false)
   const kioskAutoSubmitted = useRef(false)
   const resultRef = useRef<HTMLDivElement>(null)
   // 지금 주문 가능한 꽃 — 응답에 싣지 않고 매번 새로 읽는다. 결과는 sessionStorage에 캐시되므로
@@ -224,13 +226,41 @@ function SajuPageContent() {
             <p className="text-sm font-semibold text-stone-700">인생내꽃 포토부스에서 찍은 네컷</p>
             <p className="text-xs text-stone-400">{kioskPhoto.ohaeng} 배경으로 합성됐어요</p>
           </div>
-          <a
-            href={kioskPhoto.imageUrl}
-            download
-            className="text-xs font-medium text-rose-500 shrink-0"
-          >
-            저장
-          </a>
+          <div className="flex flex-col gap-1.5 shrink-0">
+            <button
+              onClick={async () => {
+                setKioskSharing(true)
+                try {
+                  await sharePhoto({
+                    getBlob: () => fetchImageBlob(kioskPhoto.imageUrl),
+                    fileName: `인생내꽃-네컷-${kioskPhoto.ohaeng}.jpg`,
+                    title: `인생내꽃 포토부스 — ${kioskPhoto.ohaeng}`,
+                    text: `인생내꽃 포토부스에서 네컷을 찍었어요 🌸\n나의 꽃은 ${kioskPhoto.ohaeng}\n\n당신의 꽃도 찾아보세요`,
+                    url: window.location.href,
+                  })
+                } finally {
+                  setKioskSharing(false)
+                }
+              }}
+              disabled={kioskSharing}
+              className="rounded-full bg-rose-400 px-3 py-1 text-xs font-semibold text-white disabled:opacity-50"
+            >
+              {kioskSharing ? "준비 중" : "공유"}
+            </button>
+            <button
+              onClick={async () => {
+                // 다른 도메인(스토리지) 이미지는 <a download>가 무시되므로 받아서 저장한다
+                try {
+                  downloadBlob(await fetchImageBlob(kioskPhoto.imageUrl), `인생내꽃-네컷-${kioskPhoto.ohaeng}.jpg`)
+                } catch {
+                  window.open(kioskPhoto.imageUrl, "_blank")
+                }
+              }}
+              className="rounded-full border border-stone-200 px-3 py-1 text-xs font-medium text-stone-600"
+            >
+              저장
+            </button>
+          </div>
         </div>
       )}
       {kioskPhotoExpired && (

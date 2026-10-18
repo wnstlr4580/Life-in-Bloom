@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { RotateCcw, Home, ExternalLink } from "lucide-react"
+import { RotateCcw, Home, ExternalLink, Download, Share2 } from "lucide-react"
 import type { KioskFlowerPreset } from "@/lib/kiosk/flowers"
 import { stampQrOnStrip } from "@/lib/kiosk/compositeCanvas"
 import { KIOSK_RESULT_IDLE_MS } from "@/lib/kiosk/constants"
+import { sharePhoto, downloadBlob } from "@/lib/sharePhoto"
 
 interface Props {
   imageBlob: Blob
@@ -24,6 +25,9 @@ export function ResultShare({ imageBlob, headline, preset, birthDate, onRetry, o
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const [errorDetail, setErrorDetail] = useState<string | null>(null)
   const uploadedRef = useRef(false)
+  // 공유·저장에 쓸 최종 이미지 — QR 스탬프가 성공하면 QR이 박힌 버전으로 교체된다
+  const finalBlobRef = useRef<Blob>(imageBlob)
+  const [sharing, setSharing] = useState(false)
   // QR 스탬프 후 previewUrl이 바뀌므로, 언마운트 시점의 최신 URL을 해제하기 위한 ref
   const previewUrlRef = useRef(previewUrl)
   previewUrlRef.current = previewUrl
@@ -70,6 +74,7 @@ export function ResultShare({ imageBlob, headline, preset, birthDate, onRetry, o
       // 실패해도 결과 자체는 유효하므로 원본 미리보기 + 링크 버튼으로 진행한다.
       try {
         const stamped = await stampQrOnStrip(imageBlob, url.toString())
+        finalBlobRef.current = stamped
         const stampedUrl = URL.createObjectURL(stamped)
         setPreviewUrl((prev) => {
           URL.revokeObjectURL(prev)
@@ -81,6 +86,24 @@ export function ResultShare({ imageBlob, headline, preset, birthDate, onRetry, o
       setUploadState("done")
     } catch {
       setUploadState("error")
+    }
+  }
+
+  const fileName = `인생내꽃-네컷-${preset.name}.jpg`
+
+  async function handleShare() {
+    if (!shareUrl) return
+    setSharing(true)
+    try {
+      await sharePhoto({
+        getBlob: async () => finalBlobRef.current,
+        fileName,
+        title: `인생내꽃 포토부스 — ${preset.name}`,
+        text: `${headline} 🌸\n${preset.name} · ${preset.meaning}\n\n인생내꽃 포토부스에서 나의 꽃과 함께 네컷을 찍었어요`,
+        url: shareUrl,
+      })
+    } finally {
+      setSharing(false)
     }
   }
 
@@ -117,6 +140,23 @@ export function ResultShare({ imageBlob, headline, preset, birthDate, onRetry, o
 
         {uploadState === "done" && shareUrl && (
           <>
+            {/* 휴대폰으로 직접 찍은 경우 — 사주 공유카드처럼 바로 저장·SNS 공유 */}
+            <div className="flex gap-2">
+              <Button
+                onClick={() => downloadBlob(finalBlobRef.current, fileName)}
+                variant="outline"
+                className="flex-1 h-11 gap-1.5 border-stone-200 text-stone-600"
+              >
+                <Download size={15} /> 사진 저장
+              </Button>
+              <Button
+                onClick={handleShare}
+                disabled={sharing}
+                className="flex-1 h-11 gap-1.5 bg-rose-400 hover:bg-rose-500 text-white"
+              >
+                <Share2 size={15} /> {sharing ? "공유 준비 중..." : "공유하기"}
+              </Button>
+            </div>
             <p className="text-sm text-stone-600">
               사진 속 QR을 스캔하면 사진을 저장하고 오행 사주 분석도 할 수 있어요
             </p>
