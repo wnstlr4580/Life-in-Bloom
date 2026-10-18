@@ -22,6 +22,11 @@ const nextConfig: NextConfig = {
         hostname: "*.public.blob.vercel-storage.com",
         pathname: "/**",
       },
+      // 소셜 로그인 프로필 사진 (구글·네이버·카카오)
+      { protocol: "https", hostname: "*.googleusercontent.com", pathname: "/**" },
+      { protocol: "https", hostname: "*.pstatic.net", pathname: "/**" },
+      { protocol: "https", hostname: "*.kakaocdn.net", pathname: "/**" },
+      { protocol: "http", hostname: "*.kakaocdn.net", pathname: "/**" },
     ],
   },
 }

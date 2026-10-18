@@ -233,7 +233,9 @@ export default function MyPage() {
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-full overflow-hidden bg-rose-50 flex items-center justify-center shrink-0">
                 {session.user.image ? (
-                  <Image src={session.user.image} alt="" width={56} height={56} className="object-cover" />
+                  // 소셜 프로필 사진은 호스트가 제각각이라 next/image 허용 목록에 없으면 페이지가 깨진다 — 일반 img로 표시
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={session.user.image} alt="" width={56} height={56} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
                 ) : (
                   <User size={28} className="text-rose-300" />
                 )}
