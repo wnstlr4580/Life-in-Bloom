@@ -44,8 +44,17 @@ export function SocialLoginButtons({ callbackUrl }: { callbackUrl: string }) {
             </Button>
           ))}
         <p className="text-[11px] text-stone-400 text-center">
-          처음이면 자동으로 가입돼요 · 이메일 제공에 동의해야 로그인할 수 있어요
+          처음 로그인하면 자동으로 일반 회원으로 가입돼요 · 판매자는 이메일로 가입해 주세요
         </p>
+        {enabled.includes("naver") && (
+          <div className="mt-2 rounded-xl border border-emerald-100 bg-emerald-50/60 px-4 py-3 text-xs leading-relaxed text-stone-600">
+            <p className="font-semibold text-emerald-700">📢 네이버 로그인 안내</p>
+            <p className="mt-1">
+              네이버 로그인은 아직 정식 오픈 전이라, <strong>멤버로 등록된 분만</strong> 가입·로그인할 수 있어요.
+              네이버로 이용하고 싶으시면 인생내꽃 운영자에게 연락해 주세요.
+            </p>
+          </div>
+        )}
       </div>
     </>
   )

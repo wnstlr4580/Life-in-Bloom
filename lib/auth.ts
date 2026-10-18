@@ -6,6 +6,7 @@ import GoogleProvider from "next-auth/providers/google"
 import CredentialsProvider from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
 import { supabaseAdmin } from "@/lib/supabase"
+import { SOCIAL_PLACEHOLDER_EMAIL_DOMAIN } from "@/lib/socialEmail"
 
 const providers: Provider[] = [
   CredentialsProvider({
@@ -42,11 +43,12 @@ if (process.env.KAKAO_CLIENT_ID && process.env.KAKAO_CLIENT_SECRET) {
     KakaoProvider({
       clientId: process.env.KAKAO_CLIENT_ID,
       clientSecret: process.env.KAKAO_CLIENT_SECRET,
-      // 이메일을 명시적으로 요청해야 예전에 이메일 동의를 건너뛴 계정에도 다시 동의를 받는다.
-      // 콘솔 [카카오 로그인 > 동의항목]에 세 항목이 모두 설정돼 있어야 한다(아니면 KOE205).
+      // 비즈 앱 전환 전이라 이메일(account_email)은 '권한 없음' — 요청하면 KOE205가 난다.
+      // 닉네임·프로필 사진만 받고, 이메일은 signIn 콜백에서 카카오 회원번호로 대체 이메일을 만든다.
+      // 비즈 앱으로 전환해 이메일을 켜면 scope에 account_email을 다시 추가하면 된다.
       authorization: {
         url: "https://kauth.kakao.com/oauth/authorize",
-        params: { scope: "profile_nickname profile_image account_email" },
+        params: { scope: "profile_nickname profile_image" },
       },
     })
   )
@@ -81,9 +83,13 @@ const nextAuth = NextAuth({
   callbacks: {
     signIn: async ({ user, account }) => {
       if (!supabaseAdmin) return true
-      // 카카오가 이메일 동의를 못 받아온 경우(테스터 미등록 등) 여기서 통과시키면
-      // DB와 무관한 임시 id로 세션이 발급되어 주문 등에서 FK 위반이 난다.
-      // 소셜 로그인은 이메일이 반드시 있어야만 허용한다.
+      // 소셜 공급자가 이메일을 주지 않으면(카카오 비즈 앱 전환 전 등) 공급자 회원번호로
+      // 고유한 대체 이메일을 만든다. 우리 서비스는 이메일로 회원을 구분하므로 이게 있어야
+      // DB의 User 행과 세션이 연결된다(없으면 주문 등에서 FK 위반).
+      // 실제 메일 발송에는 쓸 수 없는 주소라 SOCIAL_PLACEHOLDER_EMAIL_DOMAIN으로 구분한다.
+      if (!user.email && account && account.provider !== "credentials" && account.providerAccountId) {
+        user.email = `${account.provider}_${account.providerAccountId}@${SOCIAL_PLACEHOLDER_EMAIL_DOMAIN}`
+      }
       if (!user.email) return account?.provider === "credentials" ? true : "/login?error=NoEmailFromProvider"
       if (account?.provider !== "credentials") {
         const normalizedEmail = user.email.toLowerCase().trim()
@@ -92,8 +98,8 @@ const nextAuth = NextAuth({
           .select("id, role, status, suspendedUntil")
           .eq("email", normalizedEmail)
           .maybeSingle()
-        // 판매자 계정은 이메일/비밀번호 로그인만 허용한다.
-        if (existing?.role === "SELLER") return false
+        // 판매자 계정은 이메일/비밀번호 로그인만 허용한다 (사업자 인증·정산 계정이라 소셜 연동 안 함).
+        if (existing?.role === "SELLER") return "/login?error=SellerUseEmail"
         if (existing?.status === "SUSPENDED" && (!existing.suspendedUntil || new Date(existing.suspendedUntil) > new Date())) return false
         if (existing) {
           // 소셜 공급자의 id로 기존 사용자 PK를 덮어쓰면 주문·리뷰 관계가 깨질 수 있다.
@@ -111,6 +117,8 @@ const nextAuth = NextAuth({
         token.name = session.name as string
       }
       if (user) token.id = user.id
+      // signIn 콜백에서 만든 대체 이메일이 토큰에 확실히 실리도록 한다(아래 DB 조회의 키)
+      if (user?.email) token.email = user.email
       // 역할과 판매자 상태는 매번 DB에서 최신값을 읽는다.
       if (token.email) {
         const { data } = await supabaseAdmin

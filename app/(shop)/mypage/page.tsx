@@ -9,6 +9,15 @@ import { Package, User, ChevronRight, Sparkles, Pencil, Camera } from "lucide-re
 import Image from "next/image"
 import { BirthDateForm } from "@/components/saju/BirthDateForm"
 import { BouquetReviewComposer } from "@/components/shop/BouquetReviewComposer"
+import { isPlaceholderEmail } from "@/lib/socialEmail"
+
+// 카카오 등 이메일을 주지 않은 소셜 계정은 대체 이메일 대신 가입 경로를 보여준다
+function displayEmail(email: string | null | undefined) {
+  if (!email) return ""
+  if (!isPlaceholderEmail(email)) return email
+  const provider = email.split("_")[0]
+  return provider === "kakao" ? "카카오 계정으로 가입" : provider === "naver" ? "네이버 계정으로 가입" : "소셜 계정으로 가입"
+}
 
 const GENDER_LABEL: Record<string, string> = { male: "남성", female: "여성" }
 const CALENDAR_LABEL: Record<string, string> = { solar: "양력", lunar: "음력" }
@@ -260,7 +269,7 @@ export default function MyPage() {
                     </button>
                   </p>
                 )}
-                <p className="text-xs text-stone-400 truncate">{session.user.email}</p>
+                <p className="text-xs text-stone-400 truncate">{displayEmail(session.user.email)}</p>
               </div>
             </div>
             {nickError && <p className="text-xs text-red-500">{nickError}</p>}
@@ -370,7 +379,7 @@ export default function MyPage() {
                 </div>
                 <div>
                   <p className="text-xs text-stone-400 mb-1">가입 이메일</p>
-                  <p className="text-stone-800 font-medium truncate">{session.user.email}</p>
+                  <p className="text-stone-800 font-medium truncate">{displayEmail(session.user.email)}</p>
                 </div>
                 <div className="col-span-2 sm:col-span-3 pt-1">
                   <Link href="/saju" className="text-xs text-rose-400 hover:text-rose-500">

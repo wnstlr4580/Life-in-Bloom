@@ -19,8 +19,12 @@ function LoginContent() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(
     searchParams.get("error") === "NoEmailFromProvider"
-      ? "소셜 계정에서 이메일 제공에 동의하지 않아 로그인할 수 없어요. 다시 시도해서 이메일 제공에 동의하거나 이메일로 가입해 주세요."
-      : ""
+      ? "소셜 계정 정보를 받아오지 못해 로그인할 수 없어요. 다시 시도하거나 이메일로 가입해 주세요."
+      : searchParams.get("error") === "SellerUseEmail"
+        ? "판매자 계정은 이메일과 비밀번호로만 로그인할 수 있어요."
+        : searchParams.get("error") === "AccessDenied"
+          ? "로그인이 거부됐어요. 네이버는 등록된 멤버만 로그인할 수 있어요 — 필요하면 인생내꽃 운영자에게 연락해 주세요."
+          : ""
   )
 
   const handleSubmit = async (e: React.FormEvent) => {

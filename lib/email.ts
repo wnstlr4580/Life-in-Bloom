@@ -1,9 +1,12 @@
+import { isPlaceholderEmail } from "@/lib/socialEmail"
+
 type Mail = { to: string | string[]; subject: string; html: string }
 
 export async function sendEmail({ to, subject, html }: Mail) {
   const apiKey = process.env.RESEND_API_KEY
   const from = process.env.MAIL_FROM
-  const recipients = (Array.isArray(to) ? to : [to]).filter(Boolean)
+  // 소셜 대체 이메일(실제로 받을 수 없는 주소)은 발송 대상에서 뺀다
+  const recipients = (Array.isArray(to) ? to : [to]).filter((r) => r && !isPlaceholderEmail(r))
   if (!apiKey || !from || recipients.length === 0) {
     console.warn("[mail] skipped: RESEND_API_KEY, MAIL_FROM or recipient is missing")
     return { sent: false }

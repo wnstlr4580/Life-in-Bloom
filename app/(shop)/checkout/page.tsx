@@ -10,6 +10,7 @@ import { Truck, Gift, CreditCard } from "lucide-react"
 import Link from "next/link"
 import { nanoid } from "nanoid"
 import { useSession } from "next-auth/react"
+import { isPlaceholderEmail } from "@/lib/socialEmail"
 
 type DeliveryType = "standard" | "express" | "pickup"
 
@@ -223,7 +224,8 @@ export default function CheckoutPage() {
         customer: {
           fullName: form.ordererName,
           phoneNumber: form.ordererPhone,
-          email: session.user.email ?? undefined,
+          // 소셜 대체 이메일(실제 수신 불가)은 PG사에 넘기지 않는다
+          email: session.user.email && !isPlaceholderEmail(session.user.email) ? session.user.email : undefined,
         },
         windowType: { pc: "IFRAME", mobile: "REDIRECTION" },
         redirectUrl: `${window.location.origin}/checkout/complete`,
