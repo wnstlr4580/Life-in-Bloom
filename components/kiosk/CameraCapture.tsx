@@ -11,7 +11,7 @@ const AUTO_NEXT_DELAY_MS = 1200 // 컷 사이 포즈를 바꿀 시간
 
 // 배포된 코드가 최신 수정사항을 포함하는지 콘솔에서 바로 확인하기 위한 빌드 마커.
 // 새로 수정할 때마다 이 문자열을 바꿔서, 지금 보고 있는 화면이 실제로 그 수정을 반영한 빌드인지 헷갈리지 않게 한다.
-console.log("[kiosk/camera] build marker: mobile-fov-fix-v4")
+console.log("[kiosk/camera] build marker: mobile-fov-fix-v5-no-crop")
 
 // 일부 안드로이드 기기는 줌이 1보다 크게 잡힌 채로 열린다. 지원하는 경우 최소 줌으로 되돌린다.
 async function resetZoom(stream: MediaStream) {
@@ -72,6 +72,9 @@ export function CameraCapture({ onComplete }: Props) {
   // - 세로 사진(휴대폰): 합성 시 잘리지 않고 전체가 들어가므로 프레임 비율 그대로
   // - 가로 사진(웹캠): 합성 시 칸 비율로 좌우가 잘리므로 칸 비율로 보여준다
   const previewAspect = Math.min(videoAspect, CUT_ASPECT)
+  // 휴대폰 화면에서 바로 원인을 확인할 수 있도록 ?camdebug 를 붙이면 카메라 정보를 화면에 띄운다
+  const [showDebug] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("camdebug"))
+  const [debugInfo, setDebugInfo] = useState("")
 
   const stopStream = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop())
@@ -86,20 +89,35 @@ export function CameraCapture({ onComplete }: Props) {
     setStatus("loading")
     stopStream()
     try {
-      // 휴대폰 카메라 센서는 4:3이 기본 화각이다. 예전처럼 9:16(1080x1920)을 요청하면
-      // 브라우저가 센서 좌우를 잘라낸 모드를 골라 기본 카메라보다 확대돼 보였다.
-      // 화면 방향에 맞춘 4:3 해상도를 요청해 센서 전체 화각을 쓰도록 한다.
-      const portrait = window.matchMedia?.("(orientation: portrait)").matches ?? false
+      // 휴대폰에서 미리보기가 확대돼 보이던 원인:
+      // 카메라 원본 프레임은 가로형(4:3)인데 세로 해상도(1080x1920, 960x1280)를 요청하면
+      // 크롬이 기본값(resizeMode: crop-and-scale)으로 원본 가운데를 세로로 잘라 비율을 맞춘다.
+      // → resizeMode "none"으로 브라우저 크롭을 막고, 해상도는 센서 기본 비율(가로 4:3)로만 요청한다.
+      //   (세로로 들고 찍으면 브라우저가 프레임을 세로로 회전해서 넘겨준다)
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: portrait
-          ? { facingMode, width: { ideal: 960 }, height: { ideal: 1280 } }
-          : { facingMode, width: { ideal: 1280 }, height: { ideal: 960 } },
+        video: {
+          facingMode,
+          width: { ideal: 1280 },
+          height: { ideal: 960 },
+          resizeMode: "none",
+        } as MediaTrackConstraints,
         audio: false,
       })
       streamRef.current = stream
       await resetZoom(stream)
       // 원인 진단용 — 실제 트랙 상태를 콘솔에서 확인하기 위해 남겨둔다.
-      console.log("[kiosk/camera] track settings:", stream.getVideoTracks()[0]?.getSettings())
+      const track = stream.getVideoTracks()[0]
+      const settings = track?.getSettings()
+      console.log("[kiosk/camera] track settings:", settings)
+      if (showDebug) {
+        const caps = track?.getCapabilities?.() as (MediaTrackCapabilities & { zoom?: { min: number; max: number } }) | undefined
+        setDebugInfo(JSON.stringify({
+          label: track?.label,
+          settings,
+          capsWidth: caps?.width, capsHeight: caps?.height, capsZoom: caps?.zoom,
+          ua: navigator.userAgent,
+        }, null, 1))
+      }
       if (videoRef.current) {
         videoRef.current.onloadedmetadata = () => {
           const v = videoRef.current
@@ -114,7 +132,7 @@ export function CameraCapture({ onComplete }: Props) {
       console.error("[kiosk/camera] getUserMedia failed:", error)
       setStatus("denied")
     }
-  }, [facingMode, stopStream])
+  }, [facingMode, stopStream, showDebug])
 
   useEffect(() => {
     startStream()
@@ -218,6 +236,12 @@ export function CameraCapture({ onComplete }: Props) {
           muted
           className={`absolute inset-0 w-full h-full object-cover ${facingMode === "user" ? "-scale-x-100" : ""}`}
         />
+
+        {showDebug && debugInfo && (
+          <pre className="absolute bottom-2 left-2 right-2 z-10 max-h-1/2 overflow-auto rounded-lg bg-black/70 p-2 text-[10px] leading-tight text-lime-300 whitespace-pre-wrap">
+            {`video ${videoRef.current?.videoWidth}x${videoRef.current?.videoHeight}\n${debugInfo}`}
+          </pre>
+        )}
 
         {status === "loading" && (
           <div className="absolute inset-0 flex items-center justify-center text-white/70 text-sm">
