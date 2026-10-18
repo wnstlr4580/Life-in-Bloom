@@ -29,7 +29,7 @@ export function SocialLoginButtons({ callbackUrl, mode = "login" }: { callbackUr
 
   return (
     <>
-      <div className="flex items-center gap-3 my-6">
+      <div className="flex items-center gap-3 my-6 md:mt-0 md:mb-4">
         <div className="flex-1 h-px bg-stone-100" />
         <span className="text-xs text-stone-400">{mode === "login" ? "또는 SNS 계정으로 로그인" : "또는 SNS 계정으로 간편 가입"}</span>
         <div className="flex-1 h-px bg-stone-100" />
@@ -56,7 +56,7 @@ export function SocialLoginButtons({ callbackUrl, mode = "login" }: { callbackUr
         <div className="mt-2 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-xs leading-relaxed text-stone-600">
           <p className="font-semibold text-stone-700">🏪 판매자 회원 안내</p>
           <p className="mt-1">
-            판매자 계정은 SNS 로그인을 쓸 수 없어요. {mode === "login" ? "위의 이메일·비밀번호로 로그인해 주세요." : "판매자 회원가입에서 이메일로 가입해 주세요."}
+            판매자 계정은 SNS 로그인을 쓸 수 없어요. {mode === "login" ? "이메일·비밀번호로 로그인해 주세요." : "판매자 회원가입에서 이메일로 가입해 주세요."}
           </p>
         </div>
 

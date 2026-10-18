@@ -48,12 +48,14 @@ export default function CustomerSignupPage() {
   }
 
   return (
-    <div className="max-w-sm mx-auto px-6 py-16">
+    // PC(md 이상)에서는 왼쪽 이메일 폼 · 오른쪽 SNS 로그인을 가로로 배치, 모바일은 세로로 쌓는다
+    <div className="max-w-sm md:max-w-4xl mx-auto px-6 py-16">
       <div className="text-center mb-8">
         <p className="text-3xl mb-2">🌸</p>
         <h1 className="text-2xl font-bold text-stone-800">일반 사용자 회원가입</h1>
       </div>
 
+      <div className="md:grid md:grid-cols-2 md:gap-10 md:items-start">
       <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-stone-100 p-6 space-y-4">
         <div className="space-y-1.5">
           <Label className="text-xs text-stone-500">닉네임 * (2~12자, 중복 불가)</Label>
@@ -83,7 +85,10 @@ export default function CustomerSignupPage() {
         </p>
       </form>
 
-      <SocialLoginButtons callbackUrl="/account" mode="signup" />
+        <div>
+        <SocialLoginButtons callbackUrl="/account" mode="signup" />
+        </div>
+      </div>
     </div>
   )
 }

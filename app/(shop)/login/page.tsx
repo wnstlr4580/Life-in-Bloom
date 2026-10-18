@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 
 // 로그인 실패 사유 — lib/auth.ts의 signIn 콜백이 보낸 코드와 Auth.js 기본 오류 코드
 const LOGIN_ERRORS: Record<string, string> = {
-  SellerUseEmail: "판매자 계정은 SNS 로그인을 쓸 수 없어요. 위의 이메일·비밀번호로 로그인해 주세요.",
+  SellerUseEmail: "판매자 계정은 SNS 로그인을 쓸 수 없어요. 이메일·비밀번호로 로그인해 주세요.",
   SocialSignupFailed: "SNS 계정으로 가입하는 중 문제가 생겼어요. 잠시 후 다시 시도하거나 운영자에게 알려 주세요.",
   NoEmailFromProvider: "SNS 계정 정보를 받아오지 못했어요. 다시 시도하거나 이메일로 가입해 주세요.",
   AccessDenied: "로그인이 거부됐어요. 이용이 정지된 계정이거나, 네이버의 경우 멤버로 등록되지 않은 계정일 수 있어요. 필요하면 인생내꽃 운영자에게 연락해 주세요.",
@@ -53,12 +53,14 @@ function LoginContent() {
   }
 
   return (
-    <div className="max-w-sm mx-auto px-6 py-16">
+    // PC(md 이상)에서는 왼쪽 이메일 폼 · 오른쪽 SNS 로그인을 가로로 배치, 모바일은 세로로 쌓는다
+    <div className="max-w-sm md:max-w-4xl mx-auto px-6 py-16">
       <div className="text-center mb-8">
         <p className="text-3xl mb-2">🌸</p>
         <h1 className="text-2xl font-bold text-stone-800">로그인</h1>
       </div>
 
+      <div className="md:grid md:grid-cols-2 md:gap-10 md:items-start">
       <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-stone-100 p-6 space-y-4">
         <div className="space-y-1.5">
           <Label className="text-xs text-stone-500">이메일</Label>
@@ -80,7 +82,10 @@ function LoginContent() {
         </p>
       </form>
 
-      <SocialLoginButtons callbackUrl={callbackUrl} />
+        <div>
+        <SocialLoginButtons callbackUrl={callbackUrl} />
+        </div>
+      </div>
     </div>
   )
 }
