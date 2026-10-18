@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { signIn } from "next-auth/react"
-import { SocialLoginButtons } from "@/components/auth/SocialLoginButtons"
+import { SocialLoginButtons, SocialLoginNotices } from "@/components/auth/SocialLoginButtons"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -55,8 +55,8 @@ export default function CustomerSignupPage() {
         <h1 className="text-2xl font-bold text-stone-800">일반 사용자 회원가입</h1>
       </div>
 
-      <div className="md:grid md:grid-cols-2 md:gap-10 md:items-start">
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-stone-100 p-6 space-y-4">
+      <div className="md:grid md:grid-cols-2 md:gap-6">
+      <form onSubmit={handleSubmit} className="h-full bg-white rounded-2xl border border-stone-100 p-6 space-y-4">
         <div>
           <h2 className="text-sm font-bold text-stone-700">일반 회원가입</h2>
           <p className="mt-0.5 text-xs text-stone-400">이메일과 비밀번호로 가입해요</p>
@@ -89,10 +89,11 @@ export default function CustomerSignupPage() {
         </p>
       </form>
 
-        <div>
-        <SocialLoginButtons callbackUrl="/account" mode="signup" />
+        <div className="flex flex-col">
+          <SocialLoginButtons callbackUrl="/account" mode="signup" />
         </div>
       </div>
+      <SocialLoginNotices mode="signup" />
     </div>
   )
 }

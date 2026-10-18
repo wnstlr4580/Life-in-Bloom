@@ -3,7 +3,7 @@
 import { useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { signIn } from "next-auth/react"
-import { SocialLoginButtons } from "@/components/auth/SocialLoginButtons"
+import { SocialLoginButtons, SocialLoginNotices } from "@/components/auth/SocialLoginButtons"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -60,8 +60,8 @@ function LoginContent() {
         <h1 className="text-2xl font-bold text-stone-800">로그인</h1>
       </div>
 
-      <div className="md:grid md:grid-cols-2 md:gap-10 md:items-start">
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-stone-100 p-6 space-y-4">
+      <div className="md:grid md:grid-cols-2 md:gap-6">
+      <form onSubmit={handleSubmit} className="h-full bg-white rounded-2xl border border-stone-100 p-6 space-y-4">
         <div>
           <h2 className="text-sm font-bold text-stone-700">일반 로그인</h2>
           <p className="mt-0.5 text-xs text-stone-400">이메일과 비밀번호로 로그인해요 · 판매자 회원은 여기로</p>
@@ -86,10 +86,11 @@ function LoginContent() {
         </p>
       </form>
 
-        <div>
-        <SocialLoginButtons callbackUrl={callbackUrl} />
+        <div className="flex flex-col">
+          <SocialLoginButtons callbackUrl={callbackUrl} />
         </div>
       </div>
+      <SocialLoginNotices />
     </div>
   )
 }
