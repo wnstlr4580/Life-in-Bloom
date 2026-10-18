@@ -18,7 +18,7 @@ export default function SignupTypePage() {
             일반 사용자 회원가입 <ChevronRight size={18} className="text-stone-300 group-hover:text-rose-400" />
           </h2>
           <p className="text-sm text-stone-500 mt-2 leading-6">꽃을 구매하고 오행 추천, 리뷰, 포인트 서비스를 이용해요.</p>
-          <p className="text-xs text-rose-400 mt-4">이메일 · 카카오 · 구글</p>
+          <p className="text-xs text-rose-400 mt-4">이메일 · 카카오 · 네이버 · 구글</p>
         </Link>
         <Link href="/signup/seller" className="group bg-white rounded-3xl border border-stone-100 p-7 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-50 transition-all">
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center mb-5">

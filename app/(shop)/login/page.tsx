@@ -3,6 +3,7 @@
 import { useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { signIn } from "next-auth/react"
+import { SocialLoginButtons } from "@/components/auth/SocialLoginButtons"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,7 +19,7 @@ function LoginContent() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(
     searchParams.get("error") === "NoEmailFromProvider"
-      ? "카카오 계정이 이메일 제공에 동의하지 않아 로그인할 수 없어요. 아래 이메일/비밀번호로 로그인해주세요."
+      ? "소셜 계정에서 이메일 제공에 동의하지 않아 로그인할 수 없어요. 다시 시도해서 이메일 제공에 동의하거나 이메일로 가입해 주세요."
       : ""
   )
 
@@ -64,23 +65,7 @@ function LoginContent() {
         </p>
       </form>
 
-      <div className="flex items-center gap-3 my-6">
-        <div className="flex-1 h-px bg-stone-100" />
-        <span className="text-xs text-stone-400">또는</span>
-        <div className="flex-1 h-px bg-stone-100" />
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <Button onClick={() => signIn("kakao", { callbackUrl })} className="h-11 bg-[#FEE500] hover:bg-[#F5D800] text-stone-800 font-semibold">
-          카카오로 시작하기
-        </Button>
-        <p className="text-[11px] text-stone-400 text-center -mt-1">
-          카카오 계정이 이메일 제공에 동의하지 않으면 로그인이 안 될 수 있어요
-        </p>
-        <Button onClick={() => signIn("google", { callbackUrl })} variant="outline" className="h-11 font-semibold">
-          Google로 시작하기
-        </Button>
-      </div>
+      <SocialLoginButtons callbackUrl={callbackUrl} />
     </div>
   )
 }

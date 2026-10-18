@@ -1,6 +1,7 @@
 import NextAuth from "next-auth"
 import type { Provider } from "next-auth/providers"
 import KakaoProvider from "next-auth/providers/kakao"
+import NaverProvider from "next-auth/providers/naver"
 import GoogleProvider from "next-auth/providers/google"
 import CredentialsProvider from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
@@ -47,6 +48,19 @@ if (process.env.KAKAO_CLIENT_ID && process.env.KAKAO_CLIENT_SECRET) {
         url: "https://kauth.kakao.com/oauth/authorize",
         params: { scope: "profile_nickname profile_image account_email" },
       },
+    })
+  )
+}
+
+// 네이버: Naver Developers 애플리케이션의 Client ID/Secret.
+// 콘솔 [API 설정]에서 '이메일 주소'(필수)·'별명'·'프로필 사진'을 제공 정보로 선택하고,
+// Callback URL에 {배포도메인}/api/auth/callback/naver 를 등록해야 한다.
+// 검수 전(개발 중)에는 [멤버관리]에 등록한 네이버 아이디만 로그인된다.
+if (process.env.NAVER_CLIENT_ID && process.env.NAVER_CLIENT_SECRET) {
+  providers.push(
+    NaverProvider({
+      clientId: process.env.NAVER_CLIENT_ID,
+      clientSecret: process.env.NAVER_CLIENT_SECRET,
     })
   )
 }

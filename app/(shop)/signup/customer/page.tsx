@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { signIn } from "next-auth/react"
+import { SocialLoginButtons } from "@/components/auth/SocialLoginButtons"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -81,6 +82,8 @@ export default function CustomerSignupPage() {
           이미 계정이 있으신가요? <Link href="/login" className="text-rose-500 font-medium">로그인</Link>
         </p>
       </form>
+
+      <SocialLoginButtons callbackUrl="/account" />
     </div>
   )
 }
