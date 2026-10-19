@@ -214,7 +214,7 @@ export function calcCompat(a: PersonSaju, b: PersonSaju): CompatScore {
   // ── 커플 꽃 추천 ─────────────────────────────────────────
   const { flower, desc } = getCoupleFlower(a.mainOhaeng, b.mainOhaeng)
 
-  return {
+  const result: CompatScore = {
     ohaeng: o, stem: s, branch: br, sipseong,
     sipseongReverse: sipseongBA,
     total, stemRelation,
@@ -222,6 +222,29 @@ export function calcCompat(a: PersonSaju, b: PersonSaju): CompatScore {
     branchHarmonyCount: harmonyCount,
     coupleFlower: flower,
     coupleDesc: desc,
+  }
+  return applyShowcaseOverride(a, b, result)
+}
+
+// ── 발표 시연용 고정 결과 ─────────────────────────────────
+// "이영규" ♥ "농협" 조합은 입력 순서·생년월일과 관계없이 아래 점수로 보여준다.
+// 총점은 실제 가중치(0.3/0.2/0.3/0.2)로 다시 계산해 항목 점수와 어긋나지 않게 한다.
+const SHOWCASE_PAIR = ["이영규", "농협"]
+const SHOWCASE_SCORE = { ohaeng: 89, stem: 93, branch: 86, sipseong: 91 }
+
+function applyShowcaseOverride(a: PersonSaju, b: PersonSaju, r: CompatScore): CompatScore {
+  const names = [a.name.trim(), b.name.trim()].sort()
+  const target = [...SHOWCASE_PAIR].sort()
+  if (names[0] !== target[0] || names[1] !== target[1]) return r
+  const { ohaeng, stem, branch, sipseong } = SHOWCASE_SCORE
+  return {
+    ...r,
+    ohaeng, stem, branch,
+    sipseong: { ...r.sipseong, score: sipseong },
+    total: Math.round(ohaeng * 0.30 + stem * 0.20 + branch * 0.30 + sipseong * 0.20),
+    stemRelation: "합",
+    branchHarmonyCount: Math.max(r.branchHarmonyCount, 2),
+    branchClashCount: 0,
   }
 }
 
