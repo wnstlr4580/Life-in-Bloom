@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: "인생내꽃 — 꽃다발 공유",
       description: "AI로 만든 나만의 꽃다발이에요. 나도 만들어볼까요?",
-      images: post?.imageUrl ? [{ url: post.imageUrl }] : [],
+      images: [{ url: post?.imageUrl ?? "/og-image.png" }],
     },
   }
 }
